@@ -42,7 +42,7 @@ export default function ProfessorPage() {
 
   return (
     <main className={styles.stage}>
-      <section className={styles.phone}>
+      <section className={styles.workspace}>
         <header className={styles.header}>
           <div>
             <span className={styles.kicker}>M&M ACADEMIA</span>
@@ -56,7 +56,7 @@ export default function ProfessorPage() {
 
         <div className={styles.scrollArea}>
           {activeView === "home" && (
-            <>
+            <div className={styles.homeGrid}>
               <section className={styles.heroCard}>
                 <div className={styles.heroTop}>
                   <span className={styles.heroLabel}>PRÓXIMA CLASE</span>
@@ -80,7 +80,7 @@ export default function ProfessorPage() {
                 </div>
               </section>
 
-              <section>
+              <section className={styles.overviewSection}>
                 <div className={styles.sectionHeading}>
                   <div>
                     <span className={styles.smallLabel}>HOY</span>
@@ -107,7 +107,7 @@ export default function ProfessorPage() {
                 </div>
               </section>
 
-              <section>
+              <section className={styles.actionsSection}>
                 <div className={styles.sectionHeading}>
                   <div>
                     <span className={styles.smallLabel}>ACCIONES</span>
@@ -138,7 +138,7 @@ export default function ProfessorPage() {
                 </div>
               </section>
 
-              <section>
+              <section className={styles.agendaSection}>
                 <div className={styles.sectionHeading}>
                   <div>
                     <span className={styles.smallLabel}>AGENDA</span>
@@ -159,7 +159,7 @@ export default function ProfessorPage() {
                   ))}
                 </div>
               </section>
-            </>
+            </div>
           )}
 
           {activeView === "classes" && (
@@ -194,7 +194,7 @@ export default function ProfessorPage() {
               <div className={styles.panelIntro}>
                 <span className={styles.smallLabel}>ALUMNOS</span>
                 <h2>Tu grupo, a mano</h2>
-                <p>Búsqueda, datos esenciales y contacto rápido desde el teléfono.</p>
+                <p>Búsqueda, datos esenciales y contacto rápido desde cualquier dispositivo.</p>
               </div>
               <button className={styles.addButton}>
                 <Plus size={20} />
