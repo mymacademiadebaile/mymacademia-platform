@@ -361,7 +361,7 @@
   background: rgba(255, 255, 255, 0.96);
   border-top: 1px solid #eae4ee;
   display: grid;
-  grid-template-columns: 1fr 1fr 60px 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   align-items: center;
   backdrop-filter: blur(22px);
 }
@@ -387,17 +387,6 @@
 .bottomNav .navActive {
   color: #5b21b6;
   background: #f5effb;
-}
-
-.bottomNav .fab {
-  width: 52px;
-  height: 52px;
-  place-self: center;
-  border-radius: 18px;
-  background: #5b21b6;
-  color: white;
-  transform: translateY(-16px);
-  box-shadow: 0 13px 26px rgba(91, 33, 182, 0.32);
 }
 
 .contentPanel {
@@ -631,14 +620,6 @@
     flex: 0 0 auto;
   }
 
-  .bottomNav .fab {
-    width: 52px;
-    height: 52px;
-    order: 5;
-    transform: none;
-    margin-top: 10px;
-  }
-
   .homeGrid {
     grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
     gap: 18px 20px;
@@ -771,4 +752,71 @@
   .actionsGrid button {
     transition: none;
   }
+}
+
+
+.loadingState,
+.errorState {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  text-align: center;
+  color: #6d28d9;
+}
+
+.errorState span {
+  color: #756b80;
+  font-size: 13px;
+}
+
+.errorState button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #5b21b6;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.emptyState {
+  padding: 22px;
+  color: #7b7281;
+  font-size: 12px;
+  text-align: center;
+}
+
+.profileInfoRow {
+  min-height: 68px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid #f0ebf3;
+}
+
+.profileInfoRow:last-child {
+  border-bottom: 0;
+}
+
+.profileInfoRow > svg {
+  color: #6d28d9;
+  flex: 0 0 auto;
+}
+
+.profileInfoRow > span {
+  display: grid;
+  gap: 3px;
+}
+
+.profileInfoRow strong {
+  font-size: 12px;
+}
+
+.profileInfoRow small {
+  color: #7c7284;
+  font-size: 10px;
 }

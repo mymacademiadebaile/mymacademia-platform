@@ -3,10 +3,8 @@
 import {
   BarChart3,
   Bell,
-  BookOpenCheck,
   CalendarDays,
   ClipboardList,
-  ChevronLeft,
   CircleUserRound,
   CreditCard,
   LayoutDashboard,
@@ -107,15 +105,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className={styles.sidebarBottom}>
-          <Link href="/professor" className={styles.professorPreview}>
-            <BookOpenCheck size={18} />
-            <span>
-              <strong>Vista profesor</strong>
-              <small>Abrir experiencia del profesor</small>
-            </span>
-            <ChevronLeft size={16} />
-          </Link>
-
           <Link href="/admin/profile" className={styles.adminIdentity}>
             <span className={styles.adminAvatar}>
               {(user?.firstName?.[0] ?? "A").toUpperCase()}
@@ -127,8 +116,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <button
-            className={styles.professorPreview}
-            style={{ width: "100%", color: "inherit", cursor: "pointer" }}
+            className={styles.logoutButton}
             onClick={() => void logout()}
           >
             <LogOut size={18} />

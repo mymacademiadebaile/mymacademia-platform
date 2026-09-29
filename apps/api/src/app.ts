@@ -9,6 +9,7 @@ import { apiRateLimiter } from "./middleware/rate-limit";
 import { authRouter } from "./modules/auth/auth.routes";
 import { healthRouter } from "./modules/health/health.routes";
 import { adminRouter } from "./modules/admin/admin.routes";
+import { professorPortalRouter } from "./modules/professor-portal/professor.routes";
 
 export function createApp() {
   const app = express();
@@ -34,6 +35,7 @@ export function createApp() {
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/admin", adminRouter);
+  app.use("/api/professor", professorPortalRouter);
 
   app.use((_request, response) => {
     response.status(404).json({

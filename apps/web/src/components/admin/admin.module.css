@@ -17,8 +17,8 @@
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 270px;
-  padding: 18px 14px;
+  width: 224px;
+  padding: 12px 10px;
   background: #211529;
   color: white;
   display: flex;
@@ -36,13 +36,13 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 2px 6px 16px;
+  gap: 9px;
+  padding: 2px 5px 10px;
 }
 
 .brandLogo {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   flex: 0 0 auto;
   filter: drop-shadow(0 0 12px rgba(139, 92, 246, .2));
@@ -58,33 +58,33 @@
 }
 
 .brand strong {
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .brand small {
   margin-top: 2px;
   color: #bfb4c7;
-  font-size: 10px;
+  font-size: 8px;
   text-transform: uppercase;
   letter-spacing: .12em;
 }
 
 .nav {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   overflow-y: auto;
   scrollbar-width: thin;
 }
 
 .navItem,
 .navItemActive {
-  min-height: 43px;
+  min-height: 38px;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 0 13px;
-  border-radius: 13px;
-  font-size: 12px;
+  gap: 9px;
+  padding: 0 11px;
+  border-radius: 11px;
+  font-size: 11px;
   font-weight: 700;
   color: #c9bfce;
   transition: 160ms ease;
@@ -104,8 +104,8 @@
 .sidebarBottom {
   margin-top: auto;
   display: grid;
-  gap: 8px;
-  padding-top: 10px;
+  gap: 5px;
+  padding-top: 8px;
 }
 
 .professorPreview {
@@ -171,7 +171,7 @@
 }
 
 .main {
-  margin-left: 270px;
+  margin-left: 224px;
   min-height: 100dvh;
 }
 
@@ -267,7 +267,7 @@
   .sidebar {
     transform: translateX(-105%);
     transition: transform 180ms ease;
-    width: 280px;
+    width: 250px;
   }
 
   .sidebar[data-open="true"] {
@@ -304,4 +304,46 @@
   .profileShortcut span {
     display: none;
   }
+}
+
+
+.brandLogo {
+  border-radius: 50%;
+  background: #08060a;
+  padding: 1px;
+  object-position: center;
+}
+
+.logoutButton {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 11px;
+  background: rgba(255,255,255,.035);
+  color: #c9bfce;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.logoutButton:hover {
+  color: white;
+  background: rgba(255,255,255,.07);
+}
+
+.logoutButton span {
+  display: grid;
+  gap: 1px;
+}
+
+.logoutButton strong {
+  font-size: 9px;
+}
+
+.logoutButton small {
+  color: #9f94a7;
+  font-size: 7px;
 }
