@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
@@ -15,10 +15,25 @@ export type AuthUser = {
   branchIds: string[];
 };
 
-const AuthUserContext = createContext<AuthUser | null>(null);
+type AuthSession = {
+  user: AuthUser;
+  refreshUser: () => Promise<AuthUser>;
+};
+
+const AuthSessionContext = createContext<AuthSession | null>(null);
 
 export function useAuthUser() {
-  return useContext(AuthUserContext);
+  return useContext(AuthSessionContext)?.user ?? null;
+}
+
+export function useAuthSession() {
+  const context = useContext(AuthSessionContext);
+
+  if (!context) {
+    throw new Error("useAuthSession must be used inside AuthGate");
+  }
+
+  return context;
 }
 
 export function AuthGate({
@@ -34,6 +49,12 @@ export function AuthGate({
   const rolesKey = useMemo(() => roles.join("|"), [roles]);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [ready, setReady] = useState(false);
+
+  const refreshUser = useCallback(async () => {
+    const response = await apiFetch<{ user: AuthUser }>("/auth/me");
+    setUser(response.user);
+    return response.user;
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -82,5 +103,9 @@ export function AuthGate({
     );
   }
 
-  return <AuthUserContext.Provider value={user}>{children}</AuthUserContext.Provider>;
+  return (
+    <AuthSessionContext.Provider value={{ user, refreshUser }}>
+      {children}
+    </AuthSessionContext.Provider>
+  );
 }

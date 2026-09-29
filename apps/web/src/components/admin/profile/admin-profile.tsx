@@ -15,6 +15,8 @@ import {
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/admin/admin-ui";
+import { useAuthSession } from "@/components/auth/auth-gate";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import { apiFetch, apiMessage } from "@/lib/api";
 import styles from "./admin-profile.module.css";
 
@@ -46,12 +48,13 @@ type ProfileData = {
 
 export function AdminProfile() {
   const router = useRouter();
+  const { refreshUser } = useAuthSession();
+  const { toast, confirm } = useAdminFeedback();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,7 +78,6 @@ export function AdminProfile() {
     const form = new FormData(event.currentTarget);
     setSaving(true);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch("/admin/profile", {
@@ -88,9 +90,8 @@ export function AdminProfile() {
         })
       });
 
-      setNotice("Tus datos se guardaron correctamente.");
-      await load();
-      router.refresh();
+      await Promise.all([load(), refreshUser()]);
+      toast("Tus datos se guardaron correctamente");
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
@@ -106,10 +107,19 @@ export function AdminProfile() {
 
     setChangingPassword(true);
     setError("");
-    setNotice("");
 
     if (newPassword !== confirmPassword) {
       setError("La confirmación de la contraseña no coincide.");
+      setChangingPassword(false);
+      return;
+    }
+
+    const approved = await confirm({
+      title: "Cambiar contraseña",
+      description: "Al confirmar se cerrará tu sesión y tendrás que volver a ingresar con la nueva contraseña.",
+      confirmLabel: "Cambiar contraseña"
+    });
+    if (!approved) {
       setChangingPassword(false);
       return;
     }
@@ -125,7 +135,6 @@ export function AdminProfile() {
 
       await apiFetch<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
       router.replace("/login?passwordChanged=1");
-      router.refresh();
     } catch (requestError) {
       setError(apiMessage(requestError));
       setChangingPassword(false);
@@ -169,7 +178,6 @@ export function AdminProfile() {
       />
 
       {error && <div className={styles.errorBox}><strong>Revisá esta operación</strong><span>{error}</span></div>}
-      {notice && <div className={styles.notice}><Check size={17} /> {notice}</div>}
 
       <section className={styles.hero}>
         <span className={styles.avatar}>{initials}</span>

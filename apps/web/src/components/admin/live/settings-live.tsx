@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Building2, Check, Edit3, Mail, MessageCircle, Plus, Power, UserRound } from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { Branch } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
@@ -23,6 +24,7 @@ type SettingsData = {
 };
 
 export function SettingsLive() {
+  const { toast, confirm } = useAdminFeedback();
   const [data, setData] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,7 +32,6 @@ export function SettingsLive() {
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [branchSaving, setBranchSaving] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -54,7 +55,6 @@ export function SettingsLive() {
     const form = new FormData(event.currentTarget);
     setSaving(true);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch("/admin/settings", {
@@ -68,7 +68,7 @@ export function SettingsLive() {
           timezone: form.get("timezone")
         })
       });
-      setNotice("Configuración general guardada.");
+      toast("Configuración general guardada");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -92,7 +92,6 @@ export function SettingsLive() {
     const form = new FormData(event.currentTarget);
     setBranchSaving(true);
     setError("");
-    setNotice("");
 
     try {
       const body = JSON.stringify({
@@ -105,13 +104,13 @@ export function SettingsLive() {
           method: "PATCH",
           body
         });
-        setNotice("Sede actualizada.");
+        toast("Sede actualizada");
       } else {
         await apiFetch("/admin/branches", {
           method: "POST",
           body
         });
-        setNotice("Sede creada.");
+        toast("Sede creada");
       }
 
       setBranchModal(false);
@@ -125,20 +124,24 @@ export function SettingsLive() {
   }
 
   async function toggleBranch(branch: Branch) {
-    const confirmed = window.confirm(
-      `¿Querés ${branch.isActive ? "desactivar" : "activar"} la sede ${branch.name}?`
-    );
-    if (!confirmed) return;
+    const approved = await confirm({
+      title: branch.isActive ? "Desactivar sede" : "Activar sede",
+      description: branch.isActive
+        ? "La sede " + branch.name + " dejará de estar disponible para nuevas operaciones."
+        : "La sede " + branch.name + " volverá a estar disponible.",
+      confirmLabel: branch.isActive ? "Desactivar" : "Activar",
+      tone: branch.isActive ? "danger" : "default"
+    });
+    if (!approved) return;
 
     setError("");
-    setNotice("");
 
     try {
       await apiFetch(`/admin/branches/${branch._id}`, {
         method: "PATCH",
         body: JSON.stringify({ isActive: !branch.isActive })
       });
-      setNotice(`Sede ${branch.isActive ? "desactivada" : "activada"}.`);
+      toast("Sede " + (branch.isActive ? "desactivada" : "activada"));
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -159,7 +162,6 @@ export function SettingsLive() {
       {data && (
         <>
           <form className={styles.card} onSubmit={save}>
-            {notice && <div className={styles.notice}>{notice}</div>}
             <div className={styles.communicationHeader}>
               <div>
                 <span className={styles.cardLabel}>DATOS GENERALES</span>

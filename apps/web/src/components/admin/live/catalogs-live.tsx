@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { CatalogItem } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
@@ -34,12 +35,12 @@ const groups = [
 ];
 
 export function CatalogsLive() {
+  const { toast, confirm } = useAdminFeedback();
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<CatalogItem | null>(null);
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -75,7 +76,6 @@ export function CatalogsLive() {
     if (!name) return;
 
     setError("");
-    setNotice("");
 
     try {
       await apiFetch<CatalogItem>("/admin/catalogs", {
@@ -87,7 +87,7 @@ export function CatalogsLive() {
         })
       });
       setValues((current) => ({ ...current, [type]: "" }));
-      setNotice("Opción agregada.");
+      toast("Opción agregada");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -101,7 +101,6 @@ export function CatalogsLive() {
     const form = new FormData(event.currentTarget);
     setBusyId(editing._id);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch<CatalogItem>(`/admin/catalogs/${editing._id}`, {
@@ -109,7 +108,7 @@ export function CatalogsLive() {
         body: JSON.stringify({ name: form.get("name") })
       });
       setEditing(null);
-      setNotice("Nombre actualizado.");
+      toast("Nombre actualizado");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -123,20 +122,21 @@ export function CatalogsLive() {
     let confirmInUse = false;
 
     if (item.isActive && usage > 0) {
-      confirmInUse = window.confirm(
-        `"${item.name}" está en uso por ${item.usage?.classes ?? 0} clase(s)` +
-          (item.usage?.professors
-            ? ` y ${item.usage.professors} profesor(es)`
-            : "") +
-          ". Desactivarla no borra referencias existentes, pero dejará de estar disponible para nuevas selecciones. ¿Continuar?"
-      );
+      confirmInUse = await confirm({
+        title: "Desactivar opción en uso",
+        description:
+          '"' + item.name + '" está en uso por ' + (item.usage?.classes ?? 0) + " clase(s)" +
+          (item.usage?.professors ? " y " + item.usage.professors + " profesor(es)" : "") +
+          ". Las referencias actuales se conservan, pero ya no estará disponible para nuevas selecciones.",
+        confirmLabel: "Desactivar",
+        tone: "danger"
+      });
 
       if (!confirmInUse) return;
     }
 
     setBusyId(item._id);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch<CatalogItem>(`/admin/catalogs/${item._id}`, {
@@ -146,7 +146,7 @@ export function CatalogsLive() {
           confirmInUse
         })
       });
-      setNotice(item.isActive ? "Opción desactivada." : "Opción activada.");
+      toast(item.isActive ? "Opción desactivada" : "Opción activada");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -169,7 +169,6 @@ export function CatalogsLive() {
     [current[index], current[target]] = [current[target], current[index]];
     setBusyId(item._id);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch("/admin/catalogs/reorder", {
@@ -179,7 +178,7 @@ export function CatalogsLive() {
           orderedIds: current.map((candidate) => candidate._id)
         })
       });
-      setNotice("Orden actualizado.");
+      toast("Orden actualizado");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -196,7 +195,6 @@ export function CatalogsLive() {
         description="Administrá las opciones que usan clases y profesores, sin texto libre."
       />
 
-      {notice && <div className={styles.notice}>{notice}</div>}
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 

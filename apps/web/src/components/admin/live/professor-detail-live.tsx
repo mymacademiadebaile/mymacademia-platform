@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   CalendarDays,
   Camera,
-  Check,
   KeyRound,
   Mail,
   MapPin,
@@ -18,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { Branch, CatalogItem, DanceClass, Professor } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./professor-detail.module.css";
@@ -40,6 +40,7 @@ function disciplineName(value: CatalogItem | string) {
 
 export function ProfessorDetailLive({ id }: { id: string }) {
   const router = useRouter();
+  const { toast, confirm } = useAdminFeedback();
   const [data, setData] = useState<ProfessorDetail | null>(null);
   const [allBranches, setAllBranches] = useState<Branch[]>([]);
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
@@ -48,7 +49,6 @@ export function ProfessorDetailLive({ id }: { id: string }) {
   const [mediaBusy, setMediaBusy] = useState<"avatar" | "video" | "">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     setError("");
@@ -82,7 +82,6 @@ export function ProfessorDetailLive({ id }: { id: string }) {
     const form = new FormData(event.currentTarget);
     setBusy(true);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch(`/admin/professors/${id}`, {
@@ -100,7 +99,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
         })
       });
       setEditing(false);
-      setNotice("Perfil del profesor actualizado.");
+      toast("Perfil del profesor actualizado");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -111,6 +110,17 @@ export function ProfessorDetailLive({ id }: { id: string }) {
 
   async function toggleActive() {
     if (!data) return;
+
+    const approved = await confirm({
+      title: data.professor.isActive ? "Inactivar profesor" : "Reactivar profesor",
+      description: data.professor.isActive
+        ? "El profesor dejará de estar disponible para nuevas asignaciones. Sus datos e historial se conservan."
+        : "El profesor volverá a estar disponible para asignaciones.",
+      confirmLabel: data.professor.isActive ? "Inactivar" : "Reactivar",
+      tone: data.professor.isActive ? "danger" : "default"
+    });
+    if (!approved) return;
+
     setBusy(true);
     setError("");
 
@@ -119,7 +129,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
         method: "PATCH",
         body: JSON.stringify({ isActive: !data.professor.isActive })
       });
-      setNotice(data.professor.isActive ? "Profesor inactivado." : "Profesor reactivado.");
+      toast(data.professor.isActive ? "Profesor inactivado" : "Profesor reactivado");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -135,14 +145,13 @@ export function ProfessorDetailLive({ id }: { id: string }) {
     form.append("file", file);
     setMediaBusy(kind === "avatar" ? "avatar" : "video");
     setError("");
-    setNotice("");
 
     try {
       await apiFetch(`/admin/professors/${id}/${kind}`, {
         method: "POST",
         body: form
       });
-      setNotice(kind === "avatar" ? "Foto actualizada." : "Video de presentación actualizado.");
+      toast(kind === "avatar" ? "Foto actualizada" : "Video de presentación actualizado");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -152,22 +161,24 @@ export function ProfessorDetailLive({ id }: { id: string }) {
   }
 
   async function removeMedia(kind: "avatar" | "intro-video") {
-    const confirmed = window.confirm(
-      kind === "avatar"
-        ? "¿Querés quitar la foto del profesor?"
-        : "¿Querés quitar el video de presentación?"
-    );
-    if (!confirmed) return;
+    const approved = await confirm({
+      title: kind === "avatar" ? "Quitar foto" : "Quitar video",
+      description: kind === "avatar"
+        ? "La foto se quitará del perfil del profesor."
+        : "El video de presentación se quitará del perfil del profesor.",
+      confirmLabel: "Quitar",
+      tone: "danger"
+    });
+    if (!approved) return;
 
     setMediaBusy(kind === "avatar" ? "avatar" : "video");
     setError("");
-    setNotice("");
 
     try {
       await apiFetch<void>(`/admin/professors/${id}/${kind}`, {
         method: "DELETE"
       });
-      setNotice(kind === "avatar" ? "Foto eliminada." : "Video eliminado.");
+      toast(kind === "avatar" ? "Foto eliminada" : "Video eliminado");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -179,19 +190,21 @@ export function ProfessorDetailLive({ id }: { id: string }) {
   async function deleteProfessor() {
     if (!data) return;
 
-    const confirmed = window.confirm(
-      `¿Eliminar definitivamente a ${data.professor.displayName}? Esta acción sólo se permitirá si no tiene clases vinculadas.`
-    );
-    if (!confirmed) return;
+    const approved = await confirm({
+      title: "Eliminar profesor",
+      description: "Se intentará eliminar definitivamente a " + data.professor.displayName + ". Sólo se permitirá si no tiene clases vinculadas.",
+      confirmLabel: "Eliminar",
+      tone: "danger"
+    });
+    if (!approved) return;
 
     setBusy(true);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch<void>(`/admin/professors/${id}`, { method: "DELETE" });
+      toast("Profesor eliminado");
       router.replace("/admin/professors");
-      router.refresh();
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
@@ -219,7 +232,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
         body: JSON.stringify({ newPassword })
       });
       setPasswordModal(false);
-      setNotice("Contraseña del profesor actualizada.");
+      toast("Contraseña del profesor actualizada");
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
@@ -251,7 +264,6 @@ export function ProfessorDetailLive({ id }: { id: string }) {
       />
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
-      {notice && <div className={styles.notice}><Check size={16} /> {notice}</div>}
 
       <section className={styles.hero}>
         {professor.avatarUrl ? (

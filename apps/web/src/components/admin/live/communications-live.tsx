@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { DanceClass, Paginated, Student } from "./live-types";
 import { ErrorBlock, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
@@ -40,6 +41,7 @@ type HistoryItem = {
 };
 
 export function CommunicationsLive() {
+  const { toast, confirm } = useAdminFeedback();
   const [channel, setChannel] = useState<"EMAIL" | "WHATSAPP">("EMAIL");
   const [audience, setAudience] = useState<EmailAudience>("ALL");
   const [classId, setClassId] = useState("");
@@ -54,7 +56,6 @@ export function CommunicationsLive() {
   const [recipientSample, setRecipientSample] = useState<Array<{ id: string; name: string; email?: string }>>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [sending, setSending] = useState(false);
   const [retryingId, setRetryingId] = useState("");
 
@@ -146,15 +147,16 @@ export function CommunicationsLive() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Vas a enviar este email a ${recipientCount ?? "los"} destinatarios. ¿Continuar?`
-    );
+    const approved = await confirm({
+      title: "Confirmar envío",
+      description: "Vas a enviar este email a " + (recipientCount ?? "los") + " destinatarios.",
+      confirmLabel: "Enviar email"
+    });
 
-    if (!confirmed) return;
+    if (!approved) return;
 
     setSending(true);
     setError("");
-    setNotice("");
 
     try {
       const result = await apiFetch<{ recipients: number; sent: number; failed: number }>(
@@ -170,9 +172,11 @@ export function CommunicationsLive() {
         }
       );
 
-      setNotice(
-        `Envío terminado: ${result.sent} enviados, ${result.failed} fallidos sobre ${result.recipients} destinatarios.`
-      );
+      toast({
+        title: "Envío terminado",
+        description: result.sent + " enviados, " + result.failed + " fallidos sobre " + result.recipients + " destinatarios.",
+        tone: result.failed > 0 ? "warning" : "success"
+      });
       event.currentTarget.reset();
       await Promise.all([loadHistory(), loadPreview()]);
     } catch (requestError) {
@@ -189,7 +193,6 @@ export function CommunicationsLive() {
     const message = String(form.get("message") ?? "");
 
     setError("");
-    setNotice("");
 
     try {
       const result = await apiFetch<{ url: string }>("/admin/communications/whatsapp", {
@@ -202,7 +205,7 @@ export function CommunicationsLive() {
       });
 
       window.open(result.url, "_blank", "noopener,noreferrer");
-      setNotice("WhatsApp abierto y registrado en el historial.");
+      toast("WhatsApp abierto y registrado en el historial");
       await loadHistory();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -212,13 +215,12 @@ export function CommunicationsLive() {
   async function retryEmail(id: string) {
     setRetryingId(id);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch(`/admin/communications/history/${id}/retry`, {
         method: "POST"
       });
-      setNotice("Email reenviado correctamente.");
+      toast("Email reenviado correctamente");
       await loadHistory();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -236,7 +238,6 @@ export function CommunicationsLive() {
       />
 
       {error && <ErrorBlock message={error} onRetry={() => setError("")} />}
-      {notice && <div className={styles.notice}>{notice}</div>}
 
       <div className={styles.liveGrid3} style={{ gridTemplateColumns: "1fr 1fr" }}>
         <button
