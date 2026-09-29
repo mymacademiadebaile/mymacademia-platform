@@ -3,7 +3,7 @@ import { env } from "../config/env";
 import { AppError } from "../common/http/app-error";
 
 function createTransporter() {
-  if (!env.GMAIL_USER || !env.GMAIL_APP_PASSWORD) {
+  if (!env.SMTP_USER || !env.SMTP_PASSWORD) {
     throw new AppError(
       503,
       "Email service is not configured",
@@ -12,10 +12,12 @@ function createTransporter() {
   }
 
   return nodemailer.createTransport({
-    service: "gmail",
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE,
     auth: {
-      user: env.GMAIL_USER,
-      pass: env.GMAIL_APP_PASSWORD
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASSWORD
     }
   });
 }
@@ -31,7 +33,7 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
   const transporter = createTransporter();
 
   await transporter.sendMail({
-    from: env.MAIL_FROM ?? env.GMAIL_USER,
+    from: `"${env.MAIL_FROM_NAME}" <${env.SMTP_USER}>`,
     to: input.to,
     subject: input.subject,
     text: input.text,

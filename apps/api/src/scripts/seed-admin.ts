@@ -4,6 +4,8 @@ import { connectDatabase, disconnectDatabase } from "../database/connect";
 import { OrganizationModel } from "../modules/core/organization.model";
 import { BranchModel } from "../modules/core/branch.model";
 import { UserModel } from "../modules/auth/user.model";
+import { CatalogItemModel } from "../modules/catalogs/catalog.model";
+import type { CatalogType } from "@mym/shared";
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -15,21 +17,96 @@ function required(name: string): string {
   return value;
 }
 
+function normalizeName(name: string): string {
+  return name.trim().toLocaleLowerCase("es-AR");
+}
+
+const DEFAULT_CATALOGS: Array<{
+  type: CatalogType;
+  values: string[];
+}> = [
+  {
+    type: "DISCIPLINE",
+    values: [
+      "Reggaetón",
+      "Urbano",
+      "Hip Hop",
+      "Bachata",
+      "Salsa",
+      "Jazz",
+      "Contemporáneo",
+      "K-Pop",
+      "Heels",
+      "Ritmos Latinos",
+      "Tango",
+      "Folklore"
+    ]
+  },
+  {
+    type: "SEGMENT",
+    values: ["Infantil", "Adolescentes", "Adultos"]
+  },
+  {
+    type: "LEVEL",
+    values: ["Inicial", "Intermedio", "Avanzado"]
+  }
+];
+
+async function seedCatalogs(organizationId: unknown) {
+  let created = 0;
+  let updated = 0;
+
+  for (const group of DEFAULT_CATALOGS) {
+    for (const [sortOrder, name] of group.values.entries()) {
+      const normalizedName = normalizeName(name);
+
+      const result = await CatalogItemModel.updateOne(
+        {
+          organizationId,
+          type: group.type,
+          normalizedName
+        },
+        {
+          $set: {
+            name,
+            isActive: true,
+            sortOrder
+          },
+          $setOnInsert: {
+            organizationId,
+            type: group.type,
+            normalizedName
+          }
+        },
+        { upsert: true }
+      );
+
+      if (result.upsertedCount > 0) {
+        created += 1;
+      } else if (result.modifiedCount > 0) {
+        updated += 1;
+      }
+    }
+  }
+
+  return { created, updated };
+}
+
 async function seed() {
   await connectDatabase();
 
-  const email = required("ADMIN_EMAIL").toLowerCase();
+  const email = (
+    process.env.ADMIN_EMAIL?.trim() ||
+    process.env.SMTP_USER?.trim() ||
+    "mymacademiadebaile@gmail.com"
+  ).toLowerCase();
   const password = required("ADMIN_PASSWORD");
-  const academyName = process.env.ACADEMY_NAME?.trim() || "M&M Academia de Baile";
-  const academySlug = process.env.ACADEMY_SLUG?.trim() || "mym-academia";
-  const branchName = process.env.BRANCH_NAME?.trim() || "La Plata";
-  const branchAddress = process.env.BRANCH_ADDRESS?.trim() || "Calle 35 entre 3 y 4, La Plata";
 
   const organization = await OrganizationModel.findOneAndUpdate(
-    { slug: academySlug },
+    { slug: "mym-academia" },
     {
       $set: {
-        name: academyName,
+        name: "M&M Academia de Baile",
         email,
         timezone: "America/Argentina/Buenos_Aires",
         isActive: true
@@ -39,10 +116,10 @@ async function seed() {
   );
 
   const branch = await BranchModel.findOneAndUpdate(
-    { organizationId: organization._id, name: branchName },
+    { organizationId: organization._id, name: "La Plata" },
     {
       $set: {
-        address: branchAddress,
+        address: "Calle 35 entre 3 y 4, La Plata",
         isActive: true
       }
     },
@@ -56,8 +133,8 @@ async function seed() {
   });
 
   if (existingAdmin) {
-    existingAdmin.firstName = process.env.ADMIN_FIRST_NAME?.trim() || "Admin";
-    existingAdmin.lastName = process.env.ADMIN_LAST_NAME?.trim() || "M&M";
+    existingAdmin.firstName = "Admin";
+    existingAdmin.lastName = "M&M";
     existingAdmin.role = "ADMIN";
     existingAdmin.branchIds = [branch._id];
     existingAdmin.isActive = true;
@@ -69,16 +146,19 @@ async function seed() {
       branchIds: [branch._id],
       email,
       passwordHash,
-      firstName: process.env.ADMIN_FIRST_NAME?.trim() || "Admin",
-      lastName: process.env.ADMIN_LAST_NAME?.trim() || "M&M",
+      firstName: "Admin",
+      lastName: "M&M",
       role: "ADMIN",
       isActive: true
     });
   }
 
+  const catalogs = await seedCatalogs(organization._id);
+
   console.log(`Admin ready: ${email}`);
   console.log(`Organization: ${organization.name}`);
   console.log(`Branch: ${branch.name}`);
+  console.log(`Catalogs: ${catalogs.created} created, ${catalogs.updated} updated`);
 }
 
 seed()

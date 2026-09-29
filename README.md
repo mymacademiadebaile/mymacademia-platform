@@ -19,7 +19,7 @@ La experiencia de profesores se diseña **mobile-first** y con comportamiento de
 
 El envío de correos se realiza con **Nodemailer + Gmail**. No se usa Resend.
 
-Para desarrollo/producción se debe configurar una contraseña de aplicación de Google en `GMAIL_APP_PASSWORD`. Nunca guardar credenciales reales en el repositorio.
+Para desarrollo/producción se usa SMTP de Gmail mediante `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER` y `SMTP_PASSWORD`. `SMTP_PASSWORD` debe ser una contraseña de aplicación de Google. Nunca guardar credenciales reales en el repositorio.
 
 ## Desarrollo local
 
@@ -44,3 +44,10 @@ Incluye gestión de profesores, alumnos, clases, horarios, catálogos maestros, 
 No incluye en V1: asistencia digital, lista de espera, Mercado Pago, clases de prueba, CRM de interesados, portal del alumno ni apps nativas.
 
 Ver `docs/functional-scope.md`.
+
+
+## Variables de entorno
+
+La API valida desde `apps/api/src/config/env.ts` únicamente la configuración necesaria para runtime: aplicación, MongoDB, JWT, rate limit, Cloudinary y SMTP. El seed inicial usa además `ADMIN_PASSWORD`; el email del administrador se toma de `SMTP_USER`.
+
+Las variables antiguas `GMAIL_USER`, `GMAIL_APP_PASSWORD` y `MAIL_FROM` no se utilizan. La configuración de Gmail se centraliza en las variables `SMTP_*` y `MAIL_FROM_NAME`.
