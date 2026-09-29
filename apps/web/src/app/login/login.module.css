@@ -1,0 +1,259 @@
+.page {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(420px, .9fr);
+  background: #f7f4f9;
+  color: #261b2f;
+}
+
+.visual {
+  min-height: 100dvh;
+  padding: clamp(36px, 6vw, 80px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  color: white;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(167,139,250,.32), transparent 28rem),
+    radial-gradient(circle at 88% 80%, rgba(192,132,252,.18), transparent 28rem),
+    linear-gradient(145deg, #25122f, #4c1d95 56%, #6d28d9);
+}
+
+.visual::after {
+  content: "";
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  right: -150px;
+  top: -110px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 0 0 60px rgba(255,255,255,.025), 0 0 0 120px rgba(255,255,255,.018);
+}
+
+.brandMark {
+  width: 62px;
+  height: 62px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: white;
+  color: #4c1d95;
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -.08em;
+}
+
+.kicker {
+  margin-top: 30px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .18em;
+  color: #d8c7fb;
+}
+
+.visual h1 {
+  max-width: 720px;
+  margin: 12px 0 18px;
+  font-size: clamp(42px, 6vw, 76px);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+
+.visual > p {
+  max-width: 570px;
+  margin: 0;
+  color: #ddd3e8;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.visualCard {
+  width: min(420px, 100%);
+  margin-top: 44px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px;
+  background: rgba(255,255,255,.07);
+  backdrop-filter: blur(16px);
+}
+
+.visualCard strong,
+.visualCard span {
+  display: block;
+}
+
+.visualCard strong {
+  font-size: 13px;
+}
+
+.visualCard span {
+  margin-top: 5px;
+  color: #d6ccdf;
+  font-size: 11px;
+}
+
+.loginPanel {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.form {
+  width: min(430px, 100%);
+  padding: 34px;
+  border: 1px solid #e9e1ee;
+  border-radius: 28px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 24px 70px rgba(50,28,61,.08);
+}
+
+.mobileBrand {
+  display: none;
+}
+
+.form .kicker {
+  color: #6d28d9;
+  margin: 0;
+}
+
+.form h2 {
+  margin: 9px 0 7px;
+  font-size: 31px;
+  letter-spacing: -.04em;
+}
+
+.form > p {
+  margin: 0 0 24px;
+  color: #7e7485;
+  font-size: 12px;
+}
+
+.form label {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.form label > span {
+  color: #625868;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.field {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  border: 1px solid #e3dbe8;
+  border-radius: 14px;
+  background: white;
+  color: #807587;
+}
+
+.field:focus-within {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(124,58,237,.08);
+}
+
+.field input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #2d2235;
+}
+
+.field button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #756b7d;
+  cursor: pointer;
+}
+
+.error {
+  margin-top: 14px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.submit {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #5b21b6, #7c3aed);
+  color: white;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(91,33,182,.2);
+}
+
+.submit:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.footerText {
+  display: block;
+  margin-top: 16px;
+  text-align: center;
+  color: #9a919e;
+  font-size: 9px;
+}
+
+@media (max-width: 860px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .visual {
+    display: none;
+  }
+
+  .loginPanel {
+    padding: 18px;
+    background:
+      radial-gradient(circle at 15% 5%, rgba(124,58,237,.14), transparent 22rem),
+      #f7f4f9;
+  }
+
+  .form {
+    padding: 28px 22px;
+  }
+
+  .mobileBrand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 28px;
+  }
+
+  .mobileBrand .brandMark {
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+    background: #4c1d95;
+    color: white;
+    font-size: 13px;
+  }
+
+  .mobileBrand strong {
+    font-size: 14px;
+  }
+}
