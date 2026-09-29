@@ -20,12 +20,14 @@ export type Professor = {
   bio?: string;
   instagram?: string;
   avatarUrl?: string;
+  disciplineIds: Array<CatalogItem | string>;
   isActive: boolean;
   userId?: {
     _id: string;
     firstName: string;
     lastName: string;
     email: string;
+    phone?: string;
     branchIds: string[];
     role: string;
     isActive: boolean;
@@ -66,9 +68,7 @@ export type DanceClass = {
 export type Payment = {
   _id: string;
   branchId: string;
-  studentId:
-    | Student
-    | string;
+  studentId: Student | string;
   concept: string;
   period: string;
   amount: number;

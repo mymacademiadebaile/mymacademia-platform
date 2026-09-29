@@ -1,42 +1,208 @@
-import { Router } from "express";
 import bcrypt from "bcryptjs";
+import { Router } from "express";
+import { Types } from "mongoose";
 import { z } from "zod";
+import { AppError } from "../../common/http/app-error";
+import { AuditLogModel } from "../audit/audit-log.model";
 import { UserModel } from "../auth/user.model";
+import { CatalogItemModel } from "../catalogs/catalog.model";
+import { DanceClassModel } from "../classes/class.model";
+import { BranchModel } from "../core/branch.model";
+import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { objectIdSchema } from "./admin.schemas";
 
+const cleanOptionalString = z.string().trim().max(600).optional().or(z.literal(""));
+
 const createProfessorSchema = z.object({
-  branchIds: z.array(objectIdSchema).default([]),
-  email: z.string().email(),
-  password: z.string().min(8).max(128),
+  branchIds: z.array(objectIdSchema).min(1),
+  disciplineIds: z.array(objectIdSchema).default([]),
+  email: z.string().trim().email().transform((value) => value.toLowerCase()),
+  password: z.string().min(10).max(128),
   firstName: z.string().trim().min(2).max(80),
   lastName: z.string().trim().min(2).max(80),
   displayName: z.string().trim().min(2).max(120),
-  phone: z.string().trim().max(40).optional(),
-  bio: z.string().trim().max(600).optional(),
-  instagram: z.string().trim().max(120).optional()
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  bio: cleanOptionalString,
+  instagram: z.string().trim().max(120).optional().or(z.literal(""))
 });
 
 const updateProfessorSchema = z.object({
+  branchIds: z.array(objectIdSchema).min(1).optional(),
+  disciplineIds: z.array(objectIdSchema).optional(),
+  email: z.string().trim().email().transform((value) => value.toLowerCase()).optional(),
+  firstName: z.string().trim().min(2).max(80).optional(),
+  lastName: z.string().trim().min(2).max(80).optional(),
   displayName: z.string().trim().min(2).max(120).optional(),
-  phone: z.string().trim().max(40).optional(),
-  bio: z.string().trim().max(600).optional(),
-  instagram: z.string().trim().max(120).optional(),
-  avatarUrl: z.string().url().optional(),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  bio: cleanOptionalString,
+  instagram: z.string().trim().max(120).optional().or(z.literal("")),
+  avatarUrl: z.string().url().optional().or(z.literal("")),
   isActive: z.boolean().optional()
 });
+
+const resetPasswordSchema = z.object({
+  newPassword: z
+    .string()
+    .min(10, "La contraseña debe tener al menos 10 caracteres")
+    .max(128)
+    .regex(/[A-Za-z]/, "La contraseña debe incluir una letra")
+    .regex(/[0-9]/, "La contraseña debe incluir un número")
+});
+
+const listQuerySchema = z.object({
+  q: z.string().trim().max(120).optional(),
+  branchId: objectIdSchema.optional(),
+  disciplineId: objectIdSchema.optional(),
+  isActive: z.enum(["true", "false"]).optional()
+});
+
+async function validateRelations(
+  organizationId: string,
+  branchIds: string[],
+  disciplineIds: string[]
+) {
+  const [branchCount, disciplineCount] = await Promise.all([
+    BranchModel.countDocuments({
+      _id: { $in: branchIds },
+      organizationId,
+      isActive: true
+    }),
+    disciplineIds.length
+      ? CatalogItemModel.countDocuments({
+          _id: { $in: disciplineIds },
+          organizationId,
+          type: "DISCIPLINE",
+          isActive: true
+        })
+      : Promise.resolve(0)
+  ]);
+
+  if (branchCount !== branchIds.length) {
+    throw new AppError(422, "Una o más sedes no son válidas", "INVALID_BRANCHES");
+  }
+
+  if (disciplineCount !== disciplineIds.length) {
+    throw new AppError(422, "Una o más disciplinas no son válidas", "INVALID_DISCIPLINES");
+  }
+}
 
 export const adminProfessorsRouter = Router();
 
 adminProfessorsRouter.get("/", async (request, response, next) => {
   try {
-    const items = await ProfessorModel.find({
-      organizationId: request.auth!.organizationId
-    })
-      .populate("userId", "firstName lastName email branchIds role isActive")
+    const query = listQuerySchema.parse(request.query);
+    const organizationId = request.auth!.organizationId;
+    const filter: Record<string, unknown> = { organizationId };
+
+    if (query.isActive) {
+      filter.isActive = query.isActive === "true";
+    }
+
+    if (query.disciplineId) {
+      filter.disciplineIds = query.disciplineId;
+    }
+
+    const userFilter: Record<string, unknown> = {
+      organizationId,
+      role: "PROFESSOR"
+    };
+
+    if (query.branchId) {
+      userFilter.branchIds = query.branchId;
+    }
+
+    if (query.q) {
+      userFilter.$or = [
+        { firstName: { $regex: query.q, $options: "i" } },
+        { lastName: { $regex: query.q, $options: "i" } },
+        { email: { $regex: query.q, $options: "i" } }
+      ];
+    }
+
+    let userIds: Types.ObjectId[] | undefined;
+    if (query.branchId || query.q) {
+      userIds = await UserModel.find(userFilter).distinct("_id");
+      filter.userId = { $in: userIds };
+    } else if (query.q) {
+      filter.displayName = { $regex: query.q, $options: "i" };
+    }
+
+    let items = await ProfessorModel.find(filter)
+      .populate("userId", "firstName lastName email phone branchIds role isActive")
+      .populate("disciplineIds", "name type isActive sortOrder")
       .sort({ displayName: 1 });
 
+    if (query.q && userIds?.length === 0) {
+      items = await ProfessorModel.find({
+        ...filter,
+        userId: { $exists: true },
+        displayName: { $regex: query.q, $options: "i" }
+      })
+        .populate("userId", "firstName lastName email phone branchIds role isActive")
+        .populate("disciplineIds", "name type isActive sortOrder")
+        .sort({ displayName: 1 });
+    }
+
     response.json(items);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminProfessorsRouter.get("/:id", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+
+    const professor = await ProfessorModel.findOne({
+      _id: id,
+      organizationId
+    })
+      .populate("userId", "firstName lastName email phone branchIds role isActive")
+      .populate("disciplineIds", "name type isActive sortOrder");
+
+    if (!professor) {
+      throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+    }
+
+    const user = professor.userId as unknown as {
+      branchIds: Types.ObjectId[];
+    };
+
+    const [branches, classes] = await Promise.all([
+      BranchModel.find({
+        organizationId,
+        _id: { $in: user.branchIds }
+      }).select("name address isActive").sort({ name: 1 }),
+      DanceClassModel.find({
+        organizationId,
+        professorIds: professor._id
+      })
+        .populate("disciplineIds segmentIds levelIds", "name type")
+        .sort({ status: 1, name: 1 })
+    ]);
+
+    const classIds = classes.map((danceClass) => danceClass._id);
+    const activeStudentIds = classIds.length
+      ? await EnrollmentModel.distinct("studentId", {
+          organizationId,
+          classId: { $in: classIds },
+          status: "ACTIVE"
+        })
+      : [];
+
+    response.json({
+      professor,
+      branches,
+      classes,
+      stats: {
+        classes: classes.filter((danceClass) => danceClass.status === "ACTIVE").length,
+        students: activeStudentIds.length,
+        disciplines: professor.disciplineIds.length,
+        branches: branches.length
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -48,24 +214,27 @@ adminProfessorsRouter.post("/", async (request, response, next) => {
   try {
     const input = createProfessorSchema.parse(request.body);
     const organizationId = request.auth!.organizationId;
+
+    await validateRelations(organizationId, input.branchIds, input.disciplineIds);
+
     const existing = await UserModel.exists({
       organizationId,
-      email: input.email.toLowerCase()
+      email: input.email
     });
 
     if (existing) {
-      response.status(409).json({ error: "EMAIL_ALREADY_EXISTS" });
-      return;
+      throw new AppError(409, "Ya existe un usuario con ese email", "EMAIL_ALREADY_EXISTS");
     }
 
     const passwordHash = await bcrypt.hash(input.password, 12);
     const user = await UserModel.create({
       organizationId,
       branchIds: input.branchIds,
-      email: input.email.toLowerCase(),
+      email: input.email,
       passwordHash,
       firstName: input.firstName,
       lastName: input.lastName,
+      phone: input.phone?.trim() || undefined,
       role: "PROFESSOR",
       isActive: true
     });
@@ -74,11 +243,26 @@ adminProfessorsRouter.post("/", async (request, response, next) => {
     const professor = await ProfessorModel.create({
       organizationId,
       userId: user._id,
+      disciplineIds: input.disciplineIds,
       displayName: input.displayName,
-      phone: input.phone,
-      bio: input.bio,
-      instagram: input.instagram,
+      phone: input.phone?.trim() || undefined,
+      bio: input.bio?.trim() || undefined,
+      instagram: input.instagram?.trim() || undefined,
       isActive: true
+    });
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PROFESSOR_CREATED",
+      entityType: "Professor",
+      entityId: professor._id,
+      metadata: {
+        userId: user._id,
+        email: user.email,
+        branchIds: input.branchIds,
+        disciplineIds: input.disciplineIds
+      }
     });
 
     response.status(201).json(professor);
@@ -94,18 +278,147 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);
     const input = updateProfessorSchema.parse(request.body);
-    const professor = await ProfessorModel.findOneAndUpdate(
-      { _id: id, organizationId: request.auth!.organizationId },
-      { $set: input },
-      { new: true }
-    );
+    const organizationId = request.auth!.organizationId;
+
+    const professor = await ProfessorModel.findOne({
+      _id: id,
+      organizationId
+    });
 
     if (!professor) {
-      response.status(404).json({ error: "PROFESSOR_NOT_FOUND" });
-      return;
+      throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
     }
 
+    const user = await UserModel.findOne({
+      _id: professor.userId,
+      organizationId,
+      role: "PROFESSOR"
+    });
+
+    if (!user) {
+      throw new AppError(404, "Usuario del profesor no encontrado", "PROFESSOR_USER_NOT_FOUND");
+    }
+
+    const branchIds = input.branchIds ?? user.branchIds.map((value) => value.toString());
+    const disciplineIds = input.disciplineIds ?? professor.disciplineIds.map((value) => value.toString());
+
+    if (input.branchIds || input.disciplineIds) {
+      await validateRelations(organizationId, branchIds, disciplineIds);
+    }
+
+    if (input.email && input.email !== user.email) {
+      const duplicate = await UserModel.exists({
+        organizationId,
+        email: input.email,
+        _id: { $ne: user._id }
+      });
+
+      if (duplicate) {
+        throw new AppError(409, "Ya existe un usuario con ese email", "EMAIL_ALREADY_EXISTS");
+      }
+    }
+
+    const before = {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      branchIds: user.branchIds.map((value) => value.toString()),
+      displayName: professor.displayName,
+      phone: professor.phone ?? "",
+      bio: professor.bio ?? "",
+      instagram: professor.instagram ?? "",
+      disciplineIds: professor.disciplineIds.map((value) => value.toString()),
+      isActive: professor.isActive
+    };
+
+    if (input.firstName !== undefined) user.firstName = input.firstName;
+    if (input.lastName !== undefined) user.lastName = input.lastName;
+    if (input.email !== undefined) user.email = input.email;
+    if (input.phone !== undefined) user.phone = input.phone.trim() || undefined;
+    if (input.branchIds !== undefined) {
+      user.branchIds = input.branchIds.map((value) => new Types.ObjectId(value));
+    }
+    if (input.isActive !== undefined) user.isActive = input.isActive;
+
+    if (input.displayName !== undefined) professor.displayName = input.displayName;
+    if (input.phone !== undefined) professor.phone = input.phone.trim() || undefined;
+    if (input.bio !== undefined) professor.bio = input.bio.trim() || undefined;
+    if (input.instagram !== undefined) professor.instagram = input.instagram.trim() || undefined;
+    if (input.avatarUrl !== undefined) professor.avatarUrl = input.avatarUrl.trim() || undefined;
+    if (input.disciplineIds !== undefined) {
+      professor.disciplineIds = input.disciplineIds.map((value) => new Types.ObjectId(value));
+    }
+    if (input.isActive !== undefined) professor.isActive = input.isActive;
+
+    await Promise.all([user.save(), professor.save()]);
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PROFESSOR_UPDATED",
+      entityType: "Professor",
+      entityId: professor._id,
+      metadata: {
+        before,
+        after: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          branchIds: user.branchIds.map((value) => value.toString()),
+          displayName: professor.displayName,
+          phone: professor.phone ?? "",
+          bio: professor.bio ?? "",
+          instagram: professor.instagram ?? "",
+          disciplineIds: professor.disciplineIds.map((value) => value.toString()),
+          isActive: professor.isActive
+        }
+      }
+    });
+
     response.json(professor);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminProfessorsRouter.post("/:id/reset-password", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const input = resetPasswordSchema.parse(request.body);
+    const organizationId = request.auth!.organizationId;
+
+    const professor = await ProfessorModel.findOne({
+      _id: id,
+      organizationId
+    });
+
+    if (!professor) {
+      throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+    }
+
+    const user = await UserModel.findOne({
+      _id: professor.userId,
+      organizationId,
+      role: "PROFESSOR"
+    }).select("+passwordHash");
+
+    if (!user) {
+      throw new AppError(404, "Usuario del profesor no encontrado", "PROFESSOR_USER_NOT_FOUND");
+    }
+
+    user.passwordHash = await bcrypt.hash(input.newPassword, 12);
+    await user.save();
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PROFESSOR_PASSWORD_RESET",
+      entityType: "Professor",
+      entityId: professor._id,
+      metadata: { userId: user._id }
+    });
+
+    response.status(204).send();
   } catch (error) {
     next(error);
   }
