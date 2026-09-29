@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Types } from "mongoose";
 import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { PaymentModel } from "../payments/payment.model";
@@ -10,6 +11,7 @@ export const adminSummaryRouter = Router();
 adminSummaryRouter.get("/", async (request, response, next) => {
   try {
     const organizationId = request.auth!.organizationId;
+    const organizationObjectId = new Types.ObjectId(organizationId);
     const now = new Date();
 
     const [
@@ -32,7 +34,7 @@ adminSummaryRouter.get("/", async (request, response, next) => {
         dueDate: { $lt: now }
       }),
       PaymentModel.aggregate([
-        { $match: { organizationId: new (await import("mongoose")).Types.ObjectId(organizationId), status: "PAID" } },
+        { $match: { organizationId: organizationObjectId, status: "PAID" } },
         { $group: { _id: null, total: { $sum: "$amount" } } }
       ])
     ]);
