@@ -57,6 +57,7 @@ export type DanceClass = {
   segmentIds: Array<CatalogItem | string>;
   levelIds: Array<CatalogItem | string>;
   capacity: number;
+  activeEnrollmentCount?: number;
   schedules: Array<{
     day: string;
     startTime: string;

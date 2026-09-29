@@ -1,0 +1,403 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 14px;
+  color: #5b21b6;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.notice {
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #bbf7d0;
+  border-radius: 13px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.hero {
+  min-height: 118px;
+  padding: 19px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 21px;
+  color: white;
+  background: linear-gradient(135deg, #24112d, #4c1d95 58%, #6d28d9);
+  box-shadow: 0 16px 40px rgba(67,21,143,.14);
+}
+
+.hero h2 {
+  margin: 7px 0 3px;
+  font-size: 23px;
+}
+
+.hero p {
+  margin: 0;
+  color: #ddd2e8;
+  font-size: 10px;
+}
+
+.active,
+.inactive {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.active {
+  color: #dcfce7;
+  background: rgba(34,197,94,.16);
+}
+
+.inactive {
+  color: #e5e7eb;
+  background: rgba(107,114,128,.24);
+}
+
+.heroActions {
+  margin-left: auto;
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.heroActions button {
+  min-height: 37px;
+  padding: 0 10px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 11px;
+  background: rgba(255,255,255,.1);
+  color: white;
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.heroActions .dangerAction {
+  color: #fecdd3;
+}
+
+.stats {
+  margin: 15px 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 11px;
+}
+
+.stats article {
+  min-height: 82px;
+  padding: 13px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 8px;
+  border: 1px solid #e9e2ed;
+  border-radius: 16px;
+  background: white;
+}
+
+.stats article > svg,
+.metricIcon {
+  grid-row: 1 / span 2;
+  color: #6d28d9;
+}
+
+.metricIcon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #f3edf9;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.stats span {
+  color: #817787;
+  font-size: 8px;
+}
+
+.stats strong {
+  font-size: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: .9fr 1.1fr;
+  gap: 14px;
+}
+
+.card {
+  padding: 18px;
+  border: 1px solid #e9e2ed;
+  border-radius: 19px;
+  background: white;
+}
+
+.studentsCard {
+  grid-column: 1 / -1;
+}
+
+.cardHeader > span {
+  color: #6d28d9;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.cardHeader h3 {
+  margin: 4px 0 13px;
+  font-size: 13px;
+}
+
+.scheduleList {
+  display: grid;
+  gap: 7px;
+}
+
+.scheduleList > div {
+  min-height: 44px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #eee8f2;
+  border-radius: 11px;
+}
+
+.scheduleList svg {
+  color: #6d28d9;
+}
+
+.scheduleList strong,
+.scheduleList span {
+  font-size: 9px;
+}
+
+.tags {
+  margin-top: 12px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.tags span {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: #f3edf9;
+  color: #5b21b6;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.enrollBox {
+  display: flex;
+  gap: 8px;
+}
+
+.enrollBox select {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid #e5deea;
+  border-radius: 11px;
+  padding: 0 9px;
+  background: white;
+}
+
+.enrollBox button {
+  min-height: 42px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #5b21b6;
+  color: white;
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.enrollBox button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.helper {
+  margin: 10px 0 0;
+  color: #857b8b;
+  font-size: 8px;
+}
+
+.studentList {
+  display: grid;
+}
+
+.studentList > div {
+  min-height: 57px;
+  padding: 8px 4px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-top: 1px solid #f0ebf3;
+}
+
+.studentList > div:first-child {
+  border-top: 0;
+}
+
+.studentIdentity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: inherit;
+}
+
+.studentIdentity > span:first-child {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #f3edf9;
+  color: #5b21b6;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.studentIdentity > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.studentIdentity strong {
+  font-size: 9px;
+}
+
+.studentIdentity small {
+  color: #817787;
+  font-size: 8px;
+}
+
+.studentList > div > button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #fee2e2;
+  border-radius: 9px;
+  background: #fff7f7;
+  color: #be123c;
+  cursor: pointer;
+}
+
+.scheduleEditor {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+}
+
+.scheduleEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.scheduleEditorHeader strong {
+  font-size: 9px;
+}
+
+.scheduleEditorHeader button {
+  min-height: 31px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e5deea;
+  border-radius: 9px;
+  background: white;
+  color: #5b21b6;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.scheduleEditorRow {
+  display: grid;
+  grid-template-columns: 1fr 110px 110px 36px;
+  gap: 7px;
+}
+
+.scheduleEditorRow select,
+.scheduleEditorRow input {
+  min-height: 39px;
+  border: 1px solid #e5deea;
+  border-radius: 10px;
+  padding: 0 8px;
+  background: white;
+}
+
+.scheduleEditorRow button {
+  border: 1px solid #fee2e2;
+  border-radius: 9px;
+  background: #fff7f7;
+  color: #be123c;
+}
+
+@media (max-width: 900px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .studentsCard {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .hero {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .heroActions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .enrollBox {
+    flex-direction: column;
+  }
+
+  .scheduleEditorRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .scheduleEditorRow select {
+    grid-column: 1 / -1;
+  }
+}

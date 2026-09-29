@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Clock3, UsersRound } from "lucide-react";
+import { Clock3, Plus, Search, Trash2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
@@ -19,6 +19,8 @@ const dayLabels: Record<string, string> = {
   SUNDAY: "Domingo"
 };
 
+type ScheduleDraft = { day: string; startTime: string; endTime: string };
+
 function refName<T extends { name?: string; displayName?: string }>(value: T | string): string {
   return typeof value === "string" ? value : value.displayName ?? value.name ?? "Sin nombre";
 }
@@ -28,7 +30,14 @@ export function ClassesLive() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
+  const [search, setSearch] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [professorId, setProfessorId] = useState("");
+  const [status, setStatus] = useState("ACTIVE");
   const [modal, setModal] = useState(false);
+  const [schedules, setSchedules] = useState<ScheduleDraft[]>([
+    { day: "MONDAY", startTime: "18:00", endTime: "19:00" }
+  ]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -38,12 +47,19 @@ export function ClassesLive() {
     setError("");
 
     try {
+      const params = new URLSearchParams();
+      if (search) params.set("q", search);
+      if (branchId) params.set("branchId", branchId);
+      if (professorId) params.set("professorId", professorId);
+      if (status !== "ALL") params.set("status", status);
+
       const [classList, branchList, professorList, catalogList] = await Promise.all([
-        apiFetch<DanceClass[]>("/admin/classes"),
+        apiFetch<DanceClass[]>(`/admin/classes?${params.toString()}`),
         apiFetch<Branch[]>("/admin/branches"),
-        apiFetch<Professor[]>("/admin/professors"),
+        apiFetch<Professor[]>("/admin/professors?isActive=true"),
         apiFetch<CatalogItem[]>("/admin/catalogs")
       ]);
+
       setItems(classList);
       setBranches(branchList.filter((item) => item.isActive));
       setProfessors(professorList.filter((item) => item.isActive));
@@ -53,15 +69,35 @@ export function ClassesLive() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search, branchId, professorId, status]);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 180);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const disciplines = useMemo(() => catalogs.filter((item) => item.type === "DISCIPLINE"), [catalogs]);
   const segments = useMemo(() => catalogs.filter((item) => item.type === "SEGMENT"), [catalogs]);
   const levels = useMemo(() => catalogs.filter((item) => item.type === "LEVEL"), [catalogs]);
+
+  function updateSchedule(index: number, patch: Partial<ScheduleDraft>) {
+    setSchedules((current) =>
+      current.map((schedule, scheduleIndex) =>
+        scheduleIndex === index ? { ...schedule, ...patch } : schedule
+      )
+    );
+  }
+
+  function addSchedule() {
+    setSchedules((current) => [
+      ...current,
+      { day: "MONDAY", startTime: "18:00", endTime: "19:00" }
+    ]);
+  }
+
+  function removeSchedule(index: number) {
+    setSchedules((current) => current.filter((_, scheduleIndex) => scheduleIndex !== index));
+  }
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,25 +106,23 @@ export function ClassesLive() {
     setError("");
 
     try {
-      await apiFetch<DanceClass>("/admin/classes", {
+      const danceClass = await apiFetch<DanceClass>("/admin/classes", {
         method: "POST",
         body: JSON.stringify({
           branchId: form.get("branchId"),
           name: form.get("name"),
-          professorIds: [form.get("professorId")],
-          disciplineIds: [form.get("disciplineId")],
-          segmentIds: [form.get("segmentId")],
-          levelIds: [form.get("levelId")],
+          professorIds: form.getAll("professorIds"),
+          disciplineIds: form.getAll("disciplineIds"),
+          segmentIds: form.getAll("segmentIds"),
+          levelIds: form.getAll("levelIds"),
           capacity: Number(form.get("capacity")),
-          schedules: [{
-            day: form.get("day"),
-            startTime: form.get("startTime"),
-            endTime: form.get("endTime")
-          }]
+          schedules
         })
       });
+
       setModal(false);
-      await load();
+      setSchedules([{ day: "MONDAY", startTime: "18:00", endTime: "19:00" }]);
+      window.location.assign(`/admin/classes/${danceClass._id}`);
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
@@ -101,73 +135,78 @@ export function ClassesLive() {
       <PageHeader
         eyebrow="PLANIFICACIÓN"
         title="Clases y horarios"
-        description="Clases reales vinculadas con profesores y catálogos maestros."
+        description="Profesores, categorías, agenda y ocupación real de cada clase."
         actionLabel="Nueva clase"
         onAction={() => setModal(true)}
       />
+
+      <div className={styles.filterBar}>
+        <div className={styles.searchInline}>
+          <Search size={17} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar clase..." />
+        </div>
+        <select value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+          <option value="">Todas las sedes</option>
+          {branches.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
+        </select>
+        <select value={professorId} onChange={(event) => setProfessorId(event.target.value)}>
+          <option value="">Todos los profesores</option>
+          {professors.map((item) => <option value={item._id} key={item._id}>{item.displayName}</option>)}
+        </select>
+        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="ACTIVE">Activas</option>
+          <option value="INACTIVE">Inactivas</option>
+          <option value="ALL">Todas</option>
+        </select>
+      </div>
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
       {!loading && (
         <div className={styles.liveGrid3}>
+          {items.length === 0 && <div className={styles.stateBlock}>No hay clases para estos filtros.</div>}
           {items.map((danceClass) => {
-            const schedule = danceClass.schedules[0];
+            const occupied = danceClass.activeEnrollmentCount ?? 0;
+            const occupancy = Math.min(100, Math.round((occupied / danceClass.capacity) * 100));
+
             return (
-              <article className={styles.card} key={danceClass._id}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <Link className={styles.cardLink} href={`/admin/classes/${danceClass._id}`} key={danceClass._id}>
+                <div className={styles.cardTopLine}>
                   <span className={danceClass.status === "ACTIVE" ? styles.pill : styles.pillOff}>
                     {danceClass.status === "ACTIVE" ? "Activa" : "Inactiva"}
                   </span>
-                  <span className={styles.cardDetail}>Cupo {danceClass.capacity}</span>
+                  <span className={styles.cardDetail}>{occupied}/{danceClass.capacity} alumnos</span>
                 </div>
-                <strong style={{ display: "block", marginTop: 14, fontSize: 15 }}>
-                  {danceClass.name}
-                </strong>
-                <span style={{ display: "block", marginTop: 5, color: "#7c7283", fontSize: 9 }}>
+
+                <strong className={styles.cardTitle}>{danceClass.name}</strong>
+                <span className={styles.cardDetail}>
                   {danceClass.professorIds.map((item) => refName(item)).join(", ")}
                 </span>
-                {schedule && (
-                  <div style={{ marginTop: 14, display: "flex", gap: 7, alignItems: "center", fontSize: 10, color: "#5b21b6" }}>
-                    <Clock3 size={15} />
-                    {dayLabels[schedule.day] ?? schedule.day} · {schedule.startTime}–{schedule.endTime}
-                  </div>
-                )}
-                <div style={{ marginTop: 14, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {danceClass.disciplineIds.map((item) => (
-                    <span className={styles.pillOff} key={typeof item === "string" ? item : item._id}>
-                      {refName(item)}
-                    </span>
-                  ))}
-                  {danceClass.segmentIds.map((item) => (
-                    <span className={styles.pillOff} key={typeof item === "string" ? item : item._id}>
-                      {refName(item)}
-                    </span>
-                  ))}
-                  {danceClass.levelIds.map((item) => (
-                    <span className={styles.pillOff} key={typeof item === "string" ? item : item._id}>
-                      {refName(item)}
-                    </span>
+
+                <div className={styles.scheduleSummary}>
+                  <Clock3 size={15} />
+                  <span>
+                    {danceClass.schedules.map((schedule) =>
+                      `${dayLabels[schedule.day] ?? schedule.day} ${schedule.startTime}–${schedule.endTime}`
+                    ).join(" · ")}
+                  </span>
+                </div>
+
+                <div className={styles.tagRow}>
+                  {[...danceClass.disciplineIds, ...danceClass.segmentIds, ...danceClass.levelIds].map((item) => (
+                    <span key={typeof item === "string" ? item : item._id}>{refName(item)}</span>
                   ))}
                 </div>
-                <Link
-                  href={`/admin/classes/${danceClass._id}`}
-                  style={{
-                    marginTop: 15,
-                    paddingTop: 12,
-                    borderTop: "1px solid #eee8f2",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    color: "#5b21b6",
-                    fontSize: 9,
-                    fontWeight: 850
-                  }}
-                >
-                  <UsersRound size={15} />
-                  Gestionar alumnos y cupo
-                </Link>
-              </article>
+
+                <div className={styles.occupancyBar}>
+                  <span style={{ width: `${occupancy}%` }} />
+                </div>
+
+                <div className={styles.cardFooterLink}>
+                  <UsersRound size={15} /> Gestionar clase
+                </div>
+              </Link>
             );
           })}
         </div>
@@ -176,7 +215,7 @@ export function ClassesLive() {
       <LiveModal
         open={modal}
         title="Crear clase"
-        description="Las categorías se seleccionan de los catálogos administrados."
+        description="Podés asignar varios profesores, categorías y horarios."
         submitting={submitting}
         onClose={() => setModal(false)}
         onSubmit={create}
@@ -188,38 +227,44 @@ export function ClassesLive() {
           </select>
         </Field>
         <Field label="Nombre"><input name="name" required /></Field>
-        <Field label="Profesor">
-          <select name="professorId" required defaultValue="">
-            <option value="" disabled>Seleccionar profesor</option>
+        <Field label="Profesores" wide>
+          <select name="professorIds" multiple size={Math.min(5, Math.max(3, professors.length))} required>
             {professors.map((item) => <option value={item._id} key={item._id}>{item.displayName}</option>)}
           </select>
         </Field>
-        <Field label="Disciplina">
-          <select name="disciplineId" required defaultValue="">
-            <option value="" disabled>Seleccionar</option>
+        <Field label="Disciplinas">
+          <select name="disciplineIds" multiple size={4} required>
             {disciplines.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
           </select>
         </Field>
         <Field label="Público">
-          <select name="segmentId" required defaultValue="">
-            <option value="" disabled>Seleccionar</option>
+          <select name="segmentIds" multiple size={3} required>
             {segments.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
           </select>
         </Field>
-        <Field label="Nivel">
-          <select name="levelId" required defaultValue="">
-            <option value="" disabled>Seleccionar</option>
+        <Field label="Niveles">
+          <select name="levelIds" multiple size={3} required>
             {levels.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
           </select>
         </Field>
         <Field label="Cupo"><input name="capacity" type="number" min={1} defaultValue={20} required /></Field>
-        <Field label="Día">
-          <select name="day" required defaultValue="MONDAY">
-            {Object.entries(dayLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-          </select>
-        </Field>
-        <Field label="Desde"><input name="startTime" type="time" required /></Field>
-        <Field label="Hasta"><input name="endTime" type="time" required /></Field>
+
+        <div className={styles.scheduleEditor}>
+          <div className={styles.scheduleEditorHeader}>
+            <strong>Horarios</strong>
+            <button type="button" onClick={addSchedule}><Plus size={14} /> Agregar horario</button>
+          </div>
+          {schedules.map((schedule, index) => (
+            <div className={styles.scheduleEditorRow} key={index}>
+              <select value={schedule.day} onChange={(event) => updateSchedule(index, { day: event.target.value })}>
+                {Object.entries(dayLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+              </select>
+              <input type="time" value={schedule.startTime} onChange={(event) => updateSchedule(index, { startTime: event.target.value })} />
+              <input type="time" value={schedule.endTime} onChange={(event) => updateSchedule(index, { endTime: event.target.value })} />
+              <button type="button" disabled={schedules.length === 1} onClick={() => removeSchedule(index)}><Trash2 size={14} /></button>
+            </div>
+          ))}
+        </div>
       </LiveModal>
     </>
   );
