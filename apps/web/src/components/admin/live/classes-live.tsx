@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Clock3, UsersRound } from "lucide-react";
+import Link from "next/link";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import type { Branch, CatalogItem, DanceClass, Professor } from "./live-types";
@@ -149,10 +150,23 @@ export function ClassesLive() {
                     </span>
                   ))}
                 </div>
-                <div style={{ marginTop: 15, paddingTop: 12, borderTop: "1px solid #eee8f2", display: "flex", alignItems: "center", gap: 6, color: "#776d7e", fontSize: 9 }}>
+                <Link
+                  href={`/admin/classes/${danceClass._id}`}
+                  style={{
+                    marginTop: 15,
+                    paddingTop: 12,
+                    borderTop: "1px solid #eee8f2",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    color: "#5b21b6",
+                    fontSize: 9,
+                    fontWeight: 850
+                  }}
+                >
                   <UsersRound size={15} />
-                  Las inscripciones se reflejarán en el cupo disponible.
-                </div>
+                  Gestionar alumnos y cupo
+                </Link>
               </article>
             );
           })}
