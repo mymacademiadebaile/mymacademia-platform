@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Clock3, Plus, Search, Trash2, UsersRound } from "lucide-react";
+import { CalendarDays, Clock3, Gift, LayoutGrid, Plus, Search, Trash2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
@@ -35,6 +35,7 @@ export function ClassesLive() {
   const [professorId, setProfessorId] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [modal, setModal] = useState(false);
+  const [view, setView] = useState<"CARDS" | "CALENDAR">("CARDS");
   const [schedules, setSchedules] = useState<ScheduleDraft[]>([
     { day: "MONDAY", startTime: "18:00", endTime: "19:00" }
   ]);
@@ -116,6 +117,8 @@ export function ClassesLive() {
           segmentIds: form.getAll("segmentIds"),
           levelIds: form.getAll("levelIds"),
           capacity: Number(form.get("capacity")),
+          monthlyPrice: Number(form.get("monthlyPrice") || 0),
+          freeTrialEnabled: form.get("freeTrialEnabled") === "on",
           schedules
         })
       });
@@ -160,10 +163,28 @@ export function ClassesLive() {
         </select>
       </div>
 
+      <div className={styles.viewToolbar}>
+        <div>
+          <button
+            className={view === "CARDS" ? styles.viewActive : styles.viewButton}
+            onClick={() => setView("CARDS")}
+          >
+            <LayoutGrid size={16} /> Tarjetas
+          </button>
+          <button
+            className={view === "CALENDAR" ? styles.viewActive : styles.viewButton}
+            onClick={() => setView("CALENDAR")}
+          >
+            <CalendarDays size={16} /> Calendario
+          </button>
+        </div>
+        <span>{items.length} clase{items.length === 1 ? "" : "s"}</span>
+      </div>
+
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
-      {!loading && (
+      {!loading && view === "CARDS" && (
         <div className={styles.liveGrid3}>
           {items.length === 0 && <div className={styles.stateBlock}>No hay clases para estos filtros.</div>}
           {items.map((danceClass) => {
@@ -193,6 +214,11 @@ export function ClassesLive() {
                   </span>
                 </div>
 
+                <div className={styles.classCommercialLine}>
+                  <strong>$ {(danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")} / mes</strong>
+                  {danceClass.freeTrialEnabled && <span><Gift size={12} /> Prueba gratis</span>}
+                </div>
+
                 <div className={styles.tagRow}>
                   {[...danceClass.disciplineIds, ...danceClass.segmentIds, ...danceClass.levelIds].map((item) => (
                     <span key={typeof item === "string" ? item : item._id}>{refName(item)}</span>
@@ -210,9 +236,56 @@ export function ClassesLive() {
             );
           })}
         </div>
+
       )}
 
-      <LiveModal
+      {!loading && view === "CALENDAR" && (
+        <div className={styles.weekCalendarWrap}>
+          <div className={styles.weekCalendar}>
+            {Object.entries(dayLabels).map(([day, label]) => {
+              const entries = items
+                .flatMap((danceClass) =>
+                  danceClass.schedules
+                    .filter((schedule) => schedule.day === day)
+                    .map((schedule) => ({ danceClass, schedule }))
+                )
+                .sort((a, b) => a.schedule.startTime.localeCompare(b.schedule.startTime));
+
+              return (
+                <section className={styles.calendarDay} key={day}>
+                  <header>
+                    <strong>{label}</strong>
+                    <span>{entries.length}</span>
+                  </header>
+                  <div className={styles.calendarDayBody}>
+                    {entries.length === 0 && <small className={styles.calendarEmpty}>Sin clases</small>}
+                    {entries.map(({ danceClass, schedule }, index) => (
+                      <Link
+                        href={`/admin/classes/${danceClass._id}`}
+                        className={styles.calendarEvent}
+                        key={`${danceClass._id}-${schedule.startTime}-${index}`}
+                      >
+                        <time>{schedule.startTime}–{schedule.endTime}</time>
+                        <strong>{danceClass.name}</strong>
+                        <small>{danceClass.professorIds.map((item) => refName(item)).join(", ")}</small>
+                        <div>
+                          <span>{danceClass.activeEnrollmentCount ?? 0}/{danceClass.capacity}</span>
+                          <span>$ {(danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")}</span>
+                        </div>
+                        {danceClass.freeTrialEnabled && (
+                          <em><Gift size={12} /> Prueba gratis</em>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <LiveModal      <LiveModal
         open={modal}
         title="Crear clase"
         description="Podés asignar varios profesores, categorías y horarios."
@@ -248,6 +321,15 @@ export function ClassesLive() {
           </select>
         </Field>
         <Field label="Cupo"><input name="capacity" type="number" min={1} defaultValue={20} required /></Field>
+        <Field label="Cuota mensual (ARS)">
+          <input name="monthlyPrice" type="number" min={0} step="1" defaultValue={0} required />
+        </Field>
+        <Field label="Clase de prueba gratis" wide>
+          <label className={styles.switchRow}>
+            <input name="freeTrialEnabled" type="checkbox" />
+            <span>Esta clase admite una clase gratuita de prueba.</span>
+          </label>
+        </Field>
 
         <div className={styles.scheduleEditor}>
           <div className={styles.scheduleEditorHeader}>

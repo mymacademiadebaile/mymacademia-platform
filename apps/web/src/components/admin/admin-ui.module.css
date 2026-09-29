@@ -1000,3 +1000,13 @@
   .exportGrid { grid-template-columns: 1fr; }
   .spanTwo { grid-column: auto; }
 }
+
+.pageHeader p { font-size: 14px; }
+.eyebrow { font-size: 10px; }
+.primaryButton,.secondaryButton { font-size: 12px; }
+.statCard > span { font-size: 12px; }
+.statCard small { font-size: 11px; }
+.rowText strong { font-size: 13px; }
+.rowText small { font-size: 11px; }
+.personCard p,.classAdminCard p { font-size: 11px; }
+.cardAction { font-size: 11px; }

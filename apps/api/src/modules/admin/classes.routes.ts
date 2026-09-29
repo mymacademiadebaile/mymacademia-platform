@@ -29,6 +29,8 @@ const classBodySchema = z.object({
   segmentIds: z.array(objectIdSchema).min(1),
   levelIds: z.array(objectIdSchema).min(1),
   capacity: z.number().int().min(1).max(500),
+  monthlyPrice: z.number().min(0).max(100000000).default(0),
+  freeTrialEnabled: z.boolean().default(false),
   schedules: z.array(scheduleSchema).min(1).max(14)
 }).superRefine((value, context) => {
   const keys = new Set<string>();
@@ -54,6 +56,8 @@ const updateDanceClassSchema = z.object({
   segmentIds: z.array(objectIdSchema).min(1).optional(),
   levelIds: z.array(objectIdSchema).min(1).optional(),
   capacity: z.number().int().min(1).max(500).optional(),
+  monthlyPrice: z.number().min(0).max(100000000).optional(),
+  freeTrialEnabled: z.boolean().optional(),
   schedules: z.array(scheduleSchema).min(1).max(14).optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional()
 }).superRefine((value, context) => {
@@ -378,6 +382,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
       segmentIds: item.segmentIds.map((value) => value.toString()),
       levelIds: item.levelIds.map((value) => value.toString()),
       capacity: item.capacity,
+      monthlyPrice: item.monthlyPrice ?? 0,
+      freeTrialEnabled: item.freeTrialEnabled ?? false,
       schedules: item.schedules,
       status: item.status
     };
@@ -405,6 +411,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
 
       item.capacity = input.capacity;
     }
+    if (input.monthlyPrice !== undefined) item.monthlyPrice = input.monthlyPrice;
+    if (input.freeTrialEnabled !== undefined) item.freeTrialEnabled = input.freeTrialEnabled;
     if (input.schedules !== undefined) item.schedules = input.schedules;
     if (input.status !== undefined) item.status = input.status;
 
@@ -426,6 +434,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
           segmentIds: item.segmentIds.map((value) => value.toString()),
           levelIds: item.levelIds.map((value) => value.toString()),
           capacity: item.capacity,
+          monthlyPrice: item.monthlyPrice ?? 0,
+          freeTrialEnabled: item.freeTrialEnabled ?? false,
           schedules: item.schedules,
           status: item.status
         }

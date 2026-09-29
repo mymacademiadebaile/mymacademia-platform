@@ -16,6 +16,8 @@ export interface DanceClass {
   segmentIds: Types.ObjectId[];
   levelIds: Types.ObjectId[];
   capacity: number;
+  monthlyPrice: number;
+  freeTrialEnabled: boolean;
   schedules: ClassSchedule[];
   status: ClassStatus;
 }
@@ -39,6 +41,8 @@ const danceClassSchema = new Schema<DanceClass>(
     segmentIds: [{ type: Schema.Types.ObjectId, ref: "CatalogItem", required: true }],
     levelIds: [{ type: Schema.Types.ObjectId, ref: "CatalogItem", required: true }],
     capacity: { type: Number, required: true, min: 1 },
+    monthlyPrice: { type: Number, default: 0, min: 0 },
+    freeTrialEnabled: { type: Boolean, default: false },
     schedules: { type: [scheduleSchema], default: [] },
     status: { type: String, enum: CLASS_STATUSES, default: "ACTIVE" }
   },

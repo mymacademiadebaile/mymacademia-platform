@@ -498,3 +498,176 @@
   font-size: 9px;
   text-align: center;
 }
+
+
+.viewToolbar {
+  margin: -2px 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.viewToolbar > div {
+  padding: 4px;
+  border: 1px solid #e8e1ec;
+  border-radius: 12px;
+  background: white;
+  display: inline-flex;
+  gap: 3px;
+}
+
+.viewButton,
+.viewActive {
+  min-height: 36px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.viewButton { background: transparent; color: #756d7d; }
+.viewActive { background: #efe8fa; color: #5b21b6; }
+.viewToolbar > span { color: #817887; font-size: 11px; }
+
+.weekCalendarWrap {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 7px;
+}
+
+.weekCalendar {
+  min-width: 1080px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(145px, 1fr));
+  gap: 8px;
+}
+
+.calendarDay {
+  min-height: 570px;
+  border: 1px solid #e8e1ec;
+  border-radius: 16px;
+  background: #fbf9fc;
+  overflow: hidden;
+}
+
+.calendarDay > header {
+  min-height: 47px;
+  padding: 0 11px;
+  border-bottom: 1px solid #e8e1ec;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendarDay > header strong { font-size: 12px; }
+.calendarDay > header span {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #f0e9fb;
+  color: #5b21b6;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.calendarDayBody {
+  padding: 8px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.calendarEmpty {
+  padding: 14px 5px;
+  color: #a198a6;
+  text-align: center;
+  font-size: 10px;
+}
+
+.calendarEvent {
+  padding: 10px;
+  border: 1px solid #e1d5ec;
+  border-left: 4px solid #6d28d9;
+  border-radius: 11px;
+  background: white;
+  color: #302738;
+  display: grid;
+  gap: 4px;
+  box-shadow: 0 5px 14px rgba(48,27,59,.04);
+}
+
+.calendarEvent time { color: #6d28d9; font-size: 10px; font-weight: 900; }
+.calendarEvent > strong { font-size: 12px; line-height: 1.25; }
+.calendarEvent > small { color: #817887; font-size: 9px; line-height: 1.35; }
+.calendarEvent > div { display: flex; justify-content: space-between; gap: 5px; color: #6b6270; font-size: 9px; font-weight: 800; }
+.calendarEvent em {
+  margin-top: 2px;
+  color: #166534;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.classCommercialLine {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.classCommercialLine > strong { color: #302738; font-size: 12px; }
+.classCommercialLine > span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.switchRow {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid #e5deea;
+  border-radius: 12px;
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 9px !important;
+  cursor: pointer;
+}
+
+.switchRow input { width: 17px !important; min-height: auto !important; }
+.switchRow span { color: #5f5566 !important; font-size: 11px !important; font-weight: 750 !important; }
+
+.cardTitle { font-size: 16px; }
+.cardLabel { font-size: 11px; }
+.cardDetail { font-size: 10px; }
+.scheduleSummary { font-size: 10px; }
+.tagRow span { font-size: 9px; }
+.cardFooterLink { font-size: 10px; }
+.rowBody strong { font-size: 12px; }
+.rowBody small { font-size: 10px; }
+.pill,.pillWarn,.pillOff { font-size: 9px; }
+.inlineAction { font-size: 10px; }
+.field > span,.fieldWide > span { font-size: 10px; }
+.field input,.field select,.field textarea,.fieldWide input,.fieldWide select,.fieldWide textarea { font-size: 12px; }
+.filterBar > select,.searchInline input { font-size: 11px; }
+.notice { font-size: 11px; }

@@ -178,6 +178,8 @@ export function ClassDetailLive({ id }: { id: string }) {
           segmentIds: form.getAll("segmentIds"),
           levelIds: form.getAll("levelIds"),
           capacity: Number(form.get("capacity")),
+          monthlyPrice: Number(form.get("monthlyPrice") || 0),
+          freeTrialEnabled: form.get("freeTrialEnabled") === "on",
           schedules: editSchedules
         })
       });
@@ -230,7 +232,7 @@ export function ClassDetailLive({ id }: { id: string }) {
       <PageHeader
         eyebrow="GESTIÓN DE CLASE"
         title={danceClass.name}
-        description="Horarios, profesores, categorías, cupo y alumnos inscriptos."
+        description="Horarios, profesores, precio, prueba gratuita, cupo y alumnos inscriptos."
       />
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
@@ -242,7 +244,12 @@ export function ClassDetailLive({ id }: { id: string }) {
             {danceClass.status === "ACTIVE" ? "Clase activa" : "Clase inactiva"}
           </span>
           <h2>{danceClass.name}</h2>
-          <p>{danceClass.professorIds.map(refName).join(", ")}</p>
+          <p>
+            {danceClass.professorIds.map(refName).join(", ")}
+            {" · "}
+            $ {(danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")} / mes
+            {danceClass.freeTrialEnabled ? " · Admite prueba gratis" : ""}
+          </p>
         </div>
         <div className={styles.heroActions}>
           <button onClick={openEdit}>Editar clase</button>
@@ -333,6 +340,15 @@ export function ClassDetailLive({ id }: { id: string }) {
         </Field>
         <Field label="Nombre"><input name="name" defaultValue={danceClass.name} required /></Field>
         <Field label="Cupo"><input name="capacity" type="number" min={1} defaultValue={danceClass.capacity} required /></Field>
+        <Field label="Cuota mensual (ARS)">
+          <input name="monthlyPrice" type="number" min={0} step="1" defaultValue={danceClass.monthlyPrice ?? 0} required />
+        </Field>
+        <Field label="Clase de prueba gratis" wide>
+          <label className={styles.switchRow}>
+            <input name="freeTrialEnabled" type="checkbox" defaultChecked={danceClass.freeTrialEnabled} />
+            <span>Permitir una clase gratuita de prueba.</span>
+          </label>
+        </Field>
         <Field label="Profesores" wide>
           <select name="professorIds" multiple defaultValue={selectedProfessorIds} size={Math.min(5, Math.max(3, professors.length))} required>
             {professors.map((professor) => <option key={professor._id} value={professor._id}>{professor.displayName}</option>)}

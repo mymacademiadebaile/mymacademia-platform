@@ -401,3 +401,16 @@
     grid-column: 1 / -1;
   }
 }
+
+.switchRow {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid #e5deea;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+.switchRow input { width: 17px; }
+.switchRow span { color: #5f5566; font-size: 11px; font-weight: 750; }

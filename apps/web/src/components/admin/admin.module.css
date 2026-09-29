@@ -347,3 +347,15 @@
   color: #9f94a7;
   font-size: 7px;
 }
+
+.adminRoot { font-size: 15px; }
+.navItem,.navItemActive { font-size: 12px; }
+.brand strong { font-size: 14px; }
+.brand small { font-size: 9px; }
+.topbarText span { font-size: 11px; }
+.topbarText strong { font-size: 15px; }
+.profileShortcut { font-size: 11px; }
+.professorPreview strong,.adminIdentity strong { font-size: 11px; }
+.professorPreview small,.adminIdentity small { font-size: 9px; }
+.logoutButton strong { font-size: 10px; }
+.logoutButton small { font-size: 8px; }
