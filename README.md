@@ -11,9 +11,19 @@ Monorepo con:
 - `packages/shared`: contratos, enums y tipos compartidos.
 - `docs`: alcance funcional, arquitectura y lineamientos UX.
 
+## Plan maestro de implementación
+
+El estado actual, pendientes, orden de ejecución, criterios de aceptación y protocolo para continuar el proyecto están documentados en:
+
+**[`docs/admin-implementation-plan.md`](docs/admin-implementation-plan.md)**
+
+Ese documento debe leerse antes de continuar el desarrollo del ADMIN.
+
 ## Experiencia de usuario
 
-La experiencia de profesores se diseña **mobile-first** y con comportamiento de app: navegación inferior, tarjetas táctiles, acciones rápidas y flujos cortos. No se plantea como un backoffice tradicional.
+La experiencia de profesores utiliza patrones de app mobile-first pero es responsive de forma real: en tablet y desktop aprovecha el ancho disponible y no se presenta permanentemente dentro de un marco de teléfono.
+
+La administración es una aplicación web responsive con mayor densidad de información, navegación lateral y flujos operativos.
 
 ## Email
 
@@ -30,6 +40,7 @@ pnpm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 
+pnpm --filter @mym/api seed:initial
 pnpm dev
 ```
 
@@ -44,7 +55,6 @@ Incluye gestión de profesores, alumnos, clases, horarios, catálogos maestros, 
 No incluye en V1: asistencia digital, lista de espera, Mercado Pago, clases de prueba, CRM de interesados, portal del alumno ni apps nativas.
 
 Ver `docs/functional-scope.md`.
-
 
 ## Variables de entorno
 
