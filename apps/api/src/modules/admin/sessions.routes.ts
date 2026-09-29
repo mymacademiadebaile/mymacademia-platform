@@ -79,6 +79,7 @@ adminSessionsRouter.get("/", async (request, response, next) => {
   try {
     const { date } = listQuerySchema.parse(request.query);
     const organizationId = request.auth!.organizationId;
+    const organizationObjectId = new Types.ObjectId(organizationId);
     const day = weekDayFor(date);
 
     const classes = await DanceClassModel.find({
@@ -113,14 +114,14 @@ adminSessionsRouter.get("/", async (request, response, next) => {
         occurrences.map((occurrence) => ({
           updateOne: {
             filter: {
-              organizationId,
+              organizationId: organizationObjectId,
               classId: occurrence.classId,
               sessionDate: date,
               startTime: occurrence.startTime
             },
             update: {
               $setOnInsert: {
-                organizationId,
+                organizationId: organizationObjectId,
                 branchId: occurrence.branchId,
                 classId: occurrence.classId,
                 sessionDate: date,
