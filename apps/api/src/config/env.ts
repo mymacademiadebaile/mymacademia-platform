@@ -3,6 +3,7 @@ import { z } from "zod";
 
 const booleanEnv = z
   .enum(["true", "false"])
+  .default("true")
   .transform((value) => value === "true");
 
 const envSchema = z.object({
@@ -25,7 +26,7 @@ const envSchema = z.object({
 
   SMTP_HOST: z.string().min(1).default("smtp.gmail.com"),
   SMTP_PORT: z.coerce.number().int().positive().default(465),
-  SMTP_SECURE: booleanEnv.default("true"),
+  SMTP_SECURE: booleanEnv,
   SMTP_USER: z.string().email().optional(),
   SMTP_PASSWORD: z.string().min(1).optional(),
   MAIL_FROM_NAME: z.string().min(1).default("M&M Academia")
