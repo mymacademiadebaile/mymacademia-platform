@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
-type Role = "ADMIN" | "PROFESSOR";
+export type Role = "ADMIN" | "PROFESSOR";
 
-type AuthUser = {
+export type AuthUser = {
   id: string;
   email: string;
   firstName: string;
@@ -14,6 +14,12 @@ type AuthUser = {
   role: Role;
   branchIds: string[];
 };
+
+const AuthUserContext = createContext<AuthUser | null>(null);
+
+export function useAuthUser() {
+  return useContext(AuthUserContext);
+}
 
 export function AuthGate({
   children,
@@ -24,34 +30,39 @@ export function AuthGate({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const initialPathname = useRef(pathname || "/admin");
+  const rolesKey = useMemo(() => roles.join("|"), [roles]);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    const allowedRoles = rolesKey.split("|") as Role[];
 
     apiFetch<{ user: AuthUser }>("/auth/me")
-      .then(({ user }) => {
+      .then(({ user: currentUser }) => {
         if (!mounted) return;
 
-        if (!roles.includes(user.role)) {
-          router.replace(user.role === "ADMIN" ? "/admin" : "/professor");
+        if (!allowedRoles.includes(currentUser.role)) {
+          router.replace(currentUser.role === "ADMIN" ? "/admin" : "/professor");
           return;
         }
 
+        setUser(currentUser);
         setReady(true);
       })
       .catch(() => {
         if (!mounted) return;
-        const next = encodeURIComponent(pathname || "/admin");
+        const next = encodeURIComponent(initialPathname.current);
         router.replace(`/login?next=${next}`);
       });
 
     return () => {
       mounted = false;
     };
-  }, [pathname, roles, router]);
+  }, [rolesKey, router]);
 
-  if (!ready) {
+  if (!ready || !user) {
     return (
       <div
         style={{
@@ -71,5 +82,5 @@ export function AuthGate({
     );
   }
 
-  return children;
+  return <AuthUserContext.Provider value={user}>{children}</AuthUserContext.Provider>;
 }

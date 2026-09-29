@@ -14,6 +14,7 @@ import { adminProfileRouter } from "./profile.routes";
 import { adminAuditRouter } from "./audit.routes";
 import { adminReportsRouter } from "./reports.routes";
 import { adminTrialsRouter } from "./trials.routes";
+import { adminNotificationsRouter } from "./notifications.routes";
 
 export const adminRouter = Router();
 
@@ -29,6 +30,7 @@ adminRouter.use("/enrollments", adminEnrollmentsRouter);
 adminRouter.use("/trials", adminTrialsRouter);
 adminRouter.use("/payments", adminPaymentsRouter);
 adminRouter.use("/communications", adminCommunicationsRouter);
+adminRouter.use("/notifications", adminNotificationsRouter);
 adminRouter.use("/audit", adminAuditRouter);
 adminRouter.use("/reports", adminReportsRouter);
 adminRouter.use("/settings", adminSettingsRouter);

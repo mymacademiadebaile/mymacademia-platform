@@ -1,15 +1,19 @@
 "use client";
 
 import {
+  AlertCircle,
   BarChart3,
   Bell,
   CalendarDays,
+  CheckCircle2,
   ClipboardList,
   CircleUserRound,
   CreditCard,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
+  MessageCircle,
   MessageCircleMore,
   Settings,
   SlidersHorizontal,
@@ -20,7 +24,8 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useAuthUser } from "@/components/auth/auth-gate";
 import { apiFetch } from "@/lib/api";
 import styles from "./admin.module.css";
 
@@ -38,29 +43,74 @@ const navigation = [
   { href: "/admin/profile", label: "Mi perfil", icon: CircleUserRound }
 ];
 
-type CurrentUser = {
-  firstName: string;
-  lastName: string;
-  email: string;
+type NotificationItem = {
+  id: string;
+  channel: "EMAIL" | "WHATSAPP";
+  type: string;
+  status: "PENDING" | "SENT" | "FAILED" | "OPENED";
+  subject?: string;
+  message: string;
+  studentName?: string;
+  destination: string;
+  sentAt?: string;
+  createdAt: string;
+};
+
+type NotificationResponse = {
+  attention: {
+    overdueCount: number;
+    overdueAmount: number;
+    failedCommunications: number;
+  };
+  items: NotificationItem[];
 };
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const user = useAuthUser();
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationResponse | null>(null);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  const loadNotifications = useCallback(async () => {
+    setNotificationsLoading(true);
+    try {
+      setNotifications(
+        await apiFetch<NotificationResponse>("/admin/notifications?limit=6")
+      );
+    } catch {
+      // El centro de notificaciones no debe bloquear la navegación principal.
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    apiFetch<{ user: CurrentUser }>("/auth/me")
-      .then((result) => setUser(result.user))
-      .catch(() => undefined);
+    void loadNotifications();
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    setNotificationOpen(false);
   }, [pathname]);
 
   async function logout() {
     await apiFetch<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
     router.replace("/login");
-    router.refresh();
   }
+
+  function toggleNotifications() {
+    setNotificationOpen((current) => {
+      const next = !current;
+      if (next) void loadNotifications();
+      return next;
+    });
+  }
+
+  const attentionCount =
+    (notifications?.attention.overdueCount ?? 0) +
+    (notifications?.attention.failedCommunications ?? 0);
 
   return (
     <div className={styles.adminRoot}>
@@ -115,10 +165,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          <button
-            className={styles.logoutButton}
-            onClick={() => void logout()}
-          >
+          <button className={styles.logoutButton} onClick={() => void logout()}>
             <LogOut size={18} />
             <span>
               <strong>Cerrar sesión</strong>
@@ -140,10 +187,92 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <strong>M&M Academia de Baile</strong>
           </div>
           <div className={styles.topbarActions}>
-            <button aria-label="Notificaciones" className={styles.roundButton}>
-              <Bell size={20} />
-              <i />
-            </button>
+            <div className={styles.notificationAnchor}>
+              <button
+                aria-label="Notificaciones"
+                aria-expanded={notificationOpen}
+                className={styles.roundButton}
+                onClick={toggleNotifications}
+              >
+                <Bell size={20} />
+                {attentionCount > 0 && (
+                  <b className={styles.notificationBadge}>
+                    {attentionCount > 99 ? "99+" : attentionCount}
+                  </b>
+                )}
+              </button>
+
+              {notificationOpen && (
+                <div className={styles.notificationPanel}>
+                  <div className={styles.notificationPanelHeader}>
+                    <div>
+                      <span>ACTIVIDAD</span>
+                      <strong>Notificaciones</strong>
+                    </div>
+                    <button onClick={() => setNotificationOpen(false)} aria-label="Cerrar">
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  <div className={styles.notificationAttention}>
+                    <Link href="/admin/payments">
+                      <AlertCircle size={16} />
+                      <span>
+                        <strong>{notifications?.attention.overdueCount ?? 0} pagos vencidos</strong>
+                        <small>$ {(notifications?.attention.overdueAmount ?? 0).toLocaleString("es-AR")}</small>
+                      </span>
+                    </Link>
+                    {(notifications?.attention.failedCommunications ?? 0) > 0 && (
+                      <Link href="/admin/communications">
+                        <AlertCircle size={16} />
+                        <span>
+                          <strong>{notifications?.attention.failedCommunications} envíos con error</strong>
+                          <small>Revisar comunicaciones</small>
+                        </span>
+                      </Link>
+                    )}
+                  </div>
+
+                  <div className={styles.notificationList}>
+                    {notificationsLoading && !notifications && (
+                      <span className={styles.notificationEmpty}>Actualizando actividad...</span>
+                    )}
+                    {!notificationsLoading && notifications?.items.length === 0 && (
+                      <span className={styles.notificationEmpty}>Sin actividad reciente.</span>
+                    )}
+                    {notifications?.items.map((item) => (
+                      <div className={styles.notificationItem} key={item.id}>
+                        <span className={styles.notificationItemIcon} data-status={item.status}>
+                          {item.status === "FAILED"
+                            ? <AlertCircle size={15} />
+                            : item.channel === "EMAIL"
+                              ? <Mail size={15} />
+                              : <MessageCircle size={15} />}
+                        </span>
+                        <span>
+                          <strong>{item.studentName || item.destination}</strong>
+                          <small>{item.subject || item.message}</small>
+                          <time>
+                            {new Date(item.sentAt || item.createdAt).toLocaleString("es-AR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
+                          </time>
+                        </span>
+                        {item.status === "SENT" && <CheckCircle2 size={14} className={styles.notificationOk} />}
+                      </div>
+                    ))}
+                  </div>
+
+                  <Link href="/admin/notifications" className={styles.notificationAll}>
+                    Ver centro de notificaciones
+                  </Link>
+                </div>
+              )}
+            </div>
+
             <Link href="/admin/profile" className={styles.profileShortcut} aria-label="Abrir mi perfil">
               <CircleUserRound size={18} />
               <span>{user?.firstName ?? "Perfil"}</span>
