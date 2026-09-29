@@ -249,7 +249,8 @@
   background: white;
 }
 
-.listRow {
+.listRow,
+.listRowLink {
   min-height: 64px;
   padding: 10px 14px;
   display: flex;
@@ -258,7 +259,17 @@
   border-top: 1px solid #f0ebf3;
 }
 
-.listRow:first-child {
+.listRowLink {
+  color: inherit;
+  transition: background 140ms ease;
+}
+
+.listRowLink:hover {
+  background: #fcfaff;
+}
+
+.listRow:first-child,
+.listRowLink:first-child {
   border-top: 0;
 }
 
@@ -413,6 +424,52 @@
   line-height: 1.5;
 }
 
+.filterBar {
+  margin-bottom: 14px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 180px 150px auto;
+  gap: 9px;
+  align-items: center;
+  border: 1px solid #e8e1ec;
+  border-radius: 17px;
+  background: white;
+}
+
+.searchInline {
+  min-height: 40px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e6dfea;
+  border-radius: 11px;
+}
+
+.searchInline input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.filterBar > select {
+  min-height: 40px;
+  padding: 0 9px;
+  border: 1px solid #e6dfea;
+  border-radius: 11px;
+  background: white;
+}
+
+.checkboxFilter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #655b6b;
+  font-size: 9px;
+  font-weight: 800;
+}
+
 @media (max-width: 1050px) {
   .liveGrid4 {
     grid-template-columns: repeat(2, 1fr);
@@ -421,13 +478,26 @@
   .catalogColumns {
     grid-template-columns: 1fr;
   }
+
+  .filterBar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .searchInline {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 680px) {
   .liveGrid4,
   .liveGrid3,
-  .formGrid {
+  .formGrid,
+  .filterBar {
     grid-template-columns: 1fr;
+  }
+
+  .searchInline {
+    grid-column: auto;
   }
 
   .fieldWide {

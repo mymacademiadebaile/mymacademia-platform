@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
+import Link from "next/link";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import type { Branch, Paginated, Student } from "./live-types";
@@ -12,6 +13,9 @@ export function StudentsLive() {
   const [items, setItems] = useState<Student[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [search, setSearch] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [status, setStatus] = useState("active");
+  const [debtOnly, setDebtOnly] = useState(false);
   const [modal, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -22,10 +26,21 @@ export function StudentsLive() {
     setError("");
 
     try {
+      const params = new URLSearchParams({
+        limit: "100",
+        q: search,
+        isActive: status === "all" ? "" : String(status === "active"),
+        debt: debtOnly ? "true" : "false"
+      });
+
+      if (!params.get("isActive")) params.delete("isActive");
+      if (branchId) params.set("branchId", branchId);
+
       const [students, branchList] = await Promise.all([
-        apiFetch<Paginated<Student>>(`/admin/students?limit=100&q=${encodeURIComponent(search)}`),
+        apiFetch<Paginated<Student>>(`/admin/students?${params.toString()}`),
         apiFetch<Branch[]>("/admin/branches")
       ]);
+
       setItems(students.items);
       setBranches(branchList.filter((branch) => branch.isActive));
     } catch (requestError) {
@@ -33,7 +48,7 @@ export function StudentsLive() {
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, branchId, status, debtOnly]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 180);
@@ -47,7 +62,7 @@ export function StudentsLive() {
     setError("");
 
     try {
-      await apiFetch<Student>("/admin/students", {
+      const student = await apiFetch<Student>("/admin/students", {
         method: "POST",
         body: JSON.stringify({
           branchId: form.get("branchId"),
@@ -57,11 +72,13 @@ export function StudentsLive() {
           email: form.get("email") || undefined,
           birthDate: form.get("birthDate") || undefined,
           guardianName: form.get("guardianName") || undefined,
-          guardianPhone: form.get("guardianPhone") || undefined
+          guardianPhone: form.get("guardianPhone") || undefined,
+          notes: form.get("notes") || undefined
         })
       });
+
       setModal(false);
-      await load();
+      window.location.assign(`/admin/students/${student._id}`);
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
@@ -74,25 +91,37 @@ export function StudentsLive() {
       <PageHeader
         eyebrow="COMUNIDAD"
         title="Alumnos"
-        description="Alta, búsqueda y estado de cada alumno usando datos reales."
+        description="Alta, búsqueda, filtros y ficha completa de cada alumno."
         actionLabel="Nuevo alumno"
         onAction={() => setModal(true)}
       />
 
-      <div className={styles.notice}>
-        {items.length} alumnos visibles en esta búsqueda. La ficha financiera se conecta desde el módulo Pagos.
-      </div>
-
-      <div className={styles.card} style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+      <div className={styles.filterBar}>
+        <div className={styles.searchInline}>
           <Search size={17} />
           <input
-            style={{ flex: 1, border: 0, outline: 0, background: "transparent" }}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por nombre, email o teléfono..."
+            placeholder="Nombre, email o teléfono..."
           />
         </div>
+        <select value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+          <option value="">Todas las sedes</option>
+          {branches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}</option>)}
+        </select>
+        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+          <option value="all">Todos</option>
+        </select>
+        <label className={styles.checkboxFilter}>
+          <input
+            type="checkbox"
+            checked={debtOnly}
+            onChange={(event) => setDebtOnly(event.target.checked)}
+          />
+          Con deuda vencida
+        </label>
       </div>
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
@@ -100,8 +129,13 @@ export function StudentsLive() {
 
       {!loading && (
         <div className={styles.listCard}>
+          {items.length === 0 && (
+            <div className={styles.stateBlock}>
+              <span>No hay alumnos para estos filtros.</span>
+            </div>
+          )}
           {items.map((student) => (
-            <div className={styles.listRow} key={student._id}>
+            <Link className={styles.listRowLink} href={`/admin/students/${student._id}`} key={student._id}>
               <span className={styles.avatar}>
                 {student.firstName.slice(0, 1)}{student.lastName.slice(0, 1)}
               </span>
@@ -112,7 +146,8 @@ export function StudentsLive() {
               <span className={student.isActive ? styles.pill : styles.pillOff}>
                 {student.isActive ? "Activo" : "Inactivo"}
               </span>
-            </div>
+              <ChevronRight size={17} />
+            </Link>
           ))}
         </div>
       )}
@@ -120,7 +155,7 @@ export function StudentsLive() {
       <LiveModal
         open={modal}
         title="Agregar alumno"
-        description="Cargamos primero lo esencial; podés completar más datos después."
+        description="Cargá la información principal. Después podés administrar clases, cuenta y contacto desde su ficha."
         submitting={submitting}
         onClose={() => setModal(false)}
         onSubmit={create}
@@ -138,6 +173,7 @@ export function StudentsLive() {
         <Field label="Fecha de nacimiento"><input name="birthDate" type="date" /></Field>
         <Field label="Responsable"><input name="guardianName" /></Field>
         <Field label="Teléfono responsable"><input name="guardianPhone" /></Field>
+        <Field label="Notas" wide><textarea name="notes" rows={4} /></Field>
       </LiveModal>
     </>
   );
