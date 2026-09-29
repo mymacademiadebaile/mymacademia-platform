@@ -26,7 +26,10 @@ Para desarrollo/producción se debe configurar una contraseña de aplicación de
 ```bash
 corepack enable
 pnpm install
-cp .env.example .env
+
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+
 pnpm dev
 ```
 
