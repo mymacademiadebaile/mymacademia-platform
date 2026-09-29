@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Check,
   Clock3,
+  Gift,
   Plus,
   Power,
   Trash2,
@@ -43,6 +44,18 @@ type Enrollment = {
   enrolledAt: string;
 };
 
+type TrialBooking = {
+  _id: string;
+  studentId: Student;
+  scheduledFor: string;
+  status: "SCHEDULED" | "COMPLETED" | "CANCELLED" | "CONVERTED";
+  notes?: string;
+};
+
+type TrialResponse = {
+  items: TrialBooking[];
+};
+
 type EnrollmentResponse = {
   items: Enrollment[];
   capacity: number;
@@ -62,6 +75,9 @@ export function ClassDetailLive({ id }: { id: string }) {
   const [danceClass, setDanceClass] = useState<DanceClass | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentResponse | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
+  const [trials, setTrials] = useState<TrialBooking[]>([]);
+  const [trialStudentId, setTrialStudentId] = useState("");
+  const [trialDate, setTrialDate] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
@@ -76,9 +92,10 @@ export function ClassDetailLive({ id }: { id: string }) {
     setError("");
 
     try {
-      const [classData, enrollmentData, studentData, branchList, professorList, catalogList] = await Promise.all([
+      const [classData, enrollmentData, trialData, studentData, branchList, professorList, catalogList] = await Promise.all([
         apiFetch<DanceClass>(`/admin/classes/${id}`),
         apiFetch<EnrollmentResponse>(`/admin/enrollments?classId=${id}`),
+        apiFetch<TrialResponse>(`/admin/trials?classId=${id}`),
         apiFetch<Paginated<Student>>("/admin/students?limit=100&isActive=true"),
         apiFetch<Branch[]>("/admin/branches"),
         apiFetch<Professor[]>("/admin/professors?isActive=true"),
@@ -86,6 +103,7 @@ export function ClassDetailLive({ id }: { id: string }) {
       ]);
       setDanceClass(classData);
       setEnrollments(enrollmentData);
+      setTrials(trialData.items);
       setStudents(studentData.items);
       setBranches(branchList.filter((item) => item.isActive));
       setProfessors(professorList.filter((item) => item.isActive));
@@ -106,6 +124,13 @@ export function ClassDetailLive({ id }: { id: string }) {
 
   const availableStudents = students.filter(
     (student) => !enrolledIds.has(student._id) && (!danceClass || student.branchId === danceClass.branchId)
+  );
+
+  const scheduledTrialIds = new Set(
+    trials.filter((trial) => trial.status === "SCHEDULED").map((trial) => trial.studentId._id)
+  );
+  const availableTrialStudents = availableStudents.filter(
+    (student) => !scheduledTrialIds.has(student._id)
   );
 
   const disciplines = catalogs.filter((item) => item.type === "DISCIPLINE");
@@ -153,6 +178,67 @@ export function ClassDetailLive({ id }: { id: string }) {
     try {
       await apiFetch<void>(`/admin/enrollments/${enrollmentId}`, { method: "DELETE" });
       setNotice("Inscripción dada de baja.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function scheduleTrial() {
+    if (!trialStudentId || !trialDate) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch("/admin/trials", {
+        method: "POST",
+        body: JSON.stringify({
+          classId: id,
+          studentId: trialStudentId,
+          scheduledFor: `${trialDate}T12:00:00`
+        })
+      });
+      setTrialStudentId("");
+      setTrialDate("");
+      setNotice("Clase de prueba agendada.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateTrial(trialId: string, status: "COMPLETED" | "CANCELLED") {
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch(`/admin/trials/${trialId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status })
+      });
+      setNotice(status === "COMPLETED" ? "Prueba marcada como realizada." : "Prueba cancelada.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function convertTrial(trialId: string) {
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch(`/admin/trials/${trialId}/convert`, { method: "POST" });
+      setNotice("La prueba se convirtió en inscripción regular.");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -302,6 +388,55 @@ export function ClassDetailLive({ id }: { id: string }) {
           </div>
           {enrollments.available <= 0 && <p className={styles.helper}>La clase alcanzó el cupo máximo.</p>}
         </section>
+
+        {danceClass.freeTrialEnabled && (
+          <section className={styles.card + " " + styles.trialCard}>
+            <div className={styles.cardHeader}><span>PRUEBA GRATIS</span><h3>Clases de prueba</h3></div>
+            <div className={styles.trialComposer}>
+              <select value={trialStudentId} onChange={(event) => setTrialStudentId(event.target.value)}>
+                <option value="">Seleccionar alumno</option>
+                {availableTrialStudents.map((student) => (
+                  <option value={student._id} key={student._id}>
+                    {student.firstName} {student.lastName}
+                  </option>
+                ))}
+              </select>
+              <input type="date" value={trialDate} onChange={(event) => setTrialDate(event.target.value)} />
+              <button disabled={!trialStudentId || !trialDate || busy} onClick={() => void scheduleTrial()}>
+                <Gift size={15} /> Agendar prueba
+              </button>
+            </div>
+
+            <div className={styles.trialList}>
+              {trials.length === 0 && <p className={styles.helper}>Todavía no hay pruebas agendadas.</p>}
+              {trials.map((trial) => (
+                <div key={trial._id}>
+                  <span>
+                    <strong>{trial.studentId.firstName} {trial.studentId.lastName}</strong>
+                    <small>{new Date(trial.scheduledFor).toLocaleDateString("es-AR")} · {
+                      trial.status === "SCHEDULED" ? "Agendada" :
+                      trial.status === "COMPLETED" ? "Realizada" :
+                      trial.status === "CONVERTED" ? "Inscripto/a" : "Cancelada"
+                    }</small>
+                  </span>
+                  <div>
+                    {trial.status === "SCHEDULED" && (
+                      <>
+                        <button onClick={() => void updateTrial(trial._id, "COMPLETED")} disabled={busy}>Realizada</button>
+                        <button onClick={() => void updateTrial(trial._id, "CANCELLED")} disabled={busy}>Cancelar</button>
+                      </>
+                    )}
+                    {(trial.status === "SCHEDULED" || trial.status === "COMPLETED") && (
+                      <button className={styles.convertTrial} onClick={() => void convertTrial(trial._id)} disabled={busy}>
+                        Inscribir
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className={styles.card + " " + styles.studentsCard}>
           <div className={styles.cardHeader}><span>ALUMNOS</span><h3>Inscriptos actuales</h3></div>

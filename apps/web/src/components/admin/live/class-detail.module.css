@@ -414,3 +414,96 @@
 }
 .switchRow input { width: 17px; }
 .switchRow span { color: #5f5566; font-size: 11px; font-weight: 750; }
+
+
+.trialCard {
+  grid-column: 1 / -1;
+}
+
+.trialComposer {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 170px auto;
+  gap: 8px;
+}
+
+.trialComposer select,
+.trialComposer input {
+  min-height: 42px;
+  border: 1px solid #e5deea;
+  border-radius: 11px;
+  padding: 0 9px;
+  background: white;
+  font-size: 11px;
+}
+
+.trialComposer button {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 11px;
+  background: #5b21b6;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.trialComposer button:disabled { opacity: .5; cursor: not-allowed; }
+
+.trialList {
+  margin-top: 12px;
+  display: grid;
+}
+
+.trialList > div {
+  min-height: 58px;
+  padding: 8px 2px;
+  border-top: 1px solid #f0ebf3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trialList > div > span {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.trialList strong { font-size: 11px; }
+.trialList small { color: #817787; font-size: 10px; }
+
+.trialList > div > div {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.trialList button {
+  min-height: 31px;
+  padding: 0 8px;
+  border: 1px solid #e8e1ec;
+  border-radius: 9px;
+  background: white;
+  color: #5b21b6;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trialList .convertTrial {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+@media (max-width: 760px) {
+  .trialComposer {
+    grid-template-columns: 1fr;
+  }
+}

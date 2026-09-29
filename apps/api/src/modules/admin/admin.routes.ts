@@ -13,6 +13,7 @@ import { adminCommunicationsRouter } from "./communications.routes";
 import { adminProfileRouter } from "./profile.routes";
 import { adminAuditRouter } from "./audit.routes";
 import { adminReportsRouter } from "./reports.routes";
+import { adminTrialsRouter } from "./trials.routes";
 
 export const adminRouter = Router();
 
@@ -25,6 +26,7 @@ adminRouter.use("/professors", adminProfessorsRouter);
 adminRouter.use("/students", adminStudentsRouter);
 adminRouter.use("/classes", adminClassesRouter);
 adminRouter.use("/enrollments", adminEnrollmentsRouter);
+adminRouter.use("/trials", adminTrialsRouter);
 adminRouter.use("/payments", adminPaymentsRouter);
 adminRouter.use("/communications", adminCommunicationsRouter);
 adminRouter.use("/audit", adminAuditRouter);
