@@ -1,5 +1,5 @@
-import { ProfessorsView } from "@/components/admin/admin-ui";
+import { ProfessorsLive } from "@/components/admin/live/professors-live";
 
 export default function ProfessorsPage() {
-  return <ProfessorsView />;
+  return <ProfessorsLive />;
 }

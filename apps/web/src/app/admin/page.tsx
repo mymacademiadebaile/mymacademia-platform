@@ -1,5 +1,5 @@
-import { DashboardView } from "@/components/admin/admin-ui";
+import { DashboardLive } from "@/components/admin/live/dashboard-live";
 
 export default function AdminPage() {
-  return <DashboardView />;
+  return <DashboardLive />;
 }

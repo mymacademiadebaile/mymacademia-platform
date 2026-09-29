@@ -1,5 +1,5 @@
-import { CatalogsView } from "@/components/admin/admin-ui";
+import { CatalogsLive } from "@/components/admin/live/catalogs-live";
 
 export default function CatalogsPage() {
-  return <CatalogsView />;
+  return <CatalogsLive />;
 }
