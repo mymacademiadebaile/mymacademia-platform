@@ -1,3 +1,4 @@
+import { PAYMENT_TYPES } from "@mym/shared";
 import ExcelJS from "exceljs";
 import { Router } from "express";
 import multer from "multer";
@@ -24,6 +25,8 @@ const createPaymentSchema = z.object({
   branchId: objectIdSchema.optional(),
   studentId: objectIdSchema,
   classId: objectIdSchema,
+  paymentType: z.enum(PAYMENT_TYPES).default("MONTHLY"),
+  classDate: z.coerce.date().optional(),
   concept: z.string().trim().min(2).max(120),
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "El período debe tener formato YYYY-MM"),
   amount: z.number().positive(),
@@ -31,6 +34,24 @@ const createPaymentSchema = z.object({
   notes: z.string().trim().max(1000).optional().or(z.literal(""))
 });
 
+const quickChargeSchema = z.object({
+  studentId: objectIdSchema,
+  classId: objectIdSchema,
+  paymentType: z.enum(PAYMENT_TYPES),
+  classDate: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).optional(),
+  period: z.string().regex(/^\\d{4}-(0[1-9]|1[0-2])$/).optional(),
+  amount: z.number().positive().optional(),
+  paymentMethod: z.enum(PAYMENT_METHODS).default("OTHER"),
+  paidAt: z.coerce.date().optional(),
+  notes: z.string().trim().max(1000).optional().or(z.literal(""))
+}).superRefine((value, context) => {
+  if (value.paymentType === "PER_CLASS" && !value.classDate) {
+    context.addIssue({ code: "custom", path: ["classDate"], message: "Indicá la fecha de la clase" });
+  }
+  if (value.paymentType === "MONTHLY" && !value.period) {
+    context.addIssue({ code: "custom", path: ["period"], message: "Indicá el período mensual" });
+  }
+});
 const markPaidSchema = z.object({
   paymentMethod: z.enum(PAYMENT_METHODS).default("OTHER"),
   paidAt: z.coerce.date().optional()
@@ -44,7 +65,8 @@ const listQuerySchema = pageQuerySchema.extend({
   status: z.enum(["PENDING", "PAID", "OVERDUE", "CANCELLED"]).optional(),
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
   branchId: objectIdSchema.optional(),
-  classId: objectIdSchema.optional()
+  classId: objectIdSchema.optional(),
+  paymentType: z.enum(PAYMENT_TYPES).optional()
 });
 
 const upload = multer({
@@ -79,6 +101,7 @@ async function buildPaymentFilter(
   if (query.period) filter.period = query.period;
   if (query.branchId) filter.branchId = query.branchId;
   if (query.classId) filter.classId = query.classId;
+  if (query.paymentType) filter.paymentType = query.paymentType;
 
   if (query.status === "OVERDUE") {
     filter.$or = [
@@ -129,7 +152,7 @@ adminPaymentsRouter.get("/", async (request, response, next) => {
     const [items, total] = await Promise.all([
       PaymentModel.find(filter)
         .populate("studentId", "firstName lastName email phone branchId")
-        .populate("classId", "name monthlyPrice freeTrialEnabled status")
+        .populate("classId", "name billingMode pricePerClass monthlyPrice freeTrialEnabled status")
         .sort({ dueDate: -1, createdAt: -1 })
         .skip((query.page - 1) * query.limit)
         .limit(query.limit),
@@ -227,6 +250,7 @@ adminPaymentsRouter.get("/export.xlsx", async (request, response, next) => {
       { header: "Recibo", key: "receipt", width: 16 },
       { header: "Alumno", key: "student", width: 30 },
       { header: "Clase", key: "className", width: 26 },
+      { header: "Tipo", key: "paymentType", width: 14 },
       { header: "Concepto", key: "concept", width: 24 },
       { header: "Período", key: "period", width: 12 },
       { header: "Vencimiento", key: "dueDate", width: 16 },
@@ -246,6 +270,7 @@ adminPaymentsRouter.get("/export.xlsx", async (request, response, next) => {
         receipt: payment.receiptNumber ?? "",
         student: `${student.firstName} ${student.lastName}`,
         className: payment.classId && typeof payment.classId === "object" && "name" in payment.classId ? String((payment.classId as unknown as { name: string }).name) : "",
+        paymentType: payment.paymentType === "PER_CLASS" ? "Por clase" : "Mensual",
         concept: payment.concept,
         period: payment.period,
         dueDate: payment.dueDate,
@@ -338,6 +363,123 @@ adminPaymentsRouter.get("/:id/receipt.pdf", async (request, response, next) => {
   }
 });
 
+adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
+  try {
+    const input = quickChargeSchema.parse(request.body);
+    const organizationId = request.auth!.organizationId;
+
+    const [student, danceClass, enrollment] = await Promise.all([
+      StudentModel.findOne({ _id: input.studentId, organizationId, isActive: true }),
+      DanceClassModel.findOne({ _id: input.classId, organizationId, status: "ACTIVE" }),
+      EnrollmentModel.findOne({
+        organizationId,
+        classId: input.classId,
+        studentId: input.studentId,
+        status: "ACTIVE"
+      })
+    ]);
+
+    if (!student) throw new AppError(404, "Alumno no encontrado o inactivo", "STUDENT_NOT_FOUND");
+    if (!danceClass) throw new AppError(404, "Clase no encontrada o inactiva", "CLASS_NOT_FOUND");
+    if (!enrollment) {
+      throw new AppError(422, "El alumno debe estar inscripto en la clase", "PAYMENT_REQUIRES_ACTIVE_ENROLLMENT");
+    }
+    if (!danceClass.branchId.equals(student.branchId)) {
+      throw new AppError(422, "El alumno y la clase deben pertenecer a la misma sede", "PAYMENT_CLASS_BRANCH_MISMATCH");
+    }
+
+    const billingMode = danceClass.billingMode ?? "MONTHLY";
+    const allowed =
+      billingMode === "BOTH" ||
+      (billingMode === "PER_CLASS" && input.paymentType === "PER_CLASS") ||
+      (billingMode === "MONTHLY" && input.paymentType === "MONTHLY");
+
+    if (!allowed || billingMode === "FREE") {
+      throw new AppError(422, "La modalidad de cobro no está habilitada para esta clase", "PAYMENT_TYPE_NOT_ALLOWED");
+    }
+
+    const classDate =
+      input.paymentType === "PER_CLASS" && input.classDate
+        ? new Date(input.classDate + "T12:00:00.000Z")
+        : undefined;
+    const period =
+      input.paymentType === "PER_CLASS"
+        ? input.classDate!.slice(0, 7)
+        : input.period!;
+    const defaultAmount =
+      input.paymentType === "PER_CLASS"
+        ? danceClass.pricePerClass ?? 0
+        : danceClass.monthlyPrice ?? 0;
+    const amount = input.amount ?? defaultAmount;
+
+    if (amount <= 0) {
+      throw new AppError(422, "Configurá un importe mayor a cero para registrar el cobro", "INVALID_PAYMENT_AMOUNT");
+    }
+
+    const duplicateFilter: Record<string, unknown> = {
+      organizationId,
+      studentId: student._id,
+      classId: danceClass._id,
+      paymentType: input.paymentType,
+      status: { $ne: "CANCELLED" }
+    };
+    if (input.paymentType === "PER_CLASS") duplicateFilter.classDate = classDate;
+    else duplicateFilter.period = period;
+
+    if (await PaymentModel.exists(duplicateFilter)) {
+      throw new AppError(
+        409,
+        input.paymentType === "PER_CLASS"
+          ? "Ya existe un pago para esa clase y fecha"
+          : "Ya existe un pago mensual para ese período",
+        "PAYMENT_ALREADY_EXISTS"
+      );
+    }
+
+    const receiptNumber = await nextReceiptNumber(new Types.ObjectId(organizationId));
+    const paidAt = input.paidAt ?? new Date();
+    const payment = await PaymentModel.create({
+      organizationId,
+      branchId: student.branchId,
+      studentId: student._id,
+      classId: danceClass._id,
+      paymentType: input.paymentType,
+      classDate,
+      concept: input.paymentType === "PER_CLASS" ? "Clase · " + danceClass.name : "Mensualidad · " + danceClass.name,
+      period,
+      amount,
+      dueDate: classDate ?? paidAt,
+      status: "PAID",
+      paidAt,
+      paymentMethod: input.paymentMethod,
+      receiptNumber,
+      notes: input.notes?.trim() || undefined,
+      paidByUserId: new Types.ObjectId(request.auth!.userId)
+    });
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PAYMENT_QUICK_CHARGE",
+      entityType: "Payment",
+      entityId: payment._id,
+      metadata: {
+        studentId: student._id,
+        classId: danceClass._id,
+        paymentType: input.paymentType,
+        classDate,
+        period,
+        amount,
+        paymentMethod: input.paymentMethod,
+        receiptNumber
+      }
+    });
+
+    response.status(201).json(payment);
+  } catch (error) {
+    next(error);
+  }
+});
 adminPaymentsRouter.post("/", async (request, response, next) => {
   try {
     const input = createPaymentSchema.parse(request.body);
@@ -416,6 +558,8 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       branchId: student.branchId,
       studentId: student._id,
       classId: danceClass._id,
+      paymentType: input.paymentType,
+      classDate: input.classDate,
       concept: input.concept,
       period: input.period,
       amount: input.amount,
@@ -433,7 +577,9 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       metadata: {
         studentId: student._id,
         classId: danceClass._id,
+        paymentType: payment.paymentType,
         period: payment.period,
+        classDate: payment.classDate,
         amount: payment.amount
       }
     });

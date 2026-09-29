@@ -1,4 +1,11 @@
-import { CLASS_STATUSES, WEEK_DAYS, type ClassStatus, type WeekDay } from "@mym/shared";
+import {
+  BILLING_MODES,
+  CLASS_STATUSES,
+  WEEK_DAYS,
+  type BillingMode,
+  type ClassStatus,
+  type WeekDay
+} from "@mym/shared";
 import { Schema, Types, model } from "mongoose";
 
 interface ClassSchedule {
@@ -16,6 +23,8 @@ export interface DanceClass {
   segmentIds: Types.ObjectId[];
   levelIds: Types.ObjectId[];
   capacity: number;
+  billingMode: BillingMode;
+  pricePerClass: number;
   monthlyPrice: number;
   freeTrialEnabled: boolean;
   schedules: ClassSchedule[];
@@ -41,6 +50,8 @@ const danceClassSchema = new Schema<DanceClass>(
     segmentIds: [{ type: Schema.Types.ObjectId, ref: "CatalogItem", required: true }],
     levelIds: [{ type: Schema.Types.ObjectId, ref: "CatalogItem", required: true }],
     capacity: { type: Number, required: true, min: 1 },
+    billingMode: { type: String, enum: BILLING_MODES, default: "MONTHLY", index: true },
+    pricePerClass: { type: Number, default: 0, min: 0 },
     monthlyPrice: { type: Number, default: 0, min: 0 },
     freeTrialEnabled: { type: Boolean, default: false },
     schedules: { type: [scheduleSchema], default: [] },

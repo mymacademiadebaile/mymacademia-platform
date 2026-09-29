@@ -1,3 +1,4 @@
+import { PAYMENT_TYPES, type PaymentType } from "@mym/shared";
 import { Schema, Types, model } from "mongoose";
 
 const ENROLLMENT_STATUSES = ["ACTIVE", "INACTIVE"] as const;
@@ -8,6 +9,7 @@ export interface Enrollment {
   branchId: Types.ObjectId;
   classId: Types.ObjectId;
   studentId: Types.ObjectId;
+  billingPreference?: PaymentType;
   status: EnrollmentStatus;
   enrolledAt: Date;
   endedAt?: Date;
@@ -19,6 +21,7 @@ const enrollmentSchema = new Schema<Enrollment>(
     branchId: { type: Schema.Types.ObjectId, ref: "Branch", required: true, index: true },
     classId: { type: Schema.Types.ObjectId, ref: "DanceClass", required: true, index: true },
     studentId: { type: Schema.Types.ObjectId, ref: "Student", required: true, index: true },
+    billingPreference: { type: String, enum: PAYMENT_TYPES },
     status: { type: String, enum: ENROLLMENT_STATUSES, default: "ACTIVE" },
     enrolledAt: { type: Date, default: Date.now },
     endedAt: { type: Date }

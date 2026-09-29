@@ -47,3 +47,17 @@ Los profesores no escriben categorías libres al crear una clase. Seleccionan op
 - La mayoría de las disciplinas no tiene un límite etario rígido; las excepciones se modelan con Público/Segmento (por ejemplo, una clase infantil).
 - Las clases pueden habilitar una prueba gratuita. La administración puede agendarla para un alumno, marcarla como realizada/cancelada y convertirla en inscripción regular.
 - El teléfono/WhatsApp público de consultas debe ser configurable desde ADMIN y no quedar hardcodeado en frontend.
+
+## Modelo de cobro actualizado (29/09/2026)
+
+La clase define una modalidad de cobro:
+- Por clase.
+- Mensual.
+- Por clase o mensual.
+- Sin cargo.
+
+La modalidad predeterminada para nuevas clases es **por clase**, ya que refleja la operatoria habitual de la academia.
+
+Cuando una clase admite ambas modalidades, cada inscripción guarda la preferencia actual del alumno (`PER_CLASS` o `MONTHLY`) y puede modificarse posteriormente sin alterar pagos históricos.
+
+El módulo de pagos debe priorizar el cobro rápido: alumno -> clase -> fecha/período -> importe sugerido -> medio de pago -> registrar. También permite generar un pago pendiente para seguimiento posterior.

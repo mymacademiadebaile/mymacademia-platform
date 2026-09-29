@@ -7,10 +7,40 @@ import { StudentModel } from "../students/student.model";
 import { objectIdSchema } from "./admin.schemas";
 import { z } from "zod";
 
+const billingPreferenceSchema = z.enum(["PER_CLASS", "MONTHLY"]);
+
 const createEnrollmentSchema = z.object({
   classId: objectIdSchema,
-  studentId: objectIdSchema
+  studentId: objectIdSchema,
+  billingPreference: billingPreferenceSchema.optional()
 });
+
+const updateBillingPreferenceSchema = z.object({
+  billingPreference: billingPreferenceSchema
+});
+
+function resolveBillingPreference(
+  danceClass: { billingMode?: string },
+  requested?: "PER_CLASS" | "MONTHLY"
+) {
+  const mode = danceClass.billingMode ?? "MONTHLY";
+
+  if (mode === "FREE") return undefined;
+  if (mode === "PER_CLASS") {
+    if (requested && requested !== "PER_CLASS") {
+      throw new AppError(422, "Esta clase sólo admite pago por clase", "INVALID_BILLING_PREFERENCE");
+    }
+    return "PER_CLASS" as const;
+  }
+  if (mode === "MONTHLY") {
+    if (requested && requested !== "MONTHLY") {
+      throw new AppError(422, "Esta clase sólo admite pago mensual", "INVALID_BILLING_PREFERENCE");
+    }
+    return "MONTHLY" as const;
+  }
+
+  return requested ?? "PER_CLASS";
+}
 
 const moveEnrollmentSchema = z.object({
   targetClassId: objectIdSchema
@@ -71,7 +101,7 @@ adminEnrollmentsRouter.get("/student/:studentId", async (request, response, next
       studentId,
       status: "ACTIVE"
     })
-      .populate("classId", "name branchId monthlyPrice freeTrialEnabled status schedules")
+      .populate("classId", "name branchId billingMode pricePerClass monthlyPrice freeTrialEnabled status schedules")
       .sort({ enrolledAt: -1 });
 
     response.json({ items });
@@ -106,6 +136,8 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
       );
     }
 
+    const billingPreference = resolveBillingPreference(danceClass, input.billingPreference);
+
     const [activeCount, existing] = await Promise.all([
       EnrollmentModel.countDocuments({
         organizationId,
@@ -134,6 +166,7 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
             $set: {
               branchId: danceClass.branchId,
               status: "ACTIVE",
+              billingPreference,
               enrolledAt: new Date(),
               endedAt: undefined
             }
@@ -146,6 +179,7 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
           classId: danceClass._id,
           studentId: student._id,
           status: "ACTIVE",
+          billingPreference,
           enrolledAt: new Date()
         });
 
@@ -275,6 +309,54 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
   }
 });
 
+adminEnrollmentsRouter.patch("/:id/billing-preference", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const input = updateBillingPreferenceSchema.parse(request.body);
+    const organizationId = request.auth!.organizationId;
+
+    const enrollment = await EnrollmentModel.findOne({
+      _id: id,
+      organizationId,
+      status: "ACTIVE"
+    });
+
+    if (!enrollment) {
+      throw new AppError(404, "Inscripción no encontrada", "ENROLLMENT_NOT_FOUND");
+    }
+
+    const danceClass = await DanceClassModel.findOne({
+      _id: enrollment.classId,
+      organizationId,
+      status: "ACTIVE"
+    });
+
+    if (!danceClass) {
+      throw new AppError(404, "Clase no encontrada o inactiva", "CLASS_NOT_FOUND");
+    }
+
+    const billingPreference = resolveBillingPreference(danceClass, input.billingPreference);
+    enrollment.billingPreference = billingPreference;
+    await enrollment.save();
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "ENROLLMENT_BILLING_UPDATED",
+      entityType: "Enrollment",
+      entityId: enrollment._id,
+      metadata: {
+        classId: enrollment.classId,
+        studentId: enrollment.studentId,
+        billingPreference
+      }
+    });
+
+    response.json(enrollment);
+  } catch (error) {
+    next(error);
+  }
+});
 adminEnrollmentsRouter.delete("/:id", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);

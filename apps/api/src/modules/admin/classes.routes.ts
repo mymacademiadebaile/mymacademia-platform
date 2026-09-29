@@ -1,4 +1,4 @@
-import { WEEK_DAYS } from "@mym/shared";
+import { BILLING_MODES, WEEK_DAYS } from "@mym/shared";
 import { Router } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -29,6 +29,8 @@ const classBodySchema = z.object({
   segmentIds: z.array(objectIdSchema).min(1),
   levelIds: z.array(objectIdSchema).min(1),
   capacity: z.number().int().min(1).max(500),
+  billingMode: z.enum(BILLING_MODES).default("MONTHLY"),
+  pricePerClass: z.number().min(0).max(100000000).default(0),
   monthlyPrice: z.number().min(0).max(100000000).default(0),
   freeTrialEnabled: z.boolean().default(false),
   schedules: z.array(scheduleSchema).min(1).max(14)
@@ -56,6 +58,8 @@ const updateDanceClassSchema = z.object({
   segmentIds: z.array(objectIdSchema).min(1).optional(),
   levelIds: z.array(objectIdSchema).min(1).optional(),
   capacity: z.number().int().min(1).max(500).optional(),
+  billingMode: z.enum(BILLING_MODES).optional(),
+  pricePerClass: z.number().min(0).max(100000000).optional(),
   monthlyPrice: z.number().min(0).max(100000000).optional(),
   freeTrialEnabled: z.boolean().optional(),
   schedules: z.array(scheduleSchema).min(1).max(14).optional(),
@@ -382,6 +386,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
       segmentIds: item.segmentIds.map((value) => value.toString()),
       levelIds: item.levelIds.map((value) => value.toString()),
       capacity: item.capacity,
+      billingMode: item.billingMode ?? "MONTHLY",
+      pricePerClass: item.pricePerClass ?? 0,
       monthlyPrice: item.monthlyPrice ?? 0,
       freeTrialEnabled: item.freeTrialEnabled ?? false,
       schedules: item.schedules,
@@ -411,6 +417,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
 
       item.capacity = input.capacity;
     }
+    if (input.billingMode !== undefined) item.billingMode = input.billingMode;
+    if (input.pricePerClass !== undefined) item.pricePerClass = input.pricePerClass;
     if (input.monthlyPrice !== undefined) item.monthlyPrice = input.monthlyPrice;
     if (input.freeTrialEnabled !== undefined) item.freeTrialEnabled = input.freeTrialEnabled;
     if (input.schedules !== undefined) item.schedules = input.schedules;
@@ -434,6 +442,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
           segmentIds: item.segmentIds.map((value) => value.toString()),
           levelIds: item.levelIds.map((value) => value.toString()),
           capacity: item.capacity,
+          billingMode: item.billingMode ?? "MONTHLY",
+          pricePerClass: item.pricePerClass ?? 0,
           monthlyPrice: item.monthlyPrice ?? 0,
           freeTrialEnabled: item.freeTrialEnabled ?? false,
           schedules: item.schedules,
