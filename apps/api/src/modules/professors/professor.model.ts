@@ -8,6 +8,7 @@ export interface Professor {
   phone?: string;
   bio?: string;
   avatarUrl?: string;
+  introVideoUrl?: string;
   instagram?: string;
   isActive: boolean;
 }
@@ -21,6 +22,7 @@ const professorSchema = new Schema<Professor>(
     phone: { type: String, trim: true },
     bio: { type: String, trim: true, maxlength: 600 },
     avatarUrl: { type: String, trim: true },
+    introVideoUrl: { type: String, trim: true },
     instagram: { type: String, trim: true },
     isActive: { type: Boolean, default: true }
   },

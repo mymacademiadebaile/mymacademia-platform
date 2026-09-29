@@ -3,6 +3,13 @@ import { Router } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
+import {
+  deleteProfessorMedia,
+  professorAvatarUpload,
+  professorVideoUpload,
+  uploadProfessorAvatar,
+  uploadProfessorIntroVideo
+} from "../../services/professor-media";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { UserModel } from "../auth/user.model";
 import { CatalogItemModel } from "../catalogs/catalog.model";
@@ -38,6 +45,7 @@ const updateProfessorSchema = z.object({
   bio: cleanOptionalString,
   instagram: z.string().trim().max(120).optional().or(z.literal("")),
   avatarUrl: z.string().url().optional().or(z.literal("")),
+  introVideoUrl: z.string().url().optional().or(z.literal("")),
   isActive: z.boolean().optional()
 });
 
@@ -327,6 +335,8 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
       phone: professor.phone ?? "",
       bio: professor.bio ?? "",
       instagram: professor.instagram ?? "",
+      avatarUrl: professor.avatarUrl ?? "",
+      introVideoUrl: professor.introVideoUrl ?? "",
       disciplineIds: professor.disciplineIds.map((value) => value.toString()),
       isActive: professor.isActive
     };
@@ -345,6 +355,7 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
     if (input.bio !== undefined) professor.bio = input.bio.trim() || undefined;
     if (input.instagram !== undefined) professor.instagram = input.instagram.trim() || undefined;
     if (input.avatarUrl !== undefined) professor.avatarUrl = input.avatarUrl.trim() || undefined;
+    if (input.introVideoUrl !== undefined) professor.introVideoUrl = input.introVideoUrl.trim() || undefined;
     if (input.disciplineIds !== undefined) {
       professor.disciplineIds = input.disciplineIds.map((value) => new Types.ObjectId(value));
     }
@@ -369,6 +380,8 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
           phone: professor.phone ?? "",
           bio: professor.bio ?? "",
           instagram: professor.instagram ?? "",
+          avatarUrl: professor.avatarUrl ?? "",
+          introVideoUrl: professor.introVideoUrl ?? "",
           disciplineIds: professor.disciplineIds.map((value) => value.toString()),
           isActive: professor.isActive
         }
@@ -376,6 +389,147 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
     });
 
     response.json(professor);
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+adminProfessorsRouter.post(
+  "/:id/avatar",
+  professorAvatarUpload.single("file"),
+  async (request, response, next) => {
+    try {
+      const id = objectIdSchema.parse(request.params.id);
+      const organizationId = request.auth!.organizationId;
+
+      if (!request.file) {
+        throw new AppError(422, "Seleccioná una imagen", "PROFESSOR_AVATAR_REQUIRED");
+      }
+
+      const professor = await ProfessorModel.findOne({ _id: id, organizationId });
+
+      if (!professor) {
+        throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+      }
+
+      const result = await uploadProfessorAvatar(
+        request.file.buffer,
+        organizationId,
+        professor.id
+      );
+
+      professor.avatarUrl = result.secure_url;
+      await professor.save();
+
+      await AuditLogModel.create({
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "PROFESSOR_AVATAR_UPDATED",
+        entityType: "Professor",
+        entityId: professor._id
+      });
+
+      response.json({ avatarUrl: professor.avatarUrl });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+adminProfessorsRouter.delete("/:id/avatar", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+    const professor = await ProfessorModel.findOne({ _id: id, organizationId });
+
+    if (!professor) {
+      throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+    }
+
+    await deleteProfessorMedia(organizationId, professor.id, "avatar").catch(() => undefined);
+    professor.avatarUrl = undefined;
+    await professor.save();
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PROFESSOR_AVATAR_REMOVED",
+      entityType: "Professor",
+      entityId: professor._id
+    });
+
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminProfessorsRouter.post(
+  "/:id/intro-video",
+  professorVideoUpload.single("file"),
+  async (request, response, next) => {
+    try {
+      const id = objectIdSchema.parse(request.params.id);
+      const organizationId = request.auth!.organizationId;
+
+      if (!request.file) {
+        throw new AppError(422, "Seleccioná un video", "PROFESSOR_VIDEO_REQUIRED");
+      }
+
+      const professor = await ProfessorModel.findOne({ _id: id, organizationId });
+
+      if (!professor) {
+        throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+      }
+
+      const result = await uploadProfessorIntroVideo(
+        request.file.buffer,
+        organizationId,
+        professor.id
+      );
+
+      professor.introVideoUrl = result.secure_url;
+      await professor.save();
+
+      await AuditLogModel.create({
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "PROFESSOR_INTRO_VIDEO_UPDATED",
+        entityType: "Professor",
+        entityId: professor._id
+      });
+
+      response.json({ introVideoUrl: professor.introVideoUrl });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+adminProfessorsRouter.delete("/:id/intro-video", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+    const professor = await ProfessorModel.findOne({ _id: id, organizationId });
+
+    if (!professor) {
+      throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+    }
+
+    await deleteProfessorMedia(organizationId, professor.id, "intro-video").catch(() => undefined);
+    professor.introVideoUrl = undefined;
+    await professor.save();
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PROFESSOR_INTRO_VIDEO_REMOVED",
+      entityType: "Professor",
+      entityId: professor._id
+    });
+
+    response.status(204).send();
   } catch (error) {
     next(error);
   }

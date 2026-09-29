@@ -25,6 +25,7 @@ export type Professor = {
   bio?: string;
   instagram?: string;
   avatarUrl?: string;
+  introVideoUrl?: string;
   disciplineIds: Array<CatalogItem | string>;
   isActive: boolean;
   userId?: {

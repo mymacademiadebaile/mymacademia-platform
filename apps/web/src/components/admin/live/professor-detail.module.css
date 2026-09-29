@@ -353,3 +353,102 @@
     grid-column: auto;
   }
 }
+
+
+.avatarImage {
+  width: 70px;
+  height: 70px;
+  flex: 0 0 auto;
+  border-radius: 22px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,.24);
+}
+
+.mediaCard {
+  grid-column: 1 / -1;
+}
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mediaPanel {
+  padding: 12px;
+  border: 1px solid #eee8f2;
+  border-radius: 14px;
+  display: grid;
+  gap: 9px;
+}
+
+.mediaPanel > strong {
+  font-size: 9px;
+}
+
+.mediaPreview,
+.videoPreview {
+  min-height: 180px;
+  border-radius: 13px;
+  overflow: hidden;
+  background: #f7f3fa;
+  display: grid;
+  place-items: center;
+}
+
+.mediaPreview img {
+  width: 100%;
+  height: 210px;
+  object-fit: cover;
+}
+
+.videoPreview video {
+  width: 100%;
+  max-height: 260px;
+  background: #111;
+}
+
+.mediaPreview > span,
+.videoPreview > span {
+  display: grid;
+  place-items: center;
+  gap: 7px;
+  color: #897f90;
+  font-size: 9px;
+}
+
+.mediaActions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.mediaActions label,
+.mediaActions button {
+  min-height: 35px;
+  padding: 0 10px;
+  border: 1px solid #e6deeb;
+  border-radius: 10px;
+  background: white;
+  color: #5b21b6;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.mediaActions input {
+  display: none;
+}
+
+.mediaActions button {
+  color: #be123c;
+}
+
+@media (max-width: 760px) {
+  .mediaGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -2,14 +2,19 @@
 
 import {
   CalendarDays,
+  Camera,
+  Check,
   ChevronRight,
   CircleUserRound,
   Clock3,
   Home,
   LogOut,
-  UsersRound
+  Save,
+  Trash2,
+  UsersRound,
+  Video
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiMessage } from "@/lib/api";
 import styles from "./professor.module.css";
@@ -58,6 +63,7 @@ type DashboardData = {
     bio?: string;
     instagram?: string;
     avatarUrl?: string;
+    introVideoUrl?: string;
     disciplines: NamedItem[];
   };
   branches: Array<{
@@ -100,6 +106,8 @@ export default function ProfessorPage() {
   const [activeView, setActiveView] = useState<View>("home");
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [profileBusy, setProfileBusy] = useState<"save" | "avatar" | "video" | "">("");
 
   const load = useCallback(async () => {
     setError("");
@@ -120,6 +128,75 @@ export default function ProfessorPage() {
     if (activeView === "profile") return "Mi perfil";
     return data ? `Hola, ${data.user.firstName}` : "Mi espacio";
   }, [activeView, data]);
+
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setProfileBusy("save");
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch("/professor/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          displayName: form.get("displayName"),
+          phone: form.get("phone"),
+          instagram: form.get("instagram"),
+          bio: form.get("bio")
+        })
+      });
+      setNotice("Perfil actualizado.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setProfileBusy("");
+    }
+  }
+
+  async function uploadProfileMedia(kind: "avatar" | "intro-video", file?: File) {
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    setProfileBusy(kind === "avatar" ? "avatar" : "video");
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch(`/professor/profile/${kind}`, {
+        method: "POST",
+        body: form
+      });
+      setNotice(kind === "avatar" ? "Foto actualizada." : "Video actualizado.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setProfileBusy("");
+    }
+  }
+
+  async function removeProfileMedia(kind: "avatar" | "intro-video") {
+    const confirmed = window.confirm(
+      kind === "avatar" ? "¿Quitar tu foto?" : "¿Quitar tu video de presentación?"
+    );
+    if (!confirmed) return;
+
+    setProfileBusy(kind === "avatar" ? "avatar" : "video");
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch<void>(`/professor/profile/${kind}`, { method: "DELETE" });
+      setNotice(kind === "avatar" ? "Foto eliminada." : "Video eliminado.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setProfileBusy("");
+    }
+  }
 
   async function logout() {
     await apiFetch<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
@@ -163,6 +240,8 @@ export default function ProfessorPage() {
         </header>
 
         <div className={styles.scrollArea}>
+          {notice && <div className={styles.successNotice}><Check size={15} /> {notice}</div>}
+          {error && data && <div className={styles.inlineError}>{error}</div>}
           {activeView === "home" && (
             <div className={styles.homeGrid}>
               <section className={styles.heroCard}>
@@ -314,14 +393,110 @@ export default function ProfessorPage() {
           {activeView === "profile" && (
             <section className={styles.contentPanel}>
               <div className={styles.profileHero}>
-                <span className={styles.profileAvatar}>
-                  {data.user.firstName.slice(0, 1).toUpperCase()}
-                </span>
+                {data.professor.avatarUrl ? (
+                  <img className={styles.profileAvatarImage} src={data.professor.avatarUrl} alt={data.professor.displayName} />
+                ) : (
+                  <span className={styles.profileAvatar}>
+                    {data.user.firstName.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
                 <h2>{data.professor.displayName}</h2>
                 <p>
-                  Profesora/or · {data.professor.disciplines.map((item) => item.name).join(" · ") || "Sin disciplinas asignadas"}
+                  Profesor/a · {data.professor.disciplines.map((item) => item.name).join(" · ") || "Sin disciplinas asignadas"}
                 </p>
               </div>
+
+              <div className={styles.profileEditGrid}>
+                <form className={styles.profileForm} onSubmit={saveProfile}>
+                  <span className={styles.smallLabel}>PERFIL COMERCIAL</span>
+                  <label>
+                    <span>Nombre visible</span>
+                    <input name="displayName" defaultValue={data.professor.displayName} required />
+                  </label>
+                  <label>
+                    <span>Teléfono</span>
+                    <input name="phone" defaultValue={data.user.phone ?? ""} />
+                  </label>
+                  <label>
+                    <span>Instagram</span>
+                    <input name="instagram" defaultValue={data.professor.instagram ?? ""} />
+                  </label>
+                  <label>
+                    <span>Bio</span>
+                    <textarea name="bio" rows={5} defaultValue={data.professor.bio ?? ""} />
+                  </label>
+                  <button className={styles.profileSave} disabled={Boolean(profileBusy)}>
+                    <Save size={16} />
+                    {profileBusy === "save" ? "Guardando..." : "Guardar perfil"}
+                  </button>
+                </form>
+
+                <div className={styles.profileMedia}>
+                  <span className={styles.smallLabel}>FOTO Y VIDEO</span>
+                  <div className={styles.profileMediaBlock}>
+                    <strong>Foto de perfil</strong>
+                    <div className={styles.profileMediaPreview}>
+                      {data.professor.avatarUrl ? (
+                        <img src={data.professor.avatarUrl} alt={data.professor.displayName} />
+                      ) : (
+                        <span><Camera size={22} /> Sin foto</span>
+                      )}
+                    </div>
+                    <div className={styles.profileMediaActions}>
+                      <label>
+                        <Camera size={14} />
+                        {profileBusy === "avatar" ? "Subiendo..." : "Cambiar foto"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          disabled={Boolean(profileBusy)}
+                          onChange={(event) => {
+                            void uploadProfileMedia("avatar", event.target.files?.[0]);
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                      </label>
+                      {data.professor.avatarUrl && (
+                        <button disabled={Boolean(profileBusy)} onClick={() => void removeProfileMedia("avatar")}>
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={styles.profileMediaBlock}>
+                    <strong>Video de presentación</strong>
+                    <div className={styles.profileVideoPreview}>
+                      {data.professor.introVideoUrl ? (
+                        <video src={data.professor.introVideoUrl} controls preload="metadata" />
+                      ) : (
+                        <span><Video size={22} /> Sin video</span>
+                      )}
+                    </div>
+                    <div className={styles.profileMediaActions}>
+                      <label>
+                        <Video size={14} />
+                        {profileBusy === "video" ? "Subiendo..." : "Cambiar video"}
+                        <input
+                          type="file"
+                          accept="video/mp4,video/webm,video/quicktime"
+                          disabled={Boolean(profileBusy)}
+                          onChange={(event) => {
+                            void uploadProfileMedia("intro-video", event.target.files?.[0]);
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                      </label>
+                      {data.professor.introVideoUrl && (
+                        <button disabled={Boolean(profileBusy)} onClick={() => void removeProfileMedia("intro-video")}>
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className={styles.profileOptions}>
                 <div className={styles.profileInfoRow}>
                   <CircleUserRound size={20} />

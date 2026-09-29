@@ -3,10 +3,13 @@
 import {
   ArrowLeft,
   CalendarDays,
+  Camera,
   Check,
   KeyRound,
   Mail,
   MapPin,
+  Trash2,
+  Video,
   Power,
   UsersRound
 } from "lucide-react";
@@ -40,6 +43,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
   const [editing, setEditing] = useState(false);
   const [passwordModal, setPasswordModal] = useState(false);
+  const [mediaBusy, setMediaBusy] = useState<"avatar" | "video" | "">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -122,6 +126,54 @@ export function ProfessorDetailLive({ id }: { id: string }) {
     }
   }
 
+  async function uploadMedia(kind: "avatar" | "intro-video", file?: File) {
+    if (!file) return;
+
+    const form = new FormData();
+    form.append("file", file);
+    setMediaBusy(kind === "avatar" ? "avatar" : "video");
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch(`/admin/professors/${id}/${kind}`, {
+        method: "POST",
+        body: form
+      });
+      setNotice(kind === "avatar" ? "Foto actualizada." : "Video de presentación actualizado.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setMediaBusy("");
+    }
+  }
+
+  async function removeMedia(kind: "avatar" | "intro-video") {
+    const confirmed = window.confirm(
+      kind === "avatar"
+        ? "¿Querés quitar la foto del profesor?"
+        : "¿Querés quitar el video de presentación?"
+    );
+    if (!confirmed) return;
+
+    setMediaBusy(kind === "avatar" ? "avatar" : "video");
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch<void>(`/admin/professors/${id}/${kind}`, {
+        method: "DELETE"
+      });
+      setNotice(kind === "avatar" ? "Foto eliminada." : "Video eliminado.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setMediaBusy("");
+    }
+  }
+
   async function resetPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -177,7 +229,11 @@ export function ProfessorDetailLive({ id }: { id: string }) {
       {notice && <div className={styles.notice}><Check size={16} /> {notice}</div>}
 
       <section className={styles.hero}>
-        <span className={styles.avatar}>{professor.displayName.slice(0, 2).toUpperCase()}</span>
+        {professor.avatarUrl ? (
+          <img className={styles.avatarImage} src={professor.avatarUrl} alt={professor.displayName} />
+        ) : (
+          <span className={styles.avatar}>{professor.displayName.slice(0, 2).toUpperCase()}</span>
+        )}
         <div>
           <span className={professor.isActive ? styles.active : styles.inactive}>
             {professor.isActive ? "Profesor activo" : "Profesor inactivo"}
@@ -231,6 +287,73 @@ export function ProfessorDetailLive({ id }: { id: string }) {
                   {disciplineName(discipline)}
                 </span>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.card + " " + styles.mediaCard}>
+          <div className={styles.cardHeader}><span>CONTENIDO</span><h3>Material comercial</h3></div>
+          <div className={styles.mediaGrid}>
+            <div className={styles.mediaPanel}>
+              <strong>Foto de perfil</strong>
+              <div className={styles.mediaPreview}>
+                {professor.avatarUrl ? (
+                  <img src={professor.avatarUrl} alt={professor.displayName} />
+                ) : (
+                  <span><Camera size={23} /> Sin foto</span>
+                )}
+              </div>
+              <div className={styles.mediaActions}>
+                <label>
+                  <Camera size={14} />
+                  {mediaBusy === "avatar" ? "Subiendo..." : "Cargar foto"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={Boolean(mediaBusy)}
+                    onChange={(event) => {
+                      void uploadMedia("avatar", event.target.files?.[0]);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                {professor.avatarUrl && (
+                  <button disabled={Boolean(mediaBusy)} onClick={() => void removeMedia("avatar")}>
+                    <Trash2 size={14} /> Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.mediaPanel}>
+              <strong>Video corto de presentación</strong>
+              <div className={styles.videoPreview}>
+                {professor.introVideoUrl ? (
+                  <video src={professor.introVideoUrl} controls preload="metadata" />
+                ) : (
+                  <span><Video size={23} /> Sin video</span>
+                )}
+              </div>
+              <div className={styles.mediaActions}>
+                <label>
+                  <Video size={14} />
+                  {mediaBusy === "video" ? "Subiendo..." : "Cargar video"}
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    disabled={Boolean(mediaBusy)}
+                    onChange={(event) => {
+                      void uploadMedia("intro-video", event.target.files?.[0]);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                {professor.introVideoUrl && (
+                  <button disabled={Boolean(mediaBusy)} onClick={() => void removeMedia("intro-video")}>
+                    <Trash2 size={14} /> Quitar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </section>
