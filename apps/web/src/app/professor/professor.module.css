@@ -1,31 +1,30 @@
 .stage {
   min-height: 100dvh;
-  display: flex;
-  justify-content: center;
   background:
-    radial-gradient(circle at 20% 0%, rgba(91, 33, 182, 0.16), transparent 34rem),
-    #eee9f3;
+    radial-gradient(circle at 18% 0%, rgba(91, 33, 182, 0.11), transparent 34rem),
+    #f4f0f7;
 }
 
-.phone {
+.workspace {
   width: 100%;
   min-height: 100dvh;
   background: #f8f6fa;
   position: relative;
-  overflow: hidden;
 }
 
 .header {
-  height: 94px;
-  padding: calc(18px + env(safe-area-inset-top)) 20px 14px;
+  min-height: 88px;
+  padding: calc(16px + env(safe-area-inset-top)) 20px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(248, 246, 250, 0.92);
+  gap: 18px;
+  background: rgba(248, 246, 250, 0.93);
   backdrop-filter: blur(18px);
   position: sticky;
   top: 0;
   z-index: 5;
+  border-bottom: 1px solid rgba(232, 225, 237, 0.7);
 }
 
 .header h1 {
@@ -46,16 +45,17 @@
 }
 
 .iconButton {
-  width: 43px;
-  height: 43px;
+  width: 44px;
+  height: 44px;
   border: 1px solid #ebe4ef;
-  border-radius: 16px;
+  border-radius: 15px;
   background: white;
   color: #2b2133;
   display: grid;
   place-items: center;
   position: relative;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .notificationDot {
@@ -70,17 +70,24 @@
 }
 
 .scrollArea {
-  padding: 8px 18px calc(104px + env(safe-area-inset-bottom));
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  padding: 18px 18px calc(104px + env(safe-area-inset-bottom));
+}
+
+.homeGrid {
+  display: grid;
+  gap: 0;
 }
 
 .heroCard {
   padding: 22px;
-  border-radius: 28px;
+  border-radius: 26px;
   background:
     radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.22), transparent 13rem),
     linear-gradient(145deg, #2f1544, #5b21b6 56%, #7c3aed);
   color: white;
-  box-shadow: 0 20px 42px rgba(67, 21, 143, 0.22);
+  box-shadow: 0 18px 40px rgba(67, 21, 143, 0.19);
 }
 
 .heroTop,
@@ -158,8 +165,8 @@
 
 .roundArrow {
   margin-left: auto;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border: 0;
@@ -170,7 +177,7 @@
 }
 
 .sectionHeading {
-  margin: 29px 2px 13px;
+  margin: 27px 2px 13px;
   justify-content: space-between;
 }
 
@@ -189,14 +196,14 @@
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
 .statsGrid article {
   min-width: 0;
   padding: 14px 12px;
-  border-radius: 20px;
+  border-radius: 18px;
   background: white;
   border: 1px solid #eee8f2;
   display: grid;
@@ -227,16 +234,23 @@
 .actionsGrid button {
   min-height: 82px;
   padding: 13px;
-  border-radius: 21px;
+  border-radius: 19px;
   border: 1px solid #ece6f0;
   background: white;
   display: grid;
-  grid-template-columns: 38px 1fr 18px;
+  grid-template-columns: 40px 1fr 18px;
   gap: 8px;
   align-items: center;
   text-align: left;
   color: #2b2133;
   cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.actionsGrid button:hover {
+  transform: translateY(-1px);
+  border-color: #dacced;
+  box-shadow: 0 10px 28px rgba(44, 25, 62, 0.07);
 }
 
 .actionsGrid button > span:nth-child(2) {
@@ -245,8 +259,8 @@
 }
 
 .actionIcon {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 13px;
   display: grid;
   place-items: center;
@@ -257,10 +271,11 @@
 .list,
 .studentList,
 .profileOptions {
-  border-radius: 24px;
+  border-radius: 21px;
   overflow: hidden;
   background: white;
   border: 1px solid #ece6f0;
+  box-shadow: 0 8px 24px rgba(44, 25, 62, 0.035);
 }
 
 .listItem,
@@ -284,6 +299,12 @@
 .studentRow:last-child,
 .profileOptions button:last-child {
   border-bottom: 0;
+}
+
+.listItem:hover,
+.studentRow:hover,
+.profileOptions button:hover {
+  background: #fcfaff;
 }
 
 .timeBlock {
@@ -318,8 +339,8 @@
 }
 
 .count {
-  min-width: 27px;
-  height: 27px;
+  min-width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -337,7 +358,7 @@
   right: 0;
   bottom: 0;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   border-top: 1px solid #eae4ee;
   display: grid;
   grid-template-columns: 1fr 1fr 60px 1fr 1fr;
@@ -346,6 +367,8 @@
 }
 
 .bottomNav button {
+  min-width: 48px;
+  min-height: 48px;
   border: 0;
   background: transparent;
   color: #8b8292;
@@ -353,6 +376,7 @@
   place-items: center;
   gap: 4px;
   cursor: pointer;
+  border-radius: 14px;
 }
 
 .bottomNav button span {
@@ -362,13 +386,14 @@
 
 .bottomNav .navActive {
   color: #5b21b6;
+  background: #f5effb;
 }
 
 .bottomNav .fab {
   width: 52px;
   height: 52px;
   place-self: center;
-  border-radius: 19px;
+  border-radius: 18px;
   background: #5b21b6;
   color: white;
   transform: translateY(-16px);
@@ -404,7 +429,7 @@
 .classCard {
   padding: 20px;
   border: 1px solid #ebe4ef;
-  border-radius: 25px;
+  border-radius: 22px;
   background: white;
   box-shadow: 0 10px 30px rgba(46, 25, 62, 0.05);
 }
@@ -457,8 +482,8 @@
   background: #f1ebf8;
   color: #5b21b6;
   border-radius: 13px;
-  min-height: 36px;
-  padding: 0 10px;
+  min-height: 38px;
+  padding: 0 12px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -469,10 +494,10 @@
 
 .addButton {
   width: 100%;
-  height: 52px;
+  min-height: 50px;
   margin-bottom: 12px;
   border: 0;
-  border-radius: 17px;
+  border-radius: 15px;
   background: #5b21b6;
   color: white;
   display: flex;
@@ -519,7 +544,7 @@
 .profileHero {
   margin: 7px 0 18px;
   padding: 27px 18px;
-  border-radius: 28px;
+  border-radius: 24px;
   text-align: center;
   color: white;
   background: linear-gradient(150deg, #2f1544, #6d28d9);
@@ -553,27 +578,197 @@
   font-weight: 750;
 }
 
-@media (min-width: 560px) {
-  .stage {
-    padding: 26px 0;
+@media (min-width: 760px) {
+  .workspace {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    background: transparent;
   }
 
-  .phone {
-    width: 430px;
-    min-height: calc(100dvh - 52px);
-    max-height: calc(100dvh - 52px);
-    border-radius: 38px;
-    box-shadow: 0 28px 90px rgba(41, 20, 59, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.8);
+  .header {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 84px;
+    padding: 18px clamp(24px, 4vw, 44px);
+    background: rgba(244, 240, 247, 0.91);
+  }
+
+  .header h1 {
+    font-size: 29px;
   }
 
   .scrollArea {
-    max-height: calc(100dvh - 146px);
-    overflow-y: auto;
+    grid-column: 2;
+    grid-row: 2;
+    padding: 26px clamp(24px, 4vw, 44px) 48px;
   }
 
   .bottomNav {
-    position: absolute;
-    border-radius: 0 0 38px 38px;
+    grid-column: 1;
+    grid-row: 1 / -1;
+    position: sticky;
+    top: 0;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 88px;
+    height: 100dvh;
+    padding: 18px 10px;
+    border-top: 0;
+    border-right: 1px solid #e7e0eb;
+    background: rgba(255, 255, 255, 0.88);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    backdrop-filter: blur(24px);
+  }
+
+  .bottomNav button {
+    width: 64px;
+    min-height: 58px;
+    flex: 0 0 auto;
+  }
+
+  .bottomNav .fab {
+    width: 52px;
+    height: 52px;
+    order: 5;
+    transform: none;
+    margin-top: 10px;
+  }
+
+  .homeGrid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 18px 20px;
+    align-items: start;
+  }
+
+  .heroCard {
+    grid-column: 1;
+    min-height: 245px;
+    padding: 28px;
+  }
+
+  .overviewSection {
+    grid-column: 2;
+  }
+
+  .actionsSection {
+    grid-column: 2;
+  }
+
+  .agendaSection {
+    grid-column: 1;
+    grid-row: 2 / span 2;
+  }
+
+  .heroCard h2 {
+    margin-top: 42px;
+    font-size: 46px;
+  }
+
+  .statsGrid article {
+    min-height: 110px;
+    padding: 18px 15px;
+  }
+
+  .actionsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actionsGrid button {
+    min-height: 66px;
+  }
+
+  .classCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .contentPanel {
+    max-width: 1020px;
+  }
+
+  .studentList,
+  .profileOptions {
+    max-width: 880px;
+  }
+
+  .addButton {
+    width: auto;
+    min-width: 170px;
+    padding: 0 18px;
+  }
+
+  .profileHero {
+    max-width: 760px;
+    padding: 36px 24px;
+  }
+}
+
+@media (min-width: 1180px) {
+  .workspace {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+
+  .bottomNav {
+    width: 104px;
+  }
+
+  .bottomNav button {
+    width: 76px;
+  }
+
+  .scrollArea {
+    padding-top: 34px;
+  }
+
+  .homeGrid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(360px, 0.75fr);
+    gap: 22px 24px;
+  }
+
+  .heroCard {
+    min-height: 270px;
+  }
+
+  .classCards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 440px) {
+  .header {
+    min-height: 82px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .scrollArea {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .statsGrid {
+    gap: 8px;
+  }
+
+  .statsGrid article {
+    padding: 12px 10px;
+  }
+
+  .actionsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroCard {
+    border-radius: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actionsGrid button {
+    transition: none;
   }
 }
