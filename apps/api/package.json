@@ -9,7 +9,8 @@
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed:initial": "tsx src/scripts/seed-admin.ts"
   },
   "dependencies": {
     "@mym/shared": "workspace:*",
