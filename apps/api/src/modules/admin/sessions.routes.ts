@@ -238,7 +238,7 @@ adminSessionsRouter.get("/:id", async (request, response, next) => {
       TrialBookingModel.find({
         organizationId,
         classId: session.classId,
-        status: "SCHEDULED",
+        status: { $in: ["SCHEDULED", "COMPLETED"] },
         scheduledFor: { $gte: start, $lt: end }
       })
         .populate("studentId", "firstName lastName email phone isActive")
@@ -423,7 +423,7 @@ adminSessionsRouter.patch("/:id/attendance/:studentId", async (request, response
         organizationId,
         classId: session.classId,
         studentId,
-        status: "SCHEDULED",
+        status: { $in: ["SCHEDULED", "COMPLETED"] },
         scheduledFor: { $gte: start, $lt: end }
       })
     ]);

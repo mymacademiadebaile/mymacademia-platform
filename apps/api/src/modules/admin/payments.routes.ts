@@ -423,8 +423,14 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       paymentType: input.paymentType,
       status: { $ne: "CANCELLED" }
     };
-    if (input.paymentType === "PER_CLASS") duplicateFilter.classDate = classDate;
-    else duplicateFilter.period = period;
+    if (input.paymentType === "PER_CLASS") {
+      const dayStart = new Date(input.classDate! + "T00:00:00.000Z");
+      const dayEnd = new Date(dayStart);
+      dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+      duplicateFilter.classDate = { $gte: dayStart, $lt: dayEnd };
+    } else {
+      duplicateFilter.period = period;
+    }
 
     if (await PaymentModel.exists(duplicateFilter)) {
       throw new AppError(
