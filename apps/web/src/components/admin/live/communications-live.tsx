@@ -408,9 +408,9 @@ export function CommunicationsLive() {
           </select>
         </div>
 
-        {loadingHistory && <LoadingBlock label="Cargando historial..." />}
+        {loadingHistory && history.length === 0 && <LoadingBlock label="Cargando historial..." />}
 
-        {!loadingHistory && (
+        {(history.length > 0 || !loadingHistory) && (
           <div className={styles.listCard}>
             {history.length === 0 && (
               <div className={styles.stateBlock}>Todavía no hay comunicaciones para estos filtros.</div>

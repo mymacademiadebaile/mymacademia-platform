@@ -400,3 +400,15 @@
     gap: 4px;
   }
 }
+
+
+.modalHint {
+  grid-column: 1 / -1;
+  padding: 11px 12px;
+  border: 1px solid #e8e0ed;
+  border-radius: 12px;
+  background: #faf8fc;
+  color: #6f6576;
+  font-size: 10px;
+  line-height: 1.45;
+}

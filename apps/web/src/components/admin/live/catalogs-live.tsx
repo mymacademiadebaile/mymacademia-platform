@@ -198,7 +198,7 @@ export function CatalogsLive() {
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
-      {!loading && (
+      {(items.length > 0 || !loading) && (
         <div className={styles.catalogColumns}>
           {groups.map((group) => (
             <section className={styles.catalogColumn} key={group.type}>
