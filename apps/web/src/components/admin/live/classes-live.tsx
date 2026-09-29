@@ -285,7 +285,7 @@ export function ClassesLive() {
         </div>
       )}
 
-      <LiveModal      <LiveModal
+      <LiveModal
         open={modal}
         title="Crear clase"
         description="Podés asignar varios profesores, categorías y horarios."
