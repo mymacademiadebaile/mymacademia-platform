@@ -6,11 +6,11 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "seed:admin": "tsx src/scripts/seed-admin.ts",
+    "seed:admin": "pnpm --filter @mym/shared build && tsx src/scripts/seed-admin.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "seed:initial": "tsx src/scripts/seed-admin.ts"
+    "seed:initial": "pnpm --filter @mym/shared build && tsx src/scripts/seed-admin.ts"
   },
   "dependencies": {
     "@mym/shared": "workspace:*",
