@@ -2,7 +2,7 @@ import { Schema, Types, model } from "mongoose";
 
 const CHANNELS = ["EMAIL", "WHATSAPP"] as const;
 const TYPES = ["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION"] as const;
-const STATUSES = ["PENDING", "SENT", "FAILED"] as const;
+const STATUSES = ["PENDING", "SENT", "FAILED", "OPENED"] as const;
 
 type Channel = (typeof CHANNELS)[number];
 type NotificationType = (typeof TYPES)[number];
@@ -38,6 +38,9 @@ const notificationLogSchema = new Schema<NotificationLog>(
   },
   { timestamps: true }
 );
+
+notificationLogSchema.index({ organizationId: 1, createdAt: -1 });
+notificationLogSchema.index({ organizationId: 1, channel: 1, status: 1, createdAt: -1 });
 
 export const NotificationLogModel = model<NotificationLog>(
   "NotificationLog",

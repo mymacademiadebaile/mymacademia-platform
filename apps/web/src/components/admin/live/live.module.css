@@ -205,3 +205,115 @@
   .scheduleEditorRow { grid-template-columns: 1fr 1fr; }
   .scheduleEditorRow select { grid-column: 1 / -1; }
 }
+
+
+.communicationHeader {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eee8f2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.communicationHeader > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.communicationHeader > div:first-child > strong {
+  font-size: 15px;
+}
+
+.recipientCounter {
+  min-width: 120px;
+  padding: 9px 11px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f4effa;
+  color: #5b21b6;
+}
+
+.recipientCounter > span {
+  display: grid;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 800;
+}
+
+.recipientCounter strong {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.recipientPreview {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #faf8fc;
+  border: 1px solid #ede6f1;
+  display: grid;
+  gap: 3px;
+}
+
+.recipientPreview strong {
+  font-size: 9px;
+  color: #5b21b6;
+}
+
+.recipientPreview span {
+  color: #73687a;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.historySection {
+  margin-top: 18px;
+}
+
+.sectionTitleRow {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitleRow h3 {
+  margin: 5px 0 2px;
+  font-size: 17px;
+}
+
+.sectionTitleRow p {
+  margin: 0;
+  color: #84798b;
+  font-size: 9px;
+}
+
+.historyFilters {
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 170px 170px;
+  gap: 8px;
+}
+
+.historyFilters > select {
+  min-height: 40px;
+  padding: 0 9px;
+  border: 1px solid #e6dfea;
+  border-radius: 11px;
+  background: white;
+}
+
+@media (max-width: 780px) {
+  .historyFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .communicationHeader {
+    align-items: flex-start;
+  }
+}
