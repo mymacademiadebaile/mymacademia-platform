@@ -4,6 +4,8 @@ import { connectDatabase, disconnectDatabase } from "../database/connect";
 import { OrganizationModel } from "../modules/core/organization.model";
 import { BranchModel } from "../modules/core/branch.model";
 import { UserModel } from "../modules/auth/user.model";
+import { CatalogItemModel } from "../modules/catalogs/catalog.model";
+import type { CatalogType } from "@mym/shared";
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -15,10 +17,85 @@ function required(name: string): string {
   return value;
 }
 
+function normalizeName(name: string): string {
+  return name.trim().toLocaleLowerCase("es-AR");
+}
+
+const DEFAULT_CATALOGS: Array<{
+  type: CatalogType;
+  values: string[];
+}> = [
+  {
+    type: "DISCIPLINE",
+    values: [
+      "Reggaetón",
+      "Urbano",
+      "Hip Hop",
+      "Bachata",
+      "Salsa",
+      "Jazz",
+      "Contemporáneo",
+      "K-Pop",
+      "Heels",
+      "Ritmos Latinos",
+      "Tango",
+      "Folklore"
+    ]
+  },
+  {
+    type: "SEGMENT",
+    values: ["Infantil", "Adolescentes", "Adultos"]
+  },
+  {
+    type: "LEVEL",
+    values: ["Inicial", "Intermedio", "Avanzado"]
+  }
+];
+
+async function seedCatalogs(organizationId: unknown) {
+  let created = 0;
+  let updated = 0;
+
+  for (const group of DEFAULT_CATALOGS) {
+    for (const [sortOrder, name] of group.values.entries()) {
+      const normalizedName = normalizeName(name);
+
+      const result = await CatalogItemModel.updateOne(
+        {
+          organizationId,
+          type: group.type,
+          normalizedName
+        },
+        {
+          $set: {
+            name,
+            isActive: true,
+            sortOrder
+          },
+          $setOnInsert: {
+            organizationId,
+            type: group.type,
+            normalizedName
+          }
+        },
+        { upsert: true }
+      );
+
+      if (result.upsertedCount > 0) {
+        created += 1;
+      } else if (result.modifiedCount > 0) {
+        updated += 1;
+      }
+    }
+  }
+
+  return { created, updated };
+}
+
 async function seed() {
   await connectDatabase();
 
-  const email = required("ADMIN_EMAIL").toLowerCase();
+  const email = (process.env.ADMIN_EMAIL?.trim() || "mymacademiadebaile@gmail.com").toLowerCase();
   const password = required("ADMIN_PASSWORD");
   const academyName = process.env.ACADEMY_NAME?.trim() || "M&M Academia de Baile";
   const academySlug = process.env.ACADEMY_SLUG?.trim() || "mym-academia";
@@ -76,9 +153,12 @@ async function seed() {
     });
   }
 
+  const catalogs = await seedCatalogs(organization._id);
+
   console.log(`Admin ready: ${email}`);
   console.log(`Organization: ${organization.name}`);
   console.log(`Branch: ${branch.name}`);
+  console.log(`Catalogs: ${catalogs.created} created, ${catalogs.updated} updated`);
 }
 
 seed()
