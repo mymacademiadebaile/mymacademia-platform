@@ -11,6 +11,11 @@ export type CatalogItem = {
   name: string;
   isActive: boolean;
   sortOrder: number;
+  usage?: {
+    classes: number;
+    professors: number;
+    total: number;
+  };
 };
 
 export type Professor = {
