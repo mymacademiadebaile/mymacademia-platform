@@ -14,6 +14,7 @@ import {
   UsersRound
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
@@ -38,6 +39,7 @@ function disciplineName(value: CatalogItem | string) {
 }
 
 export function ProfessorDetailLive({ id }: { id: string }) {
+  const router = useRouter();
   const [data, setData] = useState<ProfessorDetail | null>(null);
   const [allBranches, setAllBranches] = useState<Branch[]>([]);
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
@@ -174,6 +176,29 @@ export function ProfessorDetailLive({ id }: { id: string }) {
     }
   }
 
+  async function deleteProfessor() {
+    if (!data) return;
+
+    const confirmed = window.confirm(
+      `¿Eliminar definitivamente a ${data.professor.displayName}? Esta acción sólo se permitirá si no tiene clases vinculadas.`
+    );
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch<void>(`/admin/professors/${id}`, { method: "DELETE" });
+      router.replace("/admin/professors");
+      router.refresh();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function resetPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -247,6 +272,9 @@ export function ProfessorDetailLive({ id }: { id: string }) {
           <button onClick={() => setPasswordModal(true)}><KeyRound size={15} /> Acceso</button>
           <button className={styles.danger} disabled={busy} onClick={() => void toggleActive()}>
             <Power size={15} /> {professor.isActive ? "Inactivar" : "Reactivar"}
+          </button>
+          <button className={styles.deleteAction} disabled={busy} onClick={() => void deleteProfessor()}>
+            <Trash2 size={15} /> Eliminar
           </button>
         </div>
       </section>

@@ -11,6 +11,7 @@ import {
   uploadProfessorIntroVideo
 } from "../../services/professor-media";
 import { AuditLogModel } from "../audit/audit-log.model";
+import { PasswordResetTokenModel } from "../auth/password-reset-token.model";
 import { UserModel } from "../auth/user.model";
 import { CatalogItemModel } from "../catalogs/catalog.model";
 import { DanceClassModel } from "../classes/class.model";
@@ -528,6 +529,64 @@ adminProfessorsRouter.delete("/:id/intro-video", async (request, response, next)
       entityType: "Professor",
       entityId: professor._id
     });
+
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminProfessorsRouter.delete("/:id", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+
+    const professor = await ProfessorModel.findOne({
+      _id: id,
+      organizationId
+    });
+
+    if (!professor) {
+      throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+    }
+
+    const assignedClasses = await DanceClassModel.countDocuments({
+      organizationId,
+      professorIds: professor._id
+    });
+
+    if (assignedClasses > 0) {
+      throw new AppError(
+        409,
+        `No se puede eliminar el profesor porque está vinculado a ${assignedClasses} clase(s). Reasigná esas clases o inactivá el profesor.`,
+        "PROFESSOR_IN_USE"
+      );
+    }
+
+    const userId = professor.userId;
+
+    await Promise.all([
+      deleteProfessorMedia(organizationId, professor.id, "avatar").catch(() => undefined),
+      deleteProfessorMedia(organizationId, professor.id, "intro-video").catch(() => undefined)
+    ]);
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PROFESSOR_DELETED",
+      entityType: "Professor",
+      entityId: professor._id,
+      metadata: {
+        userId,
+        displayName: professor.displayName
+      }
+    });
+
+    await Promise.all([
+      ProfessorModel.deleteOne({ _id: professor._id, organizationId }),
+      UserModel.deleteOne({ _id: userId, organizationId, role: "PROFESSOR" }),
+      PasswordResetTokenModel.deleteMany({ userId })
+    ]);
 
     response.status(204).send();
   } catch (error) {

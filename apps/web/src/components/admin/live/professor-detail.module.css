@@ -452,3 +452,12 @@
     grid-template-columns: 1fr;
   }
 }
+
+.deleteAction {
+  border-color: #fecaca !important;
+  background: #fff1f2 !important;
+  color: #be123c !important;
+}
+.deleteAction:hover {
+  background: #ffe4e6 !important;
+}
