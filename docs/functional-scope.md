@@ -11,9 +11,12 @@
 - Profesores.
 - Alumnos.
 - Clases y horarios.
+- Vista de clases por tarjetas y calendario semanal.
+- Precio/cuota mensual configurable por clase.
+- Clase gratuita de prueba configurable por clase, con agenda, estado y conversión a inscripción regular.
 - Una o varias categorías predefinidas por clase.
 - Cupos e inscripciones.
-- Gestión de pagos, vencimientos, deuda y comprobantes.
+- Gestión de pagos, vencimientos, deuda y comprobantes, vinculados al alumno y a la clase.
 - Recordatorios de deuda por email y WhatsApp con mensaje precargado.
 - Recordatorios de clase.
 - Promociones del profesor a sus propios alumnos/clientes.
@@ -26,7 +29,6 @@
 - Asistencia digital.
 - Lista de espera.
 - Mercado Pago.
-- Gestión digital de clases de prueba.
 - CRM de interesados.
 - Portal del alumno.
 - App nativa.
@@ -43,5 +45,5 @@ Los profesores no escriben categorías libres al crear una clase. Seleccionan op
 - No se deriva un lead público directamente al WhatsApp personal de un profesor.
 - Los profesores gestionan únicamente alumnos ya vinculados a sus clases dentro del alcance autorizado.
 - La mayoría de las disciplinas no tiene un límite etario rígido; las excepciones se modelan con Público/Segmento (por ejemplo, una clase infantil).
-- La academia puede ofrecer comercialmente una clase de prueba, pero su gestión digital permanece fuera de V1 hasta que se apruebe expresamente ese cambio de alcance.
+- Las clases pueden habilitar una prueba gratuita. La administración puede agendarla para un alumno, marcarla como realizada/cancelada y convertirla en inscripción regular.
 - El teléfono/WhatsApp público de consultas debe ser configurable desde ADMIN y no quedar hardcodeado en frontend.
