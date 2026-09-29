@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   CreditCard,
   LayoutDashboard,
+  LogOut,
   Menu,
   MessageCircleMore,
   Settings,
@@ -17,8 +18,9 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 import styles from "./admin.module.css";
 
 const navigation = [
@@ -33,9 +35,29 @@ const navigation = [
   { href: "/admin/settings", label: "Configuración", icon: Settings }
 ];
 
+type CurrentUser = {
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ user: CurrentUser }>("/auth/me")
+      .then((result) => setUser(result.user))
+      .catch(() => undefined);
+  }, []);
+
+  async function logout() {
+    await apiFetch<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
+    router.replace("/login");
+    router.refresh();
+  }
 
   return (
     <div className={styles.adminRoot}>
@@ -81,13 +103,28 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </span>
             <ChevronLeft size={16} />
           </Link>
+
           <div className={styles.adminIdentity}>
-            <span className={styles.adminAvatar}>A</span>
+            <span className={styles.adminAvatar}>
+              {(user?.firstName?.[0] ?? "A").toUpperCase()}
+            </span>
             <span>
-              <strong>Administración</strong>
-              <small>M&M Academia</small>
+              <strong>{user ? `${user.firstName} ${user.lastName}` : "Administración"}</strong>
+              <small>{user?.email ?? "M&M Academia"}</small>
             </span>
           </div>
+
+          <button
+            className={styles.professorPreview}
+            style={{ width: "100%", color: "inherit", cursor: "pointer" }}
+            onClick={() => void logout()}
+          >
+            <LogOut size={18} />
+            <span>
+              <strong>Cerrar sesión</strong>
+              <small>Salir del sistema</small>
+            </span>
+          </button>
         </div>
       </aside>
 
