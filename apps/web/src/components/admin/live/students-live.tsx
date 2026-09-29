@@ -3,13 +3,17 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import type { Branch, Paginated, Student } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import styles from "./live.module.css";
 
 export function StudentsLive() {
+  const router = useRouter();
+  const { toast } = useAdminFeedback();
   const [items, setItems] = useState<Student[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [search, setSearch] = useState("");
@@ -78,7 +82,8 @@ export function StudentsLive() {
       });
 
       setModal(false);
-      window.location.assign(`/admin/students/${student._id}`);
+      toast("Alumno creado correctamente");
+      router.push("/admin/students/" + student._id);
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
@@ -127,7 +132,7 @@ export function StudentsLive() {
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
-      {!loading && (
+      {(items.length > 0 || !loading) && (
         <div className={styles.listCard}>
           {items.length === 0 && (
             <div className={styles.stateBlock}>

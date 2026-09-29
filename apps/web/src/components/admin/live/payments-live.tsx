@@ -7,17 +7,21 @@ import {
   FileText,
   Mail,
   Paperclip,
+  Plus,
   Search
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type {
+  BillingPreference,
   Branch,
   DanceClass,
   Paginated,
   Payment,
   PaymentMethod,
+  PaymentType,
   Student
 } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
@@ -36,8 +40,14 @@ type PaymentSummary = {
   cancelledCount: number;
 };
 
+type StudentEnrollment = {
+  _id: string;
+  billingPreference?: BillingPreference;
+  classId: DanceClass | string;
+};
+
 function studentName(value: Payment["studentId"]) {
-  return typeof value === "string" ? value : `${value.firstName} ${value.lastName}`;
+  return typeof value === "string" ? value : value.firstName + " " + value.lastName;
 }
 
 function statusOf(payment: Payment) {
@@ -60,30 +70,79 @@ function methodLabel(method?: PaymentMethod) {
   }[method ?? "OTHER"];
 }
 
+function localDateValue() {
+  const date = new Date();
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function billingMode(danceClass?: DanceClass) {
+  return danceClass?.billingMode ?? "MONTHLY";
+}
+
+function defaultPaymentType(
+  danceClass?: DanceClass,
+  preference?: BillingPreference
+): PaymentType {
+  const mode = billingMode(danceClass);
+  if (mode === "PER_CLASS") return "PER_CLASS";
+  if (mode === "MONTHLY") return "MONTHLY";
+  if (mode === "BOTH") return preference ?? "PER_CLASS";
+  return "PER_CLASS";
+}
+
+function priceFor(danceClass: DanceClass | undefined, type: PaymentType) {
+  if (!danceClass) return 0;
+  return type === "PER_CLASS"
+    ? danceClass.pricePerClass ?? 0
+    : danceClass.monthlyPrice ?? 0;
+}
+
 export function PaymentsLive() {
+  const { toast } = useAdminFeedback();
   const [items, setItems] = useState<Payment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [classes, setClasses] = useState<DanceClass[]>([]);
-  const [studentClasses, setStudentClasses] = useState<DanceClass[]>([]);
+  const [studentEnrollments, setStudentEnrollments] = useState<StudentEnrollment[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType>("PER_CLASS");
+  const [chargeAmount, setChargeAmount] = useState(0);
   const [classId, setClassId] = useState("");
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState("");
   const [status, setStatus] = useState("");
   const [branchId, setBranchId] = useState("");
-  const [modal, setModal] = useState(false);
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState("");
+  const [chargeModal, setChargeModal] = useState(false);
+  const [pendingModal, setPendingModal] = useState(false);
   const [paying, setPaying] = useState<Payment | null>(null);
   const [cancelling, setCancelling] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const selectedEnrollment = useMemo(
+    () => studentEnrollments.find((item) =>
+      typeof item.classId !== "string" && item.classId._id === selectedClassId
+    ),
+    [studentEnrollments, selectedClassId]
+  );
+
+  const selectedClass =
+    selectedEnrollment && typeof selectedEnrollment.classId !== "string"
+      ? selectedEnrollment.classId
+      : undefined;
+
+  const studentClasses = studentEnrollments
+    .map((item) => item.classId)
+    .filter((item): item is DanceClass => typeof item !== "string" && item.status === "ACTIVE");
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
 
     try {
@@ -100,13 +159,14 @@ export function PaymentsLive() {
         summaryParams.set("branchId", branchId);
       }
       if (classId) params.set("classId", classId);
+      if (paymentTypeFilter) params.set("paymentType", paymentTypeFilter);
 
       const [payments, studentList, branchList, classList, paymentSummary] = await Promise.all([
-        apiFetch<Paginated<Payment>>(`/admin/payments?${params.toString()}`),
+        apiFetch<Paginated<Payment>>("/admin/payments?" + params.toString()),
         apiFetch<Paginated<Student>>("/admin/students?limit=100&isActive=true"),
         apiFetch<Branch[]>("/admin/branches"),
         apiFetch<DanceClass[]>("/admin/classes?status=ACTIVE"),
-        apiFetch<PaymentSummary>(`/admin/payments/summary?${summaryParams.toString()}`)
+        apiFetch<PaymentSummary>("/admin/payments/summary?" + summaryParams.toString())
       ]);
 
       setItems(payments.items);
@@ -117,50 +177,110 @@ export function PaymentsLive() {
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [search, period, status, branchId, classId]);
+  }, [search, period, status, branchId, classId, paymentTypeFilter]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 180);
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  function resetComposer() {
+    setSelectedStudentId("");
+    setSelectedClassId("");
+    setStudentEnrollments([]);
+    setSelectedPaymentType("PER_CLASS");
+    setChargeAmount(0);
+  }
+
   async function selectStudent(studentId: string) {
     setSelectedStudentId(studentId);
-    setStudentClasses([]);
+    setSelectedClassId("");
+    setStudentEnrollments([]);
+    setChargeAmount(0);
 
     if (!studentId) return;
 
     try {
-      const response = await apiFetch<{ items: Array<{ classId: DanceClass | string }> }>(
-        `/admin/enrollments/student/${studentId}`
+      const response = await apiFetch<{ items: StudentEnrollment[] }>(
+        "/admin/enrollments/student/" + studentId
       );
-      setStudentClasses(
-        response.items
-          .map((item) => item.classId)
-          .filter((item): item is DanceClass => typeof item !== "string" && item.status === "ACTIVE")
+      setStudentEnrollments(
+        response.items.filter((item) => typeof item.classId !== "string" && item.classId.status === "ACTIVE")
       );
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudieron cargar las clases", description: message, tone: "error" });
     }
   }
 
-  async function create(event: FormEvent<HTMLFormElement>) {
+  function selectClass(nextClassId: string) {
+    setSelectedClassId(nextClassId);
+    const enrollment = studentEnrollments.find((item) =>
+      typeof item.classId !== "string" && item.classId._id === nextClassId
+    );
+    const danceClass = enrollment && typeof enrollment.classId !== "string" ? enrollment.classId : undefined;
+    const nextType = defaultPaymentType(danceClass, enrollment?.billingPreference);
+    setSelectedPaymentType(nextType);
+    setChargeAmount(priceFor(danceClass, nextType));
+  }
+
+  function changePaymentType(nextType: PaymentType) {
+    setSelectedPaymentType(nextType);
+    setChargeAmount(priceFor(selectedClass, nextType));
+  }
+
+  async function quickCharge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!selectedStudentId || !selectedClass) return;
+
     const form = new FormData(event.currentTarget);
-    const selectedStudent = students.find((student) => student._id === form.get("studentId"));
-    const selectedClass = studentClasses.find((danceClass) => danceClass._id === form.get("classId"));
+    setSubmitting(true);
+    setError("");
 
-    if (!selectedStudent) {
-      setError("Seleccioná un alumno.");
-      return;
-    }
+    try {
+      await apiFetch<Payment>("/admin/payments/quick-charge", {
+        method: "POST",
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          classId: selectedClass._id,
+          paymentType: selectedPaymentType,
+          classDate: selectedPaymentType === "PER_CLASS" ? form.get("classDate") : undefined,
+          period: selectedPaymentType === "MONTHLY" ? form.get("period") : undefined,
+          amount: chargeAmount,
+          paymentMethod: form.get("paymentMethod"),
+          paidAt: form.get("paidAt") || undefined,
+          notes: form.get("notes")
+        })
+      });
 
-    if (!selectedClass) {
-      setError("Seleccioná una clase activa del alumno.");
-      return;
+      setChargeModal(false);
+      toast({
+        title: "Cobro registrado",
+        description: selectedClass.name + (selectedPaymentType === "PER_CLASS" ? " · clase abonada" : " · mensualidad abonada")
+      });
+      resetComposer();
+      await load(true);
+    } catch (requestError) {
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo registrar el cobro", description: message, tone: "error" });
+    } finally {
+      setSubmitting(false);
     }
+  }
+
+  async function createPending(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedStudentId || !selectedClass) return;
+
+    const form = new FormData(event.currentTarget);
+    const classDate = selectedPaymentType === "PER_CLASS" ? String(form.get("classDate") || "") : "";
+    const selectedPeriod = selectedPaymentType === "PER_CLASS"
+      ? classDate.slice(0, 7)
+      : String(form.get("period") || "");
 
     setSubmitting(true);
     setError("");
@@ -169,23 +289,25 @@ export function PaymentsLive() {
       await apiFetch<Payment>("/admin/payments", {
         method: "POST",
         body: JSON.stringify({
-          studentId: selectedStudent._id,
+          studentId: selectedStudentId,
           classId: selectedClass._id,
-          branchId: selectedStudent.branchId,
-          concept: form.get("concept"),
-          period: form.get("period"),
-          amount: Number(form.get("amount")),
+          paymentType: selectedPaymentType,
+          classDate: classDate || undefined,
+          concept: (selectedPaymentType === "PER_CLASS" ? "Clase · " : "Mensualidad · ") + selectedClass.name,
+          period: selectedPeriod,
+          amount: chargeAmount,
           dueDate: form.get("dueDate"),
           notes: form.get("notes")
         })
       });
-      setModal(false);
-      setSelectedStudentId("");
-      setStudentClasses([]);
-      setNotice("Cuota creada y vinculada a la clase.");
-      await load();
+      setPendingModal(false);
+      toast("Pago pendiente registrado");
+      resetComposer();
+      await load(true);
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo crear el pendiente", description: message, tone: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -197,10 +319,9 @@ export function PaymentsLive() {
 
     const form = new FormData(event.currentTarget);
     setSubmitting(true);
-    setError("");
 
     try {
-      await apiFetch<Payment>(`/admin/payments/${paying._id}/mark-paid`, {
+      await apiFetch<Payment>("/admin/payments/" + paying._id + "/mark-paid", {
         method: "POST",
         body: JSON.stringify({
           paymentMethod: form.get("paymentMethod"),
@@ -208,10 +329,10 @@ export function PaymentsLive() {
         })
       });
       setPaying(null);
-      setNotice("Cobro registrado y recibo generado.");
-      await load();
+      toast("Cobro registrado y recibo generado");
+      await load(true);
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo cobrar", description: apiMessage(requestError), tone: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -223,18 +344,17 @@ export function PaymentsLive() {
 
     const form = new FormData(event.currentTarget);
     setSubmitting(true);
-    setError("");
 
     try {
-      await apiFetch(`/admin/payments/${cancelling._id}/cancel`, {
+      await apiFetch("/admin/payments/" + cancelling._id + "/cancel", {
         method: "POST",
         body: JSON.stringify({ reason: form.get("reason") })
       });
       setCancelling(null);
-      setNotice("Registro cancelado y conservado en el historial.");
-      await load();
+      toast("Registro cancelado y conservado en el historial");
+      await load(true);
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo cancelar", description: apiMessage(requestError), tone: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -242,13 +362,11 @@ export function PaymentsLive() {
 
   async function remind(id: string) {
     setBusyId(id);
-    setError("");
-
     try {
-      await apiFetch<{ ok: boolean }>(`/admin/payments/${id}/remind`, { method: "POST" });
-      setNotice("Recordatorio enviado por email.");
+      await apiFetch<{ ok: boolean }>("/admin/payments/" + id + "/remind", { method: "POST" });
+      toast("Recordatorio enviado por email");
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo enviar el recordatorio", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusyId("");
     }
@@ -259,17 +377,13 @@ export function PaymentsLive() {
     const form = new FormData();
     form.append("file", file);
     setBusyId(paymentId);
-    setError("");
 
     try {
-      await apiFetch(`/admin/payments/${paymentId}/proof`, {
-        method: "POST",
-        body: form
-      });
-      setNotice("Comprobante guardado.");
-      await load();
+      await apiFetch("/admin/payments/" + paymentId + "/proof", { method: "POST", body: form });
+      toast("Comprobante guardado");
+      await load(true);
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo guardar el comprobante", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusyId("");
     }
@@ -282,24 +396,102 @@ export function PaymentsLive() {
     if (status) params.set("status", status);
     if (branchId) params.set("branchId", branchId);
     if (classId) params.set("classId", classId);
-    window.open(apiUrl(`/admin/payments/export.xlsx?${params.toString()}`), "_blank");
+    if (paymentTypeFilter) params.set("paymentType", paymentTypeFilter);
+    window.open(apiUrl("/admin/payments/export.xlsx?" + params.toString()), "_blank");
   }
+
+  function openComposer(kind: "charge" | "pending") {
+    resetComposer();
+    if (kind === "charge") setChargeModal(true);
+    else setPendingModal(true);
+  }
+
+  const composerFields = (mode: "charge" | "pending") => (
+    <>
+      <Field label="Alumno" wide>
+        <select required value={selectedStudentId} onChange={(event) => void selectStudent(event.target.value)}>
+          <option value="" disabled>Seleccionar alumno</option>
+          {students.map((student) => <option key={student._id} value={student._id}>{student.firstName} {student.lastName}</option>)}
+        </select>
+      </Field>
+      <Field label="Clase" wide>
+        <select required value={selectedClassId} onChange={(event) => selectClass(event.target.value)} disabled={!selectedStudentId}>
+          <option value="">{selectedStudentId ? "Seleccionar clase inscripta" : "Primero seleccioná un alumno"}</option>
+          {studentClasses.filter((danceClass) => billingMode(danceClass) !== "FREE").map((danceClass) => (
+            <option key={danceClass._id} value={danceClass._id}>{danceClass.name}</option>
+          ))}
+        </select>
+      </Field>
+
+      {selectedClass && billingMode(selectedClass) === "BOTH" && (
+        <Field label="Modalidad">
+          <select value={selectedPaymentType} onChange={(event) => changePaymentType(event.target.value as PaymentType)}>
+            <option value="PER_CLASS">Por clase</option>
+            <option value="MONTHLY">Mensual</option>
+          </select>
+        </Field>
+      )}
+
+      {selectedPaymentType === "PER_CLASS" ? (
+        <Field label="Fecha de la clase">
+          <input name="classDate" type="date" defaultValue={localDateValue()} required />
+        </Field>
+      ) : (
+        <Field label="Período">
+          <input name="period" type="month" defaultValue={localDateValue().slice(0, 7)} required />
+        </Field>
+      )}
+
+      <Field label="Importe">
+        <input
+          value={chargeAmount || ""}
+          onChange={(event) => setChargeAmount(Number(event.target.value))}
+          type="number"
+          min="1"
+          step="0.01"
+          required
+        />
+      </Field>
+
+      {mode === "charge" ? (
+        <>
+          <Field label="Medio de pago">
+            <select name="paymentMethod" defaultValue="CASH" required>
+              <option value="CASH">Efectivo</option>
+              <option value="TRANSFER">Transferencia</option>
+              <option value="CARD">Tarjeta</option>
+              <option value="OTHER">Otro</option>
+            </select>
+          </Field>
+          <Field label="Fecha de pago">
+            <input name="paidAt" type="date" defaultValue={localDateValue()} />
+          </Field>
+        </>
+      ) : (
+        <Field label="Vencimiento">
+          <input name="dueDate" type="date" defaultValue={localDateValue()} required />
+        </Field>
+      )}
+
+      <Field label="Notas" wide><textarea name="notes" rows={3} /></Field>
+    </>
+  );
 
   return (
     <>
       <PageHeader
-        eyebrow="FINANZAS"
-        title="Pagos y cuotas"
-        description="Cobros, deuda, comprobantes, recibos y recordatorios con trazabilidad."
-        actionLabel="Nueva cuota"
-        onAction={() => setModal(true)}
+        eyebrow="CAJA"
+        title="Pagos"
+        description="Cobrá una clase en segundos, registrá mensualidades y seguí los pendientes."
+        actionLabel="Registrar cobro"
+        onAction={() => openComposer("charge")}
       />
 
       <div className={styles.summaryGrid}>
         <article><span>Cobrado</span><strong>$ {(summary?.paidAmount ?? 0).toLocaleString("es-AR")}</strong><small>{summary?.paidCount ?? 0} pagos</small></article>
-        <article><span>Pendiente</span><strong>$ {(summary?.pendingAmount ?? 0).toLocaleString("es-AR")}</strong><small>{summary?.pendingCount ?? 0} cuotas</small></article>
-        <article data-tone="danger"><span>Vencido</span><strong>$ {(summary?.overdueAmount ?? 0).toLocaleString("es-AR")}</strong><small>{summary?.overdueCount ?? 0} cuotas</small></article>
-        <article><span>Registros</span><strong>{summary?.count ?? 0}</strong><small>incluye cancelados</small></article>
+        <article><span>Pendiente</span><strong>$ {(summary?.pendingAmount ?? 0).toLocaleString("es-AR")}</strong><small>{summary?.pendingCount ?? 0} registros</small></article>
+        <article data-tone="danger"><span>Vencido</span><strong>$ {(summary?.overdueAmount ?? 0).toLocaleString("es-AR")}</strong><small>{summary?.overdueCount ?? 0} registros</small></article>
+        <article><span>Movimientos</span><strong>{summary?.count ?? 0}</strong><small>incluye cancelados</small></article>
       </div>
 
       <div className={styles.filters}>
@@ -308,6 +500,11 @@ export function PaymentsLive() {
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Alumno, concepto o recibo..." />
         </div>
         <input type="month" value={period} onChange={(event) => setPeriod(event.target.value)} />
+        <select value={paymentTypeFilter} onChange={(event) => setPaymentTypeFilter(event.target.value)}>
+          <option value="">Todas las modalidades</option>
+          <option value="PER_CLASS">Por clase</option>
+          <option value="MONTHLY">Mensual</option>
+        </select>
         <select value={status} onChange={(event) => setStatus(event.target.value)}>
           <option value="">Todos los estados</option>
           <option value="PENDING">Pendientes</option>
@@ -323,41 +520,40 @@ export function PaymentsLive() {
           <option value="">Todas las clases</option>
           {classes.map((danceClass) => <option value={danceClass._id} key={danceClass._id}>{danceClass.name}</option>)}
         </select>
+        <button onClick={() => openComposer("pending")}><Plus size={15} /> Pendiente</button>
         <button onClick={exportExcel}><Download size={15} /> Excel</button>
       </div>
 
-      {notice && <div className={styles.notice}><Check size={15} /> {notice}</div>}
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
-      {!loading && (
+      {(items.length > 0 || !loading) && (
         <div className={styles.table}>
           <div className={styles.head}>
-            <span>Alumno / concepto</span><span>Período</span><span>Importe</span><span>Estado</span><span>Documentos</span><span>Acciones</span>
+            <span>Alumno / concepto</span><span>Modalidad</span><span>Importe</span><span>Estado</span><span>Documentos</span><span>Acciones</span>
           </div>
           {items.length === 0 && <div className={styles.empty}>No hay pagos para estos filtros.</div>}
           {items.map((payment) => {
             const currentStatus = statusOf(payment);
             const student = typeof payment.studentId === "string" ? null : payment.studentId;
+            const paymentType = payment.paymentType ?? "MONTHLY";
 
             return (
               <div className={styles.row} key={payment._id}>
                 <span className={styles.mainCell}>
                   <strong>{studentName(payment.studentId)}</strong>
                   <small>
-                    {typeof payment.classId === "string"
-                      ? payment.classId
-                      : payment.classId?.name ?? "Clase no vinculada"}
-                    {" · "}
-                    {payment.concept} · vence {new Date(payment.dueDate).toLocaleDateString("es-AR")}
+                    {typeof payment.classId === "string" ? payment.classId : payment.classId?.name ?? "Clase no vinculada"}
+                    {" · "}{payment.concept}
+                    {payment.classDate ? " · " + new Date(payment.classDate).toLocaleDateString("es-AR") : " · " + payment.period}
                   </small>
                 </span>
-                <span>{payment.period}</span>
+                <span>{paymentType === "PER_CLASS" ? "Por clase" : "Mensual"}</span>
                 <strong>$ {payment.amount.toLocaleString("es-AR")}</strong>
                 <span className={styles.status} data-status={currentStatus}>{statusLabel(currentStatus)}</span>
                 <span className={styles.documents}>
                   {payment.receiptNumber && (
-                    <a href={apiUrl(`/admin/payments/${payment._id}/receipt.pdf`)} target="_blank" rel="noreferrer" title={payment.receiptNumber}>
+                    <a href={apiUrl("/admin/payments/" + payment._id + "/receipt.pdf")} target="_blank" rel="noreferrer" title={payment.receiptNumber}>
                       <FileText size={15} /> Recibo
                     </a>
                   )}
@@ -394,39 +590,39 @@ export function PaymentsLive() {
         </div>
       )}
 
-      <LiveModal open={modal} title="Crear cuota" description="La sede se toma automáticamente del alumno." submitting={submitting} onClose={() => setModal(false)} onSubmit={create}>
-        <Field label="Alumno" wide>
-          <select
-            name="studentId"
-            required
-            value={selectedStudentId}
-            onChange={(event) => void selectStudent(event.target.value)}
-          >
-            <option value="" disabled>Seleccionar alumno</option>
-            {students.map((student) => <option key={student._id} value={student._id}>{student.firstName} {student.lastName}</option>)}
-          </select>
-        </Field>
-        <Field label="Clase" wide>
-          <select name="classId" required defaultValue="" key={selectedStudentId || "no-student"}>
-            <option value="" disabled>
-              {selectedStudentId ? "Seleccionar clase inscripta" : "Primero seleccioná un alumno"}
-            </option>
-            {studentClasses.map((danceClass) => (
-              <option key={danceClass._id} value={danceClass._id}>
-                {danceClass.name} · $ {(danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Concepto"><input name="concept" defaultValue="Cuota mensual" required /></Field>
-        <Field label="Período"><input name="period" type="month" required /></Field>
-        <Field label="Importe"><input name="amount" type="number" min="1" step="0.01" required /></Field>
-        <div className={styles.modalHint}>El importe puede copiarse de la cuota configurada en la clase o ajustarse manualmente para este alumno.</div>
-        <Field label="Vencimiento"><input name="dueDate" type="date" required /></Field>
-        <Field label="Notas" wide><textarea name="notes" rows={3} /></Field>
+      <LiveModal
+        open={chargeModal}
+        title="Registrar cobro"
+        description="Alumno, clase y medio de pago. El importe sugerido sale de la clase."
+        submitting={submitting}
+        onClose={() => { setChargeModal(false); resetComposer(); }}
+        onSubmit={quickCharge}
+        submitLabel="Registrar cobro"
+      >
+        {composerFields("charge")}
       </LiveModal>
 
-      <LiveModal open={Boolean(paying)} title="Registrar cobro" description={paying ? `${studentName(paying.studentId)} · $ ${paying.amount.toLocaleString("es-AR")}` : ""} submitting={submitting} onClose={() => setPaying(null)} onSubmit={markPaid}>
+      <LiveModal
+        open={pendingModal}
+        title="Registrar pago pendiente"
+        description="Usalo cuando el alumno todavía no abonó. Después se cobra desde la misma fila."
+        submitting={submitting}
+        onClose={() => { setPendingModal(false); resetComposer(); }}
+        onSubmit={createPending}
+        submitLabel="Crear pendiente"
+      >
+        {composerFields("pending")}
+      </LiveModal>
+
+      <LiveModal
+        open={Boolean(paying)}
+        title="Cobrar pendiente"
+        description={paying ? studentName(paying.studentId) + " · $ " + paying.amount.toLocaleString("es-AR") : ""}
+        submitting={submitting}
+        onClose={() => setPaying(null)}
+        onSubmit={markPaid}
+        submitLabel="Confirmar cobro"
+      >
         <Field label="Medio de pago">
           <select name="paymentMethod" defaultValue="TRANSFER" required>
             <option value="CASH">Efectivo</option>
@@ -435,10 +631,19 @@ export function PaymentsLive() {
             <option value="OTHER">Otro</option>
           </select>
         </Field>
-        <Field label="Fecha de pago"><input name="paidAt" type="date" /></Field>
+        <Field label="Fecha de pago"><input name="paidAt" type="date" defaultValue={localDateValue()} /></Field>
+        {paying?.paymentMethod && <div className={styles.modalHint}>Medio anterior: {methodLabel(paying.paymentMethod)}</div>}
       </LiveModal>
 
-      <LiveModal open={Boolean(cancelling)} title="Cancelar registro" description="El registro no se borra: queda cancelado y auditado." submitting={submitting} onClose={() => setCancelling(null)} onSubmit={cancelPayment}>
+      <LiveModal
+        open={Boolean(cancelling)}
+        title="Cancelar registro"
+        description="No se borra: queda cancelado y auditado."
+        submitting={submitting}
+        onClose={() => setCancelling(null)}
+        onSubmit={cancelPayment}
+        submitLabel="Cancelar registro"
+      >
         <Field label="Motivo" wide><textarea name="reason" rows={4} minLength={3} required /></Field>
       </LiveModal>
     </>

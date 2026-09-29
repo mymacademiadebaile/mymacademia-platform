@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   CalendarDays,
-  Check,
   Clock3,
   Gift,
   Plus,
@@ -15,7 +14,10 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type {
+  BillingMode,
+  BillingPreference,
   Branch,
   CatalogItem,
   DanceClass,
@@ -42,6 +44,7 @@ type Enrollment = {
   _id: string;
   studentId: Student;
   enrolledAt: string;
+  billingPreference?: BillingPreference;
 };
 
 type TrialBooking = {
@@ -52,10 +55,7 @@ type TrialBooking = {
   notes?: string;
 };
 
-type TrialResponse = {
-  items: TrialBooking[];
-};
-
+type TrialResponse = { items: TrialBooking[] };
 type EnrollmentResponse = {
   items: Enrollment[];
   capacity: number;
@@ -71,7 +71,34 @@ function refName(value: { name?: string; displayName?: string } | string) {
   return typeof value === "string" ? value : value.displayName ?? value.name ?? "Sin nombre";
 }
 
+function normalizedMode(danceClass: DanceClass): BillingMode {
+  return danceClass.billingMode ?? "MONTHLY";
+}
+
+function billingLabel(danceClass: DanceClass) {
+  const mode = normalizedMode(danceClass);
+  if (mode === "FREE") return "Sin cargo";
+  if (mode === "PER_CLASS") return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " por clase";
+  if (mode === "MONTHLY") return "$ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " mensual";
+  return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " por clase o $ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " mensual";
+}
+
+function preferenceForClass(danceClass: DanceClass): BillingPreference | undefined {
+  const mode = normalizedMode(danceClass);
+  if (mode === "PER_CLASS") return "PER_CLASS";
+  if (mode === "MONTHLY") return "MONTHLY";
+  if (mode === "BOTH") return "PER_CLASS";
+  return undefined;
+}
+
+function preferenceLabel(preference?: BillingPreference) {
+  if (preference === "MONTHLY") return "Mensual";
+  if (preference === "PER_CLASS") return "Por clase";
+  return "Sin cargo";
+}
+
 export function ClassDetailLive({ id }: { id: string }) {
+  const { toast, confirm } = useAdminFeedback();
   const [danceClass, setDanceClass] = useState<DanceClass | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentResponse | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -82,10 +109,11 @@ export function ClassDetailLive({ id }: { id: string }) {
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
   const [studentId, setStudentId] = useState("");
+  const [billingPreference, setBillingPreference] = useState<BillingPreference>("PER_CLASS");
   const [editing, setEditing] = useState(false);
+  const [editBillingMode, setEditBillingMode] = useState<BillingMode>("PER_CLASS");
   const [editSchedules, setEditSchedules] = useState<ScheduleDraft[]>([]);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -93,9 +121,9 @@ export function ClassDetailLive({ id }: { id: string }) {
 
     try {
       const [classData, enrollmentData, trialData, studentData, branchList, professorList, catalogList] = await Promise.all([
-        apiFetch<DanceClass>(`/admin/classes/${id}`),
-        apiFetch<EnrollmentResponse>(`/admin/enrollments?classId=${id}`),
-        apiFetch<TrialResponse>(`/admin/trials?classId=${id}`),
+        apiFetch<DanceClass>("/admin/classes/" + id),
+        apiFetch<EnrollmentResponse>("/admin/enrollments?classId=" + id),
+        apiFetch<TrialResponse>("/admin/trials?classId=" + id),
         apiFetch<Paginated<Student>>("/admin/students?limit=100&isActive=true"),
         apiFetch<Branch[]>("/admin/branches"),
         apiFetch<Professor[]>("/admin/professors?isActive=true"),
@@ -108,14 +136,13 @@ export function ClassDetailLive({ id }: { id: string }) {
       setBranches(branchList.filter((item) => item.isActive));
       setProfessors(professorList.filter((item) => item.isActive));
       setCatalogs(catalogList.filter((item) => item.isActive));
+      setBillingPreference(preferenceForClass(classData) ?? "PER_CLASS");
     } catch (requestError) {
       setError(apiMessage(requestError));
     }
   }, [id]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   const enrolledIds = useMemo(
     () => new Set(enrollments?.items.map((item) => item.studentId._id) ?? []),
@@ -140,6 +167,7 @@ export function ClassDetailLive({ id }: { id: string }) {
   function openEdit() {
     if (!danceClass) return;
     setEditSchedules(danceClass.schedules.map((schedule) => ({ ...schedule })));
+    setEditBillingMode(normalizedMode(danceClass));
     setEditing(true);
   }
 
@@ -152,35 +180,73 @@ export function ClassDetailLive({ id }: { id: string }) {
   }
 
   async function enroll() {
-    if (!studentId) return;
+    if (!studentId || !danceClass) return;
     setBusy(true);
     setError("");
 
     try {
       await apiFetch("/admin/enrollments", {
         method: "POST",
-        body: JSON.stringify({ classId: id, studentId })
+        body: JSON.stringify({
+          classId: id,
+          studentId,
+          billingPreference: normalizedMode(danceClass) === "FREE" ? undefined : billingPreference
+        })
       });
       setStudentId("");
-      setNotice("Alumno inscripto correctamente.");
+      toast({ title: "Alumno inscripto", description: "Modalidad: " + preferenceLabel(billingPreference) + "." });
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo inscribir", description: message, tone: "error" });
     } finally {
       setBusy(false);
     }
   }
 
-  async function remove(enrollmentId: string) {
-    setBusy(true);
-    setError("");
+  async function remove(enrollment: Enrollment) {
+    const approved = await confirm({
+      title: "Dar de baja la inscripción",
+      description: "Se quitará a " + enrollment.studentId.firstName + " " + enrollment.studentId.lastName + " de esta clase. El historial se conserva.",
+      confirmLabel: "Dar de baja",
+      tone: "danger"
+    });
+    if (!approved) return;
 
+    setBusy(true);
     try {
-      await apiFetch<void>(`/admin/enrollments/${enrollmentId}`, { method: "DELETE" });
-      setNotice("Inscripción dada de baja.");
+      await apiFetch<void>("/admin/enrollments/" + enrollment._id, { method: "DELETE" });
+      toast("Inscripción dada de baja");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo dar de baja", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changeBilling(enrollment: Enrollment, next: BillingPreference) {
+    const currentPreference = enrollment.billingPreference ?? preferenceForClass(danceClass!);
+    if (next === currentPreference) return;
+
+    const approved = await confirm({
+      title: "Cambiar modalidad de cobro",
+      description: enrollment.studentId.firstName + " pasará de " + preferenceLabel(currentPreference) + " a " + preferenceLabel(next) + ". Los pagos históricos no se modifican.",
+      confirmLabel: "Cambiar modalidad"
+    });
+    if (!approved) return;
+
+    setBusy(true);
+    try {
+      await apiFetch("/admin/enrollments/" + enrollment._id + "/billing-preference", {
+        method: "PATCH",
+        body: JSON.stringify({ billingPreference: next })
+      });
+      toast("Modalidad de cobro actualizada");
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo actualizar", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -189,8 +255,6 @@ export function ClassDetailLive({ id }: { id: string }) {
   async function scheduleTrial() {
     if (!trialStudentId || !trialDate) return;
     setBusy(true);
-    setError("");
-    setNotice("");
 
     try {
       await apiFetch("/admin/trials", {
@@ -198,34 +262,41 @@ export function ClassDetailLive({ id }: { id: string }) {
         body: JSON.stringify({
           classId: id,
           studentId: trialStudentId,
-          scheduledFor: `${trialDate}T12:00:00`
+          scheduledFor: trialDate + "T12:00:00"
         })
       });
       setTrialStudentId("");
       setTrialDate("");
-      setNotice("Clase de prueba agendada.");
+      toast("Clase de prueba agendada");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo agendar", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusy(false);
     }
   }
 
-  async function updateTrial(trialId: string, status: "COMPLETED" | "CANCELLED") {
-    setBusy(true);
-    setError("");
-    setNotice("");
+  async function updateTrial(trial: TrialBooking, status: "COMPLETED" | "CANCELLED") {
+    if (status === "CANCELLED") {
+      const approved = await confirm({
+        title: "Cancelar clase de prueba",
+        description: "Se cancelará la prueba de " + trial.studentId.firstName + " " + trial.studentId.lastName + ".",
+        confirmLabel: "Cancelar prueba",
+        tone: "danger"
+      });
+      if (!approved) return;
+    }
 
+    setBusy(true);
     try {
-      await apiFetch(`/admin/trials/${trialId}`, {
+      await apiFetch("/admin/trials/" + trial._id, {
         method: "PATCH",
         body: JSON.stringify({ status })
       });
-      setNotice(status === "COMPLETED" ? "Prueba marcada como realizada." : "Prueba cancelada.");
+      toast(status === "COMPLETED" ? "Prueba marcada como realizada" : "Prueba cancelada");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo actualizar la prueba", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -233,15 +304,12 @@ export function ClassDetailLive({ id }: { id: string }) {
 
   async function convertTrial(trialId: string) {
     setBusy(true);
-    setError("");
-    setNotice("");
-
     try {
-      await apiFetch(`/admin/trials/${trialId}/convert`, { method: "POST" });
-      setNotice("La prueba se convirtió en inscripción regular.");
+      await apiFetch("/admin/trials/" + trialId + "/convert", { method: "POST" });
+      toast("La prueba se convirtió en inscripción");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo convertir la prueba", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -254,7 +322,7 @@ export function ClassDetailLive({ id }: { id: string }) {
     setError("");
 
     try {
-      await apiFetch(`/admin/classes/${id}`, {
+      await apiFetch("/admin/classes/" + id, {
         method: "PATCH",
         body: JSON.stringify({
           branchId: form.get("branchId"),
@@ -264,16 +332,20 @@ export function ClassDetailLive({ id }: { id: string }) {
           segmentIds: form.getAll("segmentIds"),
           levelIds: form.getAll("levelIds"),
           capacity: Number(form.get("capacity")),
+          billingMode: editBillingMode,
+          pricePerClass: Number(form.get("pricePerClass") || 0),
           monthlyPrice: Number(form.get("monthlyPrice") || 0),
           freeTrialEnabled: form.get("freeTrialEnabled") === "on",
           schedules: editSchedules
         })
       });
       setEditing(false);
-      setNotice("Clase actualizada.");
+      toast("Clase actualizada");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo guardar la clase", description: message, tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -281,20 +353,27 @@ export function ClassDetailLive({ id }: { id: string }) {
 
   async function toggleStatus() {
     if (!danceClass) return;
-    setBusy(true);
-    setError("");
+    const nextActive = danceClass.status !== "ACTIVE";
+    const approved = await confirm({
+      title: nextActive ? "Reactivar clase" : "Inactivar clase",
+      description: nextActive
+        ? "La clase volverá a estar disponible para gestión e inscripciones."
+        : "La clase dejará de aceptar nuevas inscripciones. Los datos históricos se conservan.",
+      confirmLabel: nextActive ? "Reactivar" : "Inactivar",
+      tone: nextActive ? "default" : "danger"
+    });
+    if (!approved) return;
 
+    setBusy(true);
     try {
-      await apiFetch(`/admin/classes/${id}`, {
+      await apiFetch("/admin/classes/" + id, {
         method: "PATCH",
-        body: JSON.stringify({
-          status: danceClass.status === "ACTIVE" ? "INACTIVE" : "ACTIVE"
-        })
+        body: JSON.stringify({ status: nextActive ? "ACTIVE" : "INACTIVE" })
       });
-      setNotice(danceClass.status === "ACTIVE" ? "Clase inactivada." : "Clase reactivada.");
+      toast(nextActive ? "Clase reactivada" : "Clase inactivada");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      toast({ title: "No se pudo cambiar el estado", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -308,21 +387,19 @@ export function ClassDetailLive({ id }: { id: string }) {
   const selectedDisciplineIds = danceClass.disciplineIds.map(refId);
   const selectedSegmentIds = danceClass.segmentIds.map(refId);
   const selectedLevelIds = danceClass.levelIds.map(refId);
+  const mode = normalizedMode(danceClass);
 
   return (
     <>
-      <Link href="/admin/classes" className={styles.back}>
-        <ArrowLeft size={15} /> Volver a clases
-      </Link>
+      <Link href="/admin/classes" className={styles.back}><ArrowLeft size={15} /> Volver a clases</Link>
 
       <PageHeader
         eyebrow="GESTIÓN DE CLASE"
         title={danceClass.name}
-        description="Horarios, profesores, precio, prueba gratuita, cupo y alumnos inscriptos."
+        description="Horarios, profesores, precios, pruebas, cupo y alumnos inscriptos."
       />
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
-      {notice && <div className={styles.notice}><Check size={16} /> {notice}</div>}
 
       <section className={styles.hero}>
         <div>
@@ -330,12 +407,7 @@ export function ClassDetailLive({ id }: { id: string }) {
             {danceClass.status === "ACTIVE" ? "Clase activa" : "Clase inactiva"}
           </span>
           <h2>{danceClass.name}</h2>
-          <p>
-            {danceClass.professorIds.map(refName).join(", ")}
-            {" · "}
-            $ {(danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")} / mes
-            {danceClass.freeTrialEnabled ? " · Admite prueba gratis" : ""}
-          </p>
+          <p>{danceClass.professorIds.map(refName).join(", ")} · {billingLabel(danceClass)}{danceClass.freeTrialEnabled ? " · Prueba disponible" : ""}</p>
         </div>
         <div className={styles.heroActions}>
           <button onClick={openEdit}>Editar clase</button>
@@ -377,28 +449,31 @@ export function ClassDetailLive({ id }: { id: string }) {
             <select value={studentId} onChange={(event) => setStudentId(event.target.value)}>
               <option value="">Seleccionar alumno de la sede</option>
               {availableStudents.map((student) => (
-                <option value={student._id} key={student._id}>
-                  {student.firstName} {student.lastName}
-                </option>
+                <option value={student._id} key={student._id}>{student.firstName} {student.lastName}</option>
               ))}
             </select>
+            {mode === "BOTH" && (
+              <select value={billingPreference} onChange={(event) => setBillingPreference(event.target.value as BillingPreference)}>
+                <option value="PER_CLASS">Paga por clase</option>
+                <option value="MONTHLY">Paga mensual</option>
+              </select>
+            )}
             <button disabled={!studentId || busy || enrollments.available <= 0 || danceClass.status !== "ACTIVE"} onClick={() => void enroll()}>
               <Plus size={15} /> Inscribir
             </button>
           </div>
+          {mode !== "BOTH" && <p className={styles.helper}>Modalidad: {preferenceLabel(preferenceForClass(danceClass))}.</p>}
           {enrollments.available <= 0 && <p className={styles.helper}>La clase alcanzó el cupo máximo.</p>}
         </section>
 
         {danceClass.freeTrialEnabled && (
           <section className={styles.card + " " + styles.trialCard}>
-            <div className={styles.cardHeader}><span>PRUEBA GRATIS</span><h3>Clases de prueba</h3></div>
+            <div className={styles.cardHeader}><span>PRUEBA</span><h3>Clases de prueba</h3></div>
             <div className={styles.trialComposer}>
               <select value={trialStudentId} onChange={(event) => setTrialStudentId(event.target.value)}>
                 <option value="">Seleccionar alumno</option>
                 {availableTrialStudents.map((student) => (
-                  <option value={student._id} key={student._id}>
-                    {student.firstName} {student.lastName}
-                  </option>
+                  <option value={student._id} key={student._id}>{student.firstName} {student.lastName}</option>
                 ))}
               </select>
               <input type="date" value={trialDate} onChange={(event) => setTrialDate(event.target.value)} />
@@ -422,14 +497,12 @@ export function ClassDetailLive({ id }: { id: string }) {
                   <div>
                     {trial.status === "SCHEDULED" && (
                       <>
-                        <button onClick={() => void updateTrial(trial._id, "COMPLETED")} disabled={busy}>Realizada</button>
-                        <button onClick={() => void updateTrial(trial._id, "CANCELLED")} disabled={busy}>Cancelar</button>
+                        <button onClick={() => void updateTrial(trial, "COMPLETED")} disabled={busy}>Realizada</button>
+                        <button onClick={() => void updateTrial(trial, "CANCELLED")} disabled={busy}>Cancelar</button>
                       </>
                     )}
                     {(trial.status === "SCHEDULED" || trial.status === "COMPLETED") && (
-                      <button className={styles.convertTrial} onClick={() => void convertTrial(trial._id)} disabled={busy}>
-                        Inscribir
-                      </button>
+                      <button className={styles.convertTrial} onClick={() => void convertTrial(trial._id)} disabled={busy}>Inscribir</button>
                     )}
                   </div>
                 </div>
@@ -444,14 +517,24 @@ export function ClassDetailLive({ id }: { id: string }) {
             {enrollments.items.length === 0 && <p className={styles.helper}>Todavía no hay alumnos inscriptos.</p>}
             {enrollments.items.map((enrollment) => (
               <div key={enrollment._id}>
-                <Link href={`/admin/students/${enrollment.studentId._id}`} className={styles.studentIdentity}>
+                <Link href={"/admin/students/" + enrollment.studentId._id} className={styles.studentIdentity}>
                   <span>{enrollment.studentId.firstName[0]}{enrollment.studentId.lastName[0]}</span>
                   <span>
                     <strong>{enrollment.studentId.firstName} {enrollment.studentId.lastName}</strong>
-                    <small>{enrollment.studentId.phone || enrollment.studentId.email || "Sin contacto"}</small>
+                    <small>{preferenceLabel(enrollment.billingPreference ?? preferenceForClass(danceClass))} · {enrollment.studentId.phone || enrollment.studentId.email || "Sin contacto"}</small>
                   </span>
                 </Link>
-                <button title="Dar de baja" disabled={busy} onClick={() => void remove(enrollment._id)}>
+                {mode === "BOTH" && (
+                  <select
+                    value={enrollment.billingPreference ?? "PER_CLASS"}
+                    disabled={busy}
+                    onChange={(event) => void changeBilling(enrollment, event.target.value as BillingPreference)}
+                  >
+                    <option value="PER_CLASS">Por clase</option>
+                    <option value="MONTHLY">Mensual</option>
+                  </select>
+                )}
+                <button title="Dar de baja" disabled={busy} onClick={() => void remove(enrollment)}>
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -463,7 +546,7 @@ export function ClassDetailLive({ id }: { id: string }) {
       <LiveModal
         open={editing}
         title="Editar clase"
-        description="Cambios de horario validan conflictos de los profesores asignados."
+        description="Podés cambiar precios, modalidad, profesores y horarios."
         submitting={busy}
         onClose={() => setEditing(false)}
         onSubmit={saveClass}
@@ -475,10 +558,25 @@ export function ClassDetailLive({ id }: { id: string }) {
         </Field>
         <Field label="Nombre"><input name="name" defaultValue={danceClass.name} required /></Field>
         <Field label="Cupo"><input name="capacity" type="number" min={1} defaultValue={danceClass.capacity} required /></Field>
-        <Field label="Cuota mensual (ARS)">
-          <input name="monthlyPrice" type="number" min={0} step="1" defaultValue={danceClass.monthlyPrice ?? 0} required />
+        <Field label="Modalidad de cobro">
+          <select value={editBillingMode} onChange={(event) => setEditBillingMode(event.target.value as BillingMode)}>
+            <option value="PER_CLASS">Por clase</option>
+            <option value="MONTHLY">Mensual</option>
+            <option value="BOTH">Por clase o mensual</option>
+            <option value="FREE">Sin cargo</option>
+          </select>
         </Field>
-        <Field label="Clase de prueba gratis" wide>
+        {(editBillingMode === "PER_CLASS" || editBillingMode === "BOTH") && (
+          <Field label="Precio por clase (ARS)">
+            <input name="pricePerClass" type="number" min={1} step="1" defaultValue={danceClass.pricePerClass ?? 0} required />
+          </Field>
+        )}
+        {(editBillingMode === "MONTHLY" || editBillingMode === "BOTH") && (
+          <Field label="Precio mensual (ARS)">
+            <input name="monthlyPrice" type="number" min={1} step="1" defaultValue={danceClass.monthlyPrice ?? 0} required />
+          </Field>
+        )}
+        <Field label="Clase de prueba" wide>
           <label className={styles.switchRow}>
             <input name="freeTrialEnabled" type="checkbox" defaultChecked={danceClass.freeTrialEnabled} />
             <span>Permitir una clase gratuita de prueba.</span>

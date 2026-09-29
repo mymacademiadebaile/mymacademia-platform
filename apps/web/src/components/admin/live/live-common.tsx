@@ -39,7 +39,9 @@ export function LiveModal({
   children,
   submitting,
   onClose,
-  onSubmit
+  onSubmit,
+  eyebrow = "GESTIÓN",
+  submitLabel = "Guardar"
 }: {
   open: boolean;
   title: string;
@@ -48,6 +50,8 @@ export function LiveModal({
   submitting?: boolean;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  eyebrow?: string;
+  submitLabel?: string;
 }) {
   if (!open) return null;
 
@@ -60,7 +64,7 @@ export function LiveModal({
       >
         <div className={styles.modalHeader}>
           <div>
-            <span>NUEVO REGISTRO</span>
+            <span>{eyebrow}</span>
             <h2>{title}</h2>
             <p>{description}</p>
           </div>
@@ -75,7 +79,7 @@ export function LiveModal({
           </button>
           <button className={styles.primary} disabled={submitting}>
             {submitting ? <LoaderCircle className={styles.spin} size={17} /> : <Check size={17} />}
-            {submitting ? "Guardando..." : "Guardar"}
+            {submitting ? "Guardando..." : submitLabel}
           </button>
         </div>
       </form>

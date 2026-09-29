@@ -22,7 +22,7 @@
   margin-bottom: 14px;
   padding: 11px;
   display: grid;
-  grid-template-columns: minmax(230px,1fr) 155px 155px 170px auto;
+  grid-template-columns: minmax(230px,1fr) 145px 145px 145px 160px 170px auto auto;
   gap: 8px;
   align-items: center;
   border: 1px solid #e8e1ec;
@@ -175,6 +175,6 @@
 
 @media (min-width: 1000px) {
   .filters {
-    grid-template-columns: minmax(220px,1fr) 150px 150px 165px 190px auto;
+    grid-template-columns: minmax(220px,1fr) repeat(5,minmax(130px,160px)) auto auto;
   }
 }

@@ -3,9 +3,11 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock3, Gift, LayoutGrid, Plus, Search, Trash2, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
-import type { Branch, CatalogItem, DanceClass, Professor } from "./live-types";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
+import type { BillingMode, Branch, CatalogItem, DanceClass, Professor } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
 
@@ -25,7 +27,17 @@ function refName<T extends { name?: string; displayName?: string }>(value: T | s
   return typeof value === "string" ? value : value.displayName ?? value.name ?? "Sin nombre";
 }
 
+function billingLabel(danceClass: DanceClass) {
+  const mode = danceClass.billingMode ?? "MONTHLY";
+  if (mode === "FREE") return "Sin cargo";
+  if (mode === "PER_CLASS") return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " / clase";
+  if (mode === "MONTHLY") return "$ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " / mes";
+  return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " / clase · $ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " / mes";
+}
+
 export function ClassesLive() {
+  const router = useRouter();
+  const { toast } = useAdminFeedback();
   const [items, setItems] = useState<DanceClass[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
@@ -36,6 +48,7 @@ export function ClassesLive() {
   const [status, setStatus] = useState("ACTIVE");
   const [modal, setModal] = useState(false);
   const [view, setView] = useState<"CARDS" | "CALENDAR">("CARDS");
+  const [billingMode, setBillingMode] = useState<BillingMode>("PER_CLASS");
   const [schedules, setSchedules] = useState<ScheduleDraft[]>([
     { day: "MONDAY", startTime: "18:00", endTime: "19:00" }
   ]);
@@ -55,7 +68,7 @@ export function ClassesLive() {
       if (status !== "ALL") params.set("status", status);
 
       const [classList, branchList, professorList, catalogList] = await Promise.all([
-        apiFetch<DanceClass[]>(`/admin/classes?${params.toString()}`),
+        apiFetch<DanceClass[]>("/admin/classes?" + params.toString()),
         apiFetch<Branch[]>("/admin/branches"),
         apiFetch<Professor[]>("/admin/professors?isActive=true"),
         apiFetch<CatalogItem[]>("/admin/catalogs")
@@ -117,6 +130,8 @@ export function ClassesLive() {
           segmentIds: form.getAll("segmentIds"),
           levelIds: form.getAll("levelIds"),
           capacity: Number(form.get("capacity")),
+          billingMode,
+          pricePerClass: Number(form.get("pricePerClass") || 0),
           monthlyPrice: Number(form.get("monthlyPrice") || 0),
           freeTrialEnabled: form.get("freeTrialEnabled") === "on",
           schedules
@@ -125,9 +140,13 @@ export function ClassesLive() {
 
       setModal(false);
       setSchedules([{ day: "MONDAY", startTime: "18:00", endTime: "19:00" }]);
-      window.location.assign(`/admin/classes/${danceClass._id}`);
+      setBillingMode("PER_CLASS");
+      toast({ title: "Clase creada", description: "La configuración quedó guardada." });
+      router.push("/admin/classes/" + danceClass._id);
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo crear la clase", description: message, tone: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -138,7 +157,7 @@ export function ClassesLive() {
       <PageHeader
         eyebrow="PLANIFICACIÓN"
         title="Clases y horarios"
-        description="Profesores, categorías, agenda y ocupación real de cada clase."
+        description="Profesores, categorías, agenda, precios y ocupación de cada clase."
         actionLabel="Nueva clase"
         onAction={() => setModal(true)}
       />
@@ -165,26 +184,20 @@ export function ClassesLive() {
 
       <div className={styles.viewToolbar}>
         <div>
-          <button
-            className={view === "CARDS" ? styles.viewActive : styles.viewButton}
-            onClick={() => setView("CARDS")}
-          >
+          <button className={view === "CARDS" ? styles.viewActive : styles.viewButton} onClick={() => setView("CARDS")}>
             <LayoutGrid size={16} /> Tarjetas
           </button>
-          <button
-            className={view === "CALENDAR" ? styles.viewActive : styles.viewButton}
-            onClick={() => setView("CALENDAR")}
-          >
+          <button className={view === "CALENDAR" ? styles.viewActive : styles.viewButton} onClick={() => setView("CALENDAR")}>
             <CalendarDays size={16} /> Calendario
           </button>
         </div>
-        <span>{items.length} clase{items.length === 1 ? "" : "s"}</span>
+        <span>{loading && items.length ? "Actualizando..." : items.length + " clase" + (items.length === 1 ? "" : "s")}</span>
       </div>
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
-      {!loading && view === "CARDS" && (
+      {(items.length > 0 || !loading) && view === "CARDS" && (
         <div className={styles.liveGrid3}>
           {items.length === 0 && <div className={styles.stateBlock}>No hay clases para estos filtros.</div>}
           {items.map((danceClass) => {
@@ -192,54 +205,37 @@ export function ClassesLive() {
             const occupancy = Math.min(100, Math.round((occupied / danceClass.capacity) * 100));
 
             return (
-              <Link className={styles.cardLink} href={`/admin/classes/${danceClass._id}`} key={danceClass._id}>
+              <Link className={styles.cardLink} href={"/admin/classes/" + danceClass._id} key={danceClass._id}>
                 <div className={styles.cardTopLine}>
                   <span className={danceClass.status === "ACTIVE" ? styles.pill : styles.pillOff}>
                     {danceClass.status === "ACTIVE" ? "Activa" : "Inactiva"}
                   </span>
                   <span className={styles.cardDetail}>{occupied}/{danceClass.capacity} alumnos</span>
                 </div>
-
                 <strong className={styles.cardTitle}>{danceClass.name}</strong>
-                <span className={styles.cardDetail}>
-                  {danceClass.professorIds.map((item) => refName(item)).join(", ")}
-                </span>
-
+                <span className={styles.cardDetail}>{danceClass.professorIds.map((item) => refName(item)).join(", ")}</span>
                 <div className={styles.scheduleSummary}>
                   <Clock3 size={15} />
-                  <span>
-                    {danceClass.schedules.map((schedule) =>
-                      `${dayLabels[schedule.day] ?? schedule.day} ${schedule.startTime}–${schedule.endTime}`
-                    ).join(" · ")}
-                  </span>
+                  <span>{danceClass.schedules.map((schedule) => (dayLabels[schedule.day] ?? schedule.day) + " " + schedule.startTime + "–" + schedule.endTime).join(" · ")}</span>
                 </div>
-
                 <div className={styles.classCommercialLine}>
-                  <strong>$ {(danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")} / mes</strong>
-                  {danceClass.freeTrialEnabled && <span><Gift size={12} /> Prueba gratis</span>}
+                  <strong>{billingLabel(danceClass)}</strong>
+                  {danceClass.freeTrialEnabled && <span><Gift size={12} /> Prueba disponible</span>}
                 </div>
-
                 <div className={styles.tagRow}>
                   {[...danceClass.disciplineIds, ...danceClass.segmentIds, ...danceClass.levelIds].map((item) => (
                     <span key={typeof item === "string" ? item : item._id}>{refName(item)}</span>
                   ))}
                 </div>
-
-                <div className={styles.occupancyBar}>
-                  <span style={{ width: `${occupancy}%` }} />
-                </div>
-
-                <div className={styles.cardFooterLink}>
-                  <UsersRound size={15} /> Gestionar clase
-                </div>
+                <div className={styles.occupancyBar}><span style={{ width: occupancy + "%" }} /></div>
+                <div className={styles.cardFooterLink}><UsersRound size={15} /> Gestionar clase</div>
               </Link>
             );
           })}
         </div>
-
       )}
 
-      {!loading && view === "CALENDAR" && (
+      {(items.length > 0 || !loading) && view === "CALENDAR" && (
         <div className={styles.weekCalendarWrap}>
           <div className={styles.weekCalendar}>
             {Object.entries(dayLabels).map(([day, label]) => {
@@ -253,28 +249,16 @@ export function ClassesLive() {
 
               return (
                 <section className={styles.calendarDay} key={day}>
-                  <header>
-                    <strong>{label}</strong>
-                    <span>{entries.length}</span>
-                  </header>
+                  <header><strong>{label}</strong><span>{entries.length}</span></header>
                   <div className={styles.calendarDayBody}>
                     {entries.length === 0 && <small className={styles.calendarEmpty}>Sin clases</small>}
                     {entries.map(({ danceClass, schedule }, index) => (
-                      <Link
-                        href={`/admin/classes/${danceClass._id}`}
-                        className={styles.calendarEvent}
-                        key={`${danceClass._id}-${schedule.startTime}-${index}`}
-                      >
+                      <Link href={"/admin/classes/" + danceClass._id} className={styles.calendarEvent} key={danceClass._id + "-" + schedule.startTime + "-" + index}>
                         <time>{schedule.startTime}–{schedule.endTime}</time>
                         <strong>{danceClass.name}</strong>
                         <small>{danceClass.professorIds.map((item) => refName(item)).join(", ")}</small>
-                        <div>
-                          <span>{danceClass.activeEnrollmentCount ?? 0}/{danceClass.capacity}</span>
-                          <span>$ {(danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")}</span>
-                        </div>
-                        {danceClass.freeTrialEnabled && (
-                          <em><Gift size={12} /> Prueba gratis</em>
-                        )}
+                        <div><span>{danceClass.activeEnrollmentCount ?? 0}/{danceClass.capacity}</span><span>{billingLabel(danceClass)}</span></div>
+                        {danceClass.freeTrialEnabled && <em><Gift size={12} /> Prueba</em>}
                       </Link>
                     ))}
                   </div>
@@ -288,10 +272,11 @@ export function ClassesLive() {
       <LiveModal
         open={modal}
         title="Crear clase"
-        description="Podés asignar varios profesores, categorías y horarios."
+        description="Definí horarios y cómo se cobra. Por clase es la opción inicial."
         submitting={submitting}
         onClose={() => setModal(false)}
         onSubmit={create}
+        submitLabel="Crear clase"
       >
         <Field label="Sede">
           <select name="branchId" required defaultValue="">
@@ -321,13 +306,28 @@ export function ClassesLive() {
           </select>
         </Field>
         <Field label="Cupo"><input name="capacity" type="number" min={1} defaultValue={20} required /></Field>
-        <Field label="Cuota mensual (ARS)">
-          <input name="monthlyPrice" type="number" min={0} step="1" defaultValue={0} required />
+        <Field label="Modalidad de cobro">
+          <select value={billingMode} onChange={(event) => setBillingMode(event.target.value as BillingMode)}>
+            <option value="PER_CLASS">Por clase</option>
+            <option value="MONTHLY">Mensual</option>
+            <option value="BOTH">Por clase o mensual</option>
+            <option value="FREE">Sin cargo</option>
+          </select>
         </Field>
-        <Field label="Clase de prueba gratis" wide>
+        {(billingMode === "PER_CLASS" || billingMode === "BOTH") && (
+          <Field label="Precio por clase (ARS)">
+            <input name="pricePerClass" type="number" min={1} step="1" required />
+          </Field>
+        )}
+        {(billingMode === "MONTHLY" || billingMode === "BOTH") && (
+          <Field label="Precio mensual (ARS)">
+            <input name="monthlyPrice" type="number" min={1} step="1" required />
+          </Field>
+        )}
+        <Field label="Clase de prueba" wide>
           <label className={styles.switchRow}>
             <input name="freeTrialEnabled" type="checkbox" />
-            <span>Esta clase admite una clase gratuita de prueba.</span>
+            <span>Permitir una clase gratuita de prueba.</span>
           </label>
         </Field>
 

@@ -1,3 +1,5 @@
+"use client";
+
 export type Branch = {
   _id: string;
   name: string;
@@ -54,6 +56,10 @@ export type Student = {
   isActive: boolean;
 };
 
+export type BillingMode = "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
+export type PaymentType = "PER_CLASS" | "MONTHLY";
+export type BillingPreference = PaymentType;
+
 export type DanceClass = {
   _id: string;
   branchId: string;
@@ -63,6 +69,8 @@ export type DanceClass = {
   segmentIds: Array<CatalogItem | string>;
   levelIds: Array<CatalogItem | string>;
   capacity: number;
+  billingMode?: BillingMode;
+  pricePerClass?: number;
   monthlyPrice: number;
   freeTrialEnabled: boolean;
   activeEnrollmentCount?: number;
@@ -81,6 +89,8 @@ export type Payment = {
   branchId: string;
   studentId: Student | string;
   classId?: DanceClass | string;
+  paymentType?: PaymentType;
+  classDate?: string;
   concept: string;
   period: string;
   amount: number;

@@ -3,10 +3,12 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import type { Branch, CatalogItem, Professor } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import styles from "./live.module.css";
 
 function disciplineName(value: CatalogItem | string) {
@@ -14,6 +16,8 @@ function disciplineName(value: CatalogItem | string) {
 }
 
 export function ProfessorsLive() {
+  const router = useRouter();
+  const { toast } = useAdminFeedback();
   const [items, setItems] = useState<Professor[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
@@ -86,7 +90,8 @@ export function ProfessorsLive() {
       });
 
       setModal(false);
-      window.location.assign(`/admin/professors/${professor._id}`);
+      toast("Profesor creado correctamente");
+      router.push("/admin/professors/" + professor._id);
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
@@ -127,7 +132,7 @@ export function ProfessorsLive() {
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
-      {!loading && (
+      {(items.length > 0 || !loading) && (
         <div className={styles.liveGrid3}>
           {items.length === 0 && <div className={styles.stateBlock}>No hay profesores para estos filtros.</div>}
           {items.map((professor) => (
