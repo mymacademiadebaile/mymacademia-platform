@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   CalendarDays,
-  Check,
   CircleDollarSign,
   Mail,
   MessageCircle,
@@ -15,7 +14,14 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
-import type { Branch, DanceClass, Payment, Student } from "./live-types";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
+import type {
+  BillingPreference,
+  Branch,
+  DanceClass,
+  Payment,
+  Student
+} from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./student-detail.module.css";
 
@@ -24,6 +30,7 @@ type Enrollment = {
   status: "ACTIVE" | "INACTIVE";
   enrolledAt: string;
   endedAt?: string;
+  billingPreference?: BillingPreference;
   classId: DanceClass;
 };
 
@@ -51,18 +58,57 @@ function paymentStatus(payment: Payment) {
 function whatsappHref(phone?: string, name?: string) {
   if (!phone) return "";
   const normalized = phone.replace(/\D/g, "");
-  return `https://wa.me/${normalized}?text=${encodeURIComponent(`Hola ${name ?? ""}, te escribimos desde M&M Academia de Baile.`)}`;
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(
+    `Hola ${name ?? ""}, te escribimos desde M&M Academia de Baile.`
+  )}`;
+}
+
+function classBillingMode(danceClass?: DanceClass) {
+  return danceClass?.billingMode ?? "MONTHLY";
+}
+
+function defaultBillingPreference(danceClass?: DanceClass): BillingPreference {
+  const mode = classBillingMode(danceClass);
+  return mode === "MONTHLY" ? "MONTHLY" : "PER_CLASS";
+}
+
+function billingPreferenceLabel(
+  danceClass: DanceClass,
+  preference?: BillingPreference
+) {
+  const mode = classBillingMode(danceClass);
+
+  if (mode === "FREE") return "Sin cargo";
+  if (mode === "PER_CLASS") return "Por clase";
+  if (mode === "MONTHLY") return "Mensual";
+  return preference === "MONTHLY" ? "Mensual" : "Por clase";
+}
+
+function paymentReference(payment: Payment) {
+  if ((payment.paymentType ?? "MONTHLY") === "PER_CLASS" && payment.classDate) {
+    return new Date(payment.classDate).toLocaleDateString("es-AR");
+  }
+  return payment.period;
+}
+
+function localDateValue() {
+  const date = new Date();
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
 }
 
 export function StudentDetailLive({ id }: { id: string }) {
+  const { toast, confirm } = useAdminFeedback();
   const [data, setData] = useState<StudentDetail | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [classes, setClasses] = useState<DanceClass[]>([]);
   const [editing, setEditing] = useState(false);
   const [enrollModal, setEnrollModal] = useState(false);
+  const [paying, setPaying] = useState<Payment | null>(null);
   const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedBillingPreference, setSelectedBillingPreference] =
+    useState<BillingPreference>("PER_CLASS");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -103,12 +149,28 @@ export function StudentDetailLive({ id }: { id: string }) {
     );
   }, [classes, data, activeEnrollments]);
 
+  const selectedClass = useMemo(
+    () => availableClasses.find((danceClass) => danceClass._id === selectedClassId),
+    [availableClasses, selectedClassId]
+  );
+
+  function openEnrollmentModal() {
+    setSelectedClassId("");
+    setSelectedBillingPreference("PER_CLASS");
+    setEnrollModal(true);
+  }
+
+  function selectEnrollmentClass(classId: string) {
+    const danceClass = availableClasses.find((item) => item._id === classId);
+    setSelectedClassId(classId);
+    setSelectedBillingPreference(defaultBillingPreference(danceClass));
+  }
+
   async function saveStudent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setBusy(true);
     setError("");
-    setNotice("");
 
     try {
       await apiFetch<Student>(`/admin/students/${id}`, {
@@ -126,10 +188,12 @@ export function StudentDetailLive({ id }: { id: string }) {
         })
       });
       setEditing(false);
-      setNotice("Datos del alumno actualizados.");
+      toast("Datos del alumno actualizados");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo actualizar el alumno", description: message, tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -137,6 +201,17 @@ export function StudentDetailLive({ id }: { id: string }) {
 
   async function toggleActive() {
     if (!data) return;
+
+    const approved = await confirm({
+      title: data.student.isActive ? "Inactivar alumno" : "Reactivar alumno",
+      description: data.student.isActive
+        ? "El alumno dejará de aparecer como activo para nuevas operaciones. Su historial se conserva."
+        : "El alumno volverá a estar disponible para inscripciones y operaciones.",
+      confirmLabel: data.student.isActive ? "Inactivar" : "Reactivar",
+      tone: data.student.isActive ? "danger" : "default"
+    });
+    if (!approved) return;
+
     setBusy(true);
     setError("");
 
@@ -145,10 +220,12 @@ export function StudentDetailLive({ id }: { id: string }) {
         method: "PATCH",
         body: JSON.stringify({ isActive: !data.student.isActive })
       });
-      setNotice(data.student.isActive ? "Alumno inactivado." : "Alumno reactivado.");
+      toast(data.student.isActive ? "Alumno inactivado" : "Alumno reactivado");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo cambiar el estado", description: message, tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -156,7 +233,7 @@ export function StudentDetailLive({ id }: { id: string }) {
 
   async function enroll(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedClassId) return;
+    if (!selectedClassId || !selectedClass) return;
 
     setBusy(true);
     setError("");
@@ -164,44 +241,86 @@ export function StudentDetailLive({ id }: { id: string }) {
     try {
       await apiFetch("/admin/enrollments", {
         method: "POST",
-        body: JSON.stringify({ classId: selectedClassId, studentId: id })
+        body: JSON.stringify({
+          classId: selectedClassId,
+          studentId: id,
+          billingPreference:
+            classBillingMode(selectedClass) === "FREE"
+              ? undefined
+              : selectedBillingPreference
+        })
       });
       setSelectedClassId("");
       setEnrollModal(false);
-      setNotice("Alumno inscripto correctamente.");
+      toast({
+        title: "Alumno inscripto",
+        description:
+          selectedClass.name + " · " +
+          billingPreferenceLabel(selectedClass, selectedBillingPreference)
+      });
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo inscribir", description: message, tone: "error" });
     } finally {
       setBusy(false);
     }
   }
 
-  async function removeEnrollment(enrollmentId: string) {
+  async function removeEnrollment(enrollment: Enrollment) {
+    const approved = await confirm({
+      title: "Dar de baja la inscripción",
+      description:
+        "Se dará de baja a " +
+        data!.student.firstName +
+        " de " +
+        enrollment.classId.name +
+        ". Los pagos y el historial se conservan.",
+      confirmLabel: "Dar de baja",
+      tone: "danger"
+    });
+    if (!approved) return;
+
     setBusy(true);
     setError("");
 
     try {
-      await apiFetch<void>(`/admin/enrollments/${enrollmentId}`, { method: "DELETE" });
-      setNotice("Inscripción dada de baja.");
+      await apiFetch<void>(`/admin/enrollments/${enrollment._id}`, { method: "DELETE" });
+      toast("Inscripción dada de baja");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo dar de baja", description: message, tone: "error" });
     } finally {
       setBusy(false);
     }
   }
 
-  async function markPaid(paymentId: string) {
+  async function markPaid(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!paying) return;
+
+    const form = new FormData(event.currentTarget);
     setBusy(true);
     setError("");
 
     try {
-      await apiFetch(`/admin/payments/${paymentId}/mark-paid`, { method: "POST" });
-      setNotice("Pago registrado.");
+      await apiFetch(`/admin/payments/${paying._id}/mark-paid`, {
+        method: "POST",
+        body: JSON.stringify({
+          paymentMethod: form.get("paymentMethod"),
+          paidAt: form.get("paidAt") || undefined
+        })
+      });
+      setPaying(null);
+      toast("Pago registrado y recibo generado");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo registrar el pago", description: message, tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -213,9 +332,11 @@ export function StudentDetailLive({ id }: { id: string }) {
 
     try {
       await apiFetch(`/admin/payments/${paymentId}/remind`, { method: "POST" });
-      setNotice("Recordatorio enviado por email.");
+      toast("Recordatorio enviado por email");
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo enviar el recordatorio", description: message, tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -237,11 +358,10 @@ export function StudentDetailLive({ id }: { id: string }) {
       <PageHeader
         eyebrow="FICHA DE ALUMNO"
         title={fullName}
-        description="Datos personales, clases, contacto y estado de cuenta."
+        description="Datos personales, clases, modalidad de cobro, contacto y estado de cuenta."
       />
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
-      {notice && <div className={styles.notice}><Check size={16} /> {notice}</div>}
 
       <section className={styles.hero}>
         <span className={styles.avatar}>{student.firstName[0]}{student.lastName[0]}</span>
@@ -270,8 +390,8 @@ export function StudentDetailLive({ id }: { id: string }) {
 
       <div className={styles.financialGrid}>
         <article><span>Cobrado</span><strong>$ {financial.paidAmount.toLocaleString("es-AR")}</strong><small>{financial.paidCount} pagos</small></article>
-        <article><span>Pendiente</span><strong>$ {financial.pendingAmount.toLocaleString("es-AR")}</strong><small>{financial.pendingCount} cuotas</small></article>
-        <article data-tone="danger"><span>Vencido</span><strong>$ {financial.overdueAmount.toLocaleString("es-AR")}</strong><small>{financial.overdueCount} cuotas</small></article>
+        <article><span>Pendiente</span><strong>$ {financial.pendingAmount.toLocaleString("es-AR")}</strong><small>{financial.pendingCount} pagos</small></article>
+        <article data-tone="danger"><span>Vencido</span><strong>$ {financial.overdueAmount.toLocaleString("es-AR")}</strong><small>{financial.overdueCount} pagos</small></article>
         <article><span>Clases activas</span><strong>{activeEnrollments.length}</strong><small>inscripciones actuales</small></article>
       </div>
 
@@ -294,7 +414,7 @@ export function StudentDetailLive({ id }: { id: string }) {
         <section className={styles.card}>
           <div className={styles.cardHeader}>
             <div><span>CLASES</span><h3>Inscripciones</h3></div>
-            <button onClick={() => setEnrollModal(true)}><Plus size={15} /> Inscribir</button>
+            <button onClick={openEnrollmentModal}><Plus size={15} /> Inscribir</button>
           </div>
 
           <div className={styles.itemList}>
@@ -305,6 +425,8 @@ export function StudentDetailLive({ id }: { id: string }) {
                 <span>
                   <strong>{enrollment.classId.name}</strong>
                   <small>
+                    {billingPreferenceLabel(enrollment.classId, enrollment.billingPreference)}
+                    {" · "}
                     {enrollment.classId.schedules?.[0]
                       ? `${enrollment.classId.schedules[0].day} · ${enrollment.classId.schedules[0].startTime}`
                       : "Sin horario"}
@@ -313,7 +435,7 @@ export function StudentDetailLive({ id }: { id: string }) {
                 <button
                   title="Dar de baja"
                   disabled={busy}
-                  onClick={() => void removeEnrollment(enrollment._id)}
+                  onClick={() => void removeEnrollment(enrollment)}
                 >
                   <Trash2 size={15} />
                 </button>
@@ -324,29 +446,36 @@ export function StudentDetailLive({ id }: { id: string }) {
 
         <section className={styles.card + " " + styles.paymentsCard}>
           <div className={styles.cardHeader}>
-            <div><span>CUENTA</span><h3>Pagos y cuotas</h3></div>
+            <div><span>CUENTA</span><h3>Pagos</h3></div>
             <Link href="/admin/payments"><CircleDollarSign size={15} /> Ver módulo pagos</Link>
           </div>
 
           <div className={styles.paymentTable}>
             <div className={styles.paymentHead}>
-              <span>Concepto</span><span>Período</span><span>Vencimiento</span><span>Importe</span><span>Estado</span><span />
+              <span>Concepto</span><span>Fecha / período</span><span>Vencimiento</span><span>Importe</span><span>Estado</span><span />
             </div>
-            {data.payments.length === 0 && <p className={styles.empty}>Todavía no tiene cuotas registradas.</p>}
+            {data.payments.length === 0 && <p className={styles.empty}>Todavía no tiene pagos registrados.</p>}
             {data.payments.map((payment) => {
               const status = paymentStatus(payment);
               return (
                 <div className={styles.paymentRow} key={payment._id}>
-                  <span><strong>{payment.concept}</strong></span>
-                  <span>{payment.period}</span>
+                  <span>
+                    <strong>{payment.concept}</strong>
+                    <small>{(payment.paymentType ?? "MONTHLY") === "PER_CLASS" ? "Por clase" : "Mensual"}</small>
+                  </span>
+                  <span>{paymentReference(payment)}</span>
                   <span>{new Date(payment.dueDate).toLocaleDateString("es-AR")}</span>
                   <span>$ {payment.amount.toLocaleString("es-AR")}</span>
                   <span className={status === "PAID" ? styles.statusPaid : status === "OVERDUE" ? styles.statusOverdue : styles.statusPending}>
                     {status === "PAID" ? "Pagado" : status === "OVERDUE" ? "Vencido" : "Pendiente"}
                   </span>
                   <span className={styles.rowActions}>
-                    {status !== "PAID" && <button disabled={busy} onClick={() => void markPaid(payment._id)}>Pagar</button>}
-                    {status !== "PAID" && student.email && <button disabled={busy} onClick={() => void remind(payment._id)}>Recordar</button>}
+                    {status !== "PAID" && status !== "CANCELLED" && (
+                      <button disabled={busy} onClick={() => setPaying(payment)}>Cobrar</button>
+                    )}
+                    {status !== "PAID" && status !== "CANCELLED" && student.email && (
+                      <button disabled={busy} onClick={() => void remind(payment._id)}>Recordar</button>
+                    )}
                   </span>
                 </div>
               );
@@ -385,22 +514,65 @@ export function StudentDetailLive({ id }: { id: string }) {
       <LiveModal
         open={enrollModal}
         title="Inscribir en una clase"
-        description="Sólo se muestran clases activas de la misma sede donde todavía no está inscripto."
+        description="Elegí la clase y, si admite ambas modalidades, cómo pagará actualmente el alumno."
         submitting={busy}
         onClose={() => setEnrollModal(false)}
         onSubmit={enroll}
+        submitLabel="Inscribir alumno"
       >
         <Field label="Clase" wide>
           <select
             required
             value={selectedClassId}
-            onChange={(event) => setSelectedClassId(event.target.value)}
+            onChange={(event) => selectEnrollmentClass(event.target.value)}
           >
             <option value="" disabled>Seleccionar clase</option>
             {availableClasses.map((danceClass) => (
               <option key={danceClass._id} value={danceClass._id}>{danceClass.name}</option>
             ))}
           </select>
+        </Field>
+
+        {selectedClass && classBillingMode(selectedClass) === "BOTH" && (
+          <Field label="Modalidad de pago" wide>
+            <select
+              value={selectedBillingPreference}
+              onChange={(event) =>
+                setSelectedBillingPreference(event.target.value as BillingPreference)
+              }
+            >
+              <option value="PER_CLASS">Paga por clase</option>
+              <option value="MONTHLY">Paga mensual</option>
+            </select>
+          </Field>
+        )}
+
+        {selectedClass && classBillingMode(selectedClass) !== "BOTH" && (
+          <div className={styles.modalHint}>
+            Modalidad de esta clase: {billingPreferenceLabel(selectedClass, selectedBillingPreference)}.
+          </div>
+        )}
+      </LiveModal>
+
+      <LiveModal
+        open={Boolean(paying)}
+        title="Registrar cobro"
+        description={paying ? paying.concept + " · $ " + paying.amount.toLocaleString("es-AR") : ""}
+        submitting={busy}
+        onClose={() => setPaying(null)}
+        onSubmit={markPaid}
+        submitLabel="Confirmar cobro"
+      >
+        <Field label="Medio de pago">
+          <select name="paymentMethod" defaultValue="CASH" required>
+            <option value="CASH">Efectivo</option>
+            <option value="TRANSFER">Transferencia</option>
+            <option value="CARD">Tarjeta</option>
+            <option value="OTHER">Otro</option>
+          </select>
+        </Field>
+        <Field label="Fecha de pago">
+          <input name="paidAt" type="date" defaultValue={localDateValue()} />
         </Field>
       </LiveModal>
     </>
