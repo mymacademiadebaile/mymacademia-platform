@@ -394,7 +394,7 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       (billingMode === "PER_CLASS" && input.paymentType === "PER_CLASS") ||
       (billingMode === "MONTHLY" && input.paymentType === "MONTHLY");
 
-    if (!allowed || billingMode === "FREE") {
+    if (!allowed) {
       throw new AppError(422, "La modalidad de cobro no está habilitada para esta clase", "PAYMENT_TYPE_NOT_ALLOWED");
     }
 
