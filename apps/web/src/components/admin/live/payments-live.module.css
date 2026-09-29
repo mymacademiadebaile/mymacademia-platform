@@ -160,3 +160,21 @@
   .summaryGrid,.filters { grid-template-columns: 1fr; }
   .search { grid-column: auto; }
 }
+
+
+.modalHint {
+  grid-column: 1 / -1;
+  margin-top: -4px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: #f7f3fa;
+  color: #746b7a;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (min-width: 1000px) {
+  .filters {
+    grid-template-columns: minmax(220px,1fr) 150px 150px 165px 190px auto;
+  }
+}

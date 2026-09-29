@@ -14,6 +14,7 @@ import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
 import type {
   Branch,
+  DanceClass,
   Paginated,
   Payment,
   PaymentMethod,
@@ -63,6 +64,10 @@ export function PaymentsLive() {
   const [items, setItems] = useState<Payment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [classes, setClasses] = useState<DanceClass[]>([]);
+  const [studentClasses, setStudentClasses] = useState<DanceClass[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [classId, setClassId] = useState("");
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState("");
@@ -94,37 +99,66 @@ export function PaymentsLive() {
         params.set("branchId", branchId);
         summaryParams.set("branchId", branchId);
       }
+      if (classId) params.set("classId", classId);
 
-      const [payments, studentList, branchList, paymentSummary] = await Promise.all([
+      const [payments, studentList, branchList, classList, paymentSummary] = await Promise.all([
         apiFetch<Paginated<Payment>>(`/admin/payments?${params.toString()}`),
         apiFetch<Paginated<Student>>("/admin/students?limit=100&isActive=true"),
         apiFetch<Branch[]>("/admin/branches"),
+        apiFetch<DanceClass[]>("/admin/classes?status=ACTIVE"),
         apiFetch<PaymentSummary>(`/admin/payments/summary?${summaryParams.toString()}`)
       ]);
 
       setItems(payments.items);
       setStudents(studentList.items);
       setBranches(branchList.filter((item) => item.isActive));
+      setClasses(classList);
       setSummary(paymentSummary);
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
       setLoading(false);
     }
-  }, [search, period, status, branchId]);
+  }, [search, period, status, branchId, classId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 180);
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  async function selectStudent(studentId: string) {
+    setSelectedStudentId(studentId);
+    setStudentClasses([]);
+
+    if (!studentId) return;
+
+    try {
+      const response = await apiFetch<{ items: Array<{ classId: DanceClass | string }> }>(
+        `/admin/enrollments/student/${studentId}`
+      );
+      setStudentClasses(
+        response.items
+          .map((item) => item.classId)
+          .filter((item): item is DanceClass => typeof item !== "string" && item.status === "ACTIVE")
+      );
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    }
+  }
+
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const selectedStudent = students.find((student) => student._id === form.get("studentId"));
+    const selectedClass = studentClasses.find((danceClass) => danceClass._id === form.get("classId"));
 
     if (!selectedStudent) {
       setError("Seleccioná un alumno.");
+      return;
+    }
+
+    if (!selectedClass) {
+      setError("Seleccioná una clase activa del alumno.");
       return;
     }
 
@@ -136,6 +170,7 @@ export function PaymentsLive() {
         method: "POST",
         body: JSON.stringify({
           studentId: selectedStudent._id,
+          classId: selectedClass._id,
           branchId: selectedStudent.branchId,
           concept: form.get("concept"),
           period: form.get("period"),
@@ -145,7 +180,9 @@ export function PaymentsLive() {
         })
       });
       setModal(false);
-      setNotice("Cuota creada.");
+      setSelectedStudentId("");
+      setStudentClasses([]);
+      setNotice("Cuota creada y vinculada a la clase.");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -244,6 +281,7 @@ export function PaymentsLive() {
     if (period) params.set("period", period);
     if (status) params.set("status", status);
     if (branchId) params.set("branchId", branchId);
+    if (classId) params.set("classId", classId);
     window.open(apiUrl(`/admin/payments/export.xlsx?${params.toString()}`), "_blank");
   }
 
@@ -281,6 +319,10 @@ export function PaymentsLive() {
           <option value="">Todas las sedes</option>
           {branches.map((branch) => <option value={branch._id} key={branch._id}>{branch.name}</option>)}
         </select>
+        <select value={classId} onChange={(event) => setClassId(event.target.value)}>
+          <option value="">Todas las clases</option>
+          {classes.map((danceClass) => <option value={danceClass._id} key={danceClass._id}>{danceClass.name}</option>)}
+        </select>
         <button onClick={exportExcel}><Download size={15} /> Excel</button>
       </div>
 
@@ -302,7 +344,13 @@ export function PaymentsLive() {
               <div className={styles.row} key={payment._id}>
                 <span className={styles.mainCell}>
                   <strong>{studentName(payment.studentId)}</strong>
-                  <small>{payment.concept} · vence {new Date(payment.dueDate).toLocaleDateString("es-AR")}</small>
+                  <small>
+                    {typeof payment.classId === "string"
+                      ? payment.classId
+                      : payment.classId?.name ?? "Clase no vinculada"}
+                    {" · "}
+                    {payment.concept} · vence {new Date(payment.dueDate).toLocaleDateString("es-AR")}
+                  </small>
                 </span>
                 <span>{payment.period}</span>
                 <strong>$ {payment.amount.toLocaleString("es-AR")}</strong>
@@ -348,14 +396,32 @@ export function PaymentsLive() {
 
       <LiveModal open={modal} title="Crear cuota" description="La sede se toma automáticamente del alumno." submitting={submitting} onClose={() => setModal(false)} onSubmit={create}>
         <Field label="Alumno" wide>
-          <select name="studentId" required defaultValue="">
+          <select
+            name="studentId"
+            required
+            value={selectedStudentId}
+            onChange={(event) => void selectStudent(event.target.value)}
+          >
             <option value="" disabled>Seleccionar alumno</option>
             {students.map((student) => <option key={student._id} value={student._id}>{student.firstName} {student.lastName}</option>)}
+          </select>
+        </Field>
+        <Field label="Clase" wide>
+          <select name="classId" required defaultValue="" key={selectedStudentId || "no-student"}>
+            <option value="" disabled>
+              {selectedStudentId ? "Seleccionar clase inscripta" : "Primero seleccioná un alumno"}
+            </option>
+            {studentClasses.map((danceClass) => (
+              <option key={danceClass._id} value={danceClass._id}>
+                {danceClass.name} · $ {(danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Concepto"><input name="concept" defaultValue="Cuota mensual" required /></Field>
         <Field label="Período"><input name="period" type="month" required /></Field>
         <Field label="Importe"><input name="amount" type="number" min="1" step="0.01" required /></Field>
+        <div className={styles.modalHint}>El importe puede copiarse de la cuota configurada en la clase o ajustarse manualmente para este alumno.</div>
         <Field label="Vencimiento"><input name="dueDate" type="date" required /></Field>
         <Field label="Notas" wide><textarea name="notes" rows={3} /></Field>
       </LiveModal>

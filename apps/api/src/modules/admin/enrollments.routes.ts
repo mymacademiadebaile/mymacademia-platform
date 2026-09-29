@@ -51,6 +51,35 @@ adminEnrollmentsRouter.get("/", async (request, response, next) => {
   }
 });
 
+adminEnrollmentsRouter.get("/student/:studentId", async (request, response, next) => {
+  try {
+    const studentId = objectIdSchema.parse(request.params.studentId);
+    const organizationId = request.auth!.organizationId;
+
+    const student = await StudentModel.findOne({
+      _id: studentId,
+      organizationId,
+      isActive: true
+    });
+
+    if (!student) {
+      throw new AppError(404, "Alumno no encontrado o inactivo", "STUDENT_NOT_FOUND");
+    }
+
+    const items = await EnrollmentModel.find({
+      organizationId,
+      studentId,
+      status: "ACTIVE"
+    })
+      .populate("classId", "name branchId monthlyPrice freeTrialEnabled status schedules")
+      .sort({ enrolledAt: -1 });
+
+    response.json({ items });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminEnrollmentsRouter.post("/", async (request, response, next) => {
   try {
     const input = createEnrollmentSchema.parse(request.body);

@@ -15,12 +15,15 @@ import {
 } from "../payments/payment.model";
 import { nextReceiptNumber } from "../payments/sequence.model";
 import { StudentModel } from "../students/student.model";
+import { DanceClassModel } from "../classes/class.model";
+import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { OrganizationModel } from "../core/organization.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 
 const createPaymentSchema = z.object({
   branchId: objectIdSchema.optional(),
   studentId: objectIdSchema,
+  classId: objectIdSchema,
   concept: z.string().trim().min(2).max(120),
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "El período debe tener formato YYYY-MM"),
   amount: z.number().positive(),
@@ -40,7 +43,8 @@ const cancelSchema = z.object({
 const listQuerySchema = pageQuerySchema.extend({
   status: z.enum(["PENDING", "PAID", "OVERDUE", "CANCELLED"]).optional(),
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
-  branchId: objectIdSchema.optional()
+  branchId: objectIdSchema.optional(),
+  classId: objectIdSchema.optional()
 });
 
 const upload = multer({
@@ -74,6 +78,7 @@ async function buildPaymentFilter(
 
   if (query.period) filter.period = query.period;
   if (query.branchId) filter.branchId = query.branchId;
+  if (query.classId) filter.classId = query.classId;
 
   if (query.status === "OVERDUE") {
     filter.$or = [
@@ -124,6 +129,7 @@ adminPaymentsRouter.get("/", async (request, response, next) => {
     const [items, total] = await Promise.all([
       PaymentModel.find(filter)
         .populate("studentId", "firstName lastName email phone branchId")
+        .populate("classId", "name monthlyPrice freeTrialEnabled status")
         .sort({ dueDate: -1, createdAt: -1 })
         .skip((query.page - 1) * query.limit)
         .limit(query.limit),
@@ -211,6 +217,7 @@ adminPaymentsRouter.get("/export.xlsx", async (request, response, next) => {
 
     const payments = await PaymentModel.find(filter)
       .populate("studentId", "firstName lastName email phone")
+      .populate("classId", "name monthlyPrice")
       .sort({ dueDate: -1 });
 
     const workbook = new ExcelJS.Workbook();
@@ -219,6 +226,7 @@ adminPaymentsRouter.get("/export.xlsx", async (request, response, next) => {
     sheet.columns = [
       { header: "Recibo", key: "receipt", width: 16 },
       { header: "Alumno", key: "student", width: 30 },
+      { header: "Clase", key: "className", width: 26 },
       { header: "Concepto", key: "concept", width: 24 },
       { header: "Período", key: "period", width: 12 },
       { header: "Vencimiento", key: "dueDate", width: 16 },
@@ -237,6 +245,7 @@ adminPaymentsRouter.get("/export.xlsx", async (request, response, next) => {
       sheet.addRow({
         receipt: payment.receiptNumber ?? "",
         student: `${student.firstName} ${student.lastName}`,
+        className: payment.classId && typeof payment.classId === "object" && "name" in payment.classId ? String((payment.classId as unknown as { name: string }).name) : "",
         concept: payment.concept,
         period: payment.period,
         dueDate: payment.dueDate,
@@ -275,7 +284,7 @@ adminPaymentsRouter.get("/:id/receipt.pdf", async (request, response, next) => {
       _id: id,
       organizationId,
       status: "PAID"
-    }).populate("studentId", "firstName lastName email phone");
+    }).populate("studentId", "firstName lastName email phone").populate("classId", "name");
 
     if (!payment) {
       throw new AppError(404, "Recibo no disponible", "RECEIPT_NOT_FOUND");
@@ -309,6 +318,9 @@ adminPaymentsRouter.get("/:id/receipt.pdf", async (request, response, next) => {
     document.text(`Alumno: ${student.firstName} ${student.lastName}`);
     if (student.email) document.text(`Email: ${student.email}`);
     document.moveDown();
+    if (payment.classId && typeof payment.classId === "object" && "name" in payment.classId) {
+      document.text(`Clase: ${String((payment.classId as unknown as { name: string }).name)}`);
+    }
     document.text(`Concepto: ${payment.concept}`);
     document.text(`Período: ${payment.period}`);
     document.text(`Medio de pago: ${payment.paymentMethod ?? "OTHER"}`);
@@ -341,6 +353,39 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       throw new AppError(404, "Alumno no encontrado o inactivo", "STUDENT_NOT_FOUND");
     }
 
+    const [danceClass, enrollment] = await Promise.all([
+      DanceClassModel.findOne({
+        _id: input.classId,
+        organizationId
+      }),
+      EnrollmentModel.findOne({
+        organizationId,
+        classId: input.classId,
+        studentId: student._id,
+        status: "ACTIVE"
+      })
+    ]);
+
+    if (!danceClass) {
+      throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
+    }
+
+    if (!danceClass.branchId.equals(student.branchId)) {
+      throw new AppError(
+        422,
+        "El alumno y la clase deben pertenecer a la misma sede",
+        "PAYMENT_CLASS_BRANCH_MISMATCH"
+      );
+    }
+
+    if (!enrollment) {
+      throw new AppError(
+        422,
+        "El alumno debe estar inscripto activamente en la clase para generar una cuota",
+        "PAYMENT_REQUIRES_ACTIVE_ENROLLMENT"
+      );
+    }
+
     if (input.branchId && input.branchId !== student.branchId.toString()) {
       throw new AppError(
         422,
@@ -352,6 +397,7 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
     const duplicate = await PaymentModel.exists({
       organizationId,
       studentId: student._id,
+      classId: danceClass._id,
       period: input.period,
       concept: input.concept,
       status: { $ne: "CANCELLED" }
@@ -369,6 +415,7 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       organizationId,
       branchId: student.branchId,
       studentId: student._id,
+      classId: danceClass._id,
       concept: input.concept,
       period: input.period,
       amount: input.amount,
@@ -385,6 +432,7 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       entityId: payment._id,
       metadata: {
         studentId: student._id,
+        classId: danceClass._id,
         period: payment.period,
         amount: payment.amount
       }

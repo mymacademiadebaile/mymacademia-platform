@@ -80,6 +80,7 @@ export type Payment = {
   _id: string;
   branchId: string;
   studentId: Student | string;
+  classId?: DanceClass | string;
   concept: string;
   period: string;
   amount: number;
