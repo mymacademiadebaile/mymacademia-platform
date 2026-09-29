@@ -12,13 +12,16 @@ interface AccessTokenPayload extends jwt.JwtPayload {
 
 export const requireAuth: RequestHandler = (request, _response, next) => {
   const authorization = request.header("authorization");
+  const bearerToken = authorization?.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length)
+    : undefined;
+  const cookieToken = request.cookies?.mym_access as string | undefined;
+  const token = bearerToken ?? cookieToken;
 
-  if (!authorization?.startsWith("Bearer ")) {
+  if (!token) {
     next(new AppError(401, "Authentication required", "AUTH_REQUIRED"));
     return;
   }
-
-  const token = authorization.slice("Bearer ".length);
 
   try {
     const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessTokenPayload;
