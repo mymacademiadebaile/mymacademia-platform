@@ -1,0 +1,284 @@
+.adminRoot {
+  --admin-purple: #5b21b6;
+  --admin-purple-dark: #3c126f;
+  --admin-ink: #251a2e;
+  --admin-muted: #756d7d;
+  --admin-bg: #f6f3f8;
+  --admin-card: #ffffff;
+  --admin-line: #e9e2ed;
+}
+
+.adminRoot {
+  min-height: 100dvh;
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+}
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 270px;
+  padding: 18px 14px;
+  background: #211529;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  box-shadow: 20px 0 60px rgba(28, 14, 35, 0.08);
+}
+
+.sidebarTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 4px 6px 18px;
+}
+
+.brandMark {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #7c3aed, #4c1d95);
+  font-weight: 900;
+  letter-spacing: -0.08em;
+}
+
+.brand strong,
+.brand small,
+.adminIdentity strong,
+.adminIdentity small,
+.professorPreview strong,
+.professorPreview small {
+  display: block;
+}
+
+.brand strong {
+  font-size: 15px;
+}
+
+.brand small {
+  margin-top: 2px;
+  color: #bfb4c7;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.nav {
+  display: grid;
+  gap: 5px;
+}
+
+.navItem,
+.navItemActive {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 13px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c9bfce;
+  transition: 160ms ease;
+}
+
+.navItem:hover {
+  color: white;
+  background: rgba(255,255,255,.06);
+}
+
+.navItemActive {
+  color: white;
+  background: linear-gradient(120deg, rgba(124,58,237,.95), rgba(91,33,182,.72));
+  box-shadow: 0 10px 26px rgba(91,33,182,.22);
+}
+
+.sidebarBottom {
+  margin-top: auto;
+  display: grid;
+  gap: 10px;
+}
+
+.professorPreview {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 15px;
+  background: rgba(255,255,255,.04);
+}
+
+.professorPreview > span:nth-child(2) {
+  flex: 1;
+}
+
+.professorPreview strong,
+.adminIdentity strong {
+  font-size: 11px;
+}
+
+.professorPreview small,
+.adminIdentity small {
+  margin-top: 2px;
+  color: #a99eb0;
+  font-size: 9px;
+}
+
+.adminIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 5px 0;
+}
+
+.adminAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #f4ecff;
+  color: #5b21b6;
+  font-weight: 900;
+}
+
+.main {
+  margin-left: 270px;
+  min-height: 100dvh;
+}
+
+.topbar {
+  height: 74px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(246,243,248,.88);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(226,218,232,.8);
+}
+
+.topbarText {
+  display: grid;
+  gap: 2px;
+}
+
+.topbarText span {
+  font-size: 10px;
+  color: var(--admin-muted);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-weight: 800;
+}
+
+.topbarText strong {
+  font-size: 14px;
+}
+
+.topbarActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.roundButton,
+.menuButton,
+.mobileClose {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: white;
+  color: var(--admin-ink);
+  cursor: pointer;
+  position: relative;
+}
+
+.roundButton i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f43f5e;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 2px solid white;
+}
+
+.statusPill {
+  padding: 8px 11px;
+  border-radius: 999px;
+  color: #166534;
+  background: #dcfce7;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.content {
+  padding: 26px 28px 50px;
+}
+
+.menuButton,
+.mobileClose,
+.overlay {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    width: 280px;
+  }
+
+  .sidebar[data-open="true"] {
+    transform: translateX(0);
+  }
+
+  .main {
+    margin-left: 0;
+  }
+
+  .menuButton,
+  .mobileClose {
+    display: grid;
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    border: 0;
+    background: rgba(20,10,26,.42);
+    backdrop-filter: blur(3px);
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .content {
+    padding: 20px 16px 42px;
+  }
+
+  .statusPill {
+    display: none;
+  }
+}
