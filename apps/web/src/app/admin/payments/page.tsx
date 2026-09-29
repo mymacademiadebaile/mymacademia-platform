@@ -1,5 +1,5 @@
-import { PaymentsView } from "@/components/admin/admin-ui";
+import { PaymentsLive } from "@/components/admin/live/payments-live";
 
 export default function PaymentsPage() {
-  return <PaymentsView />;
+  return <PaymentsLive />;
 }

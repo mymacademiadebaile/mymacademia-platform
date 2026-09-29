@@ -1,5 +1,5 @@
-import { ClassesView } from "@/components/admin/admin-ui";
+import { ClassesLive } from "@/components/admin/live/classes-live";
 
 export default function ClassesPage() {
-  return <ClassesView />;
+  return <ClassesLive />;
 }
