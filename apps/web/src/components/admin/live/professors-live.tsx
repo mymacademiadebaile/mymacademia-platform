@@ -3,12 +3,13 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
-import type { Professor } from "./live-types";
+import type { Branch, Professor } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
 
 export function ProfessorsLive() {
   const [items, setItems] = useState<Professor[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [modal, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -19,7 +20,12 @@ export function ProfessorsLive() {
     setError("");
 
     try {
-      setItems(await apiFetch<Professor[]>("/admin/professors"));
+      const [professorList, branchList] = await Promise.all([
+        apiFetch<Professor[]>("/admin/professors"),
+        apiFetch<Branch[]>("/admin/branches")
+      ]);
+      setItems(professorList);
+      setBranches(branchList.filter((branch) => branch.isActive));
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
@@ -49,7 +55,7 @@ export function ProfessorsLive() {
           phone: form.get("phone") || undefined,
           bio: form.get("bio") || undefined,
           instagram: form.get("instagram") || undefined,
-          branchIds: []
+          branchIds: form.get("branchId") ? [form.get("branchId")] : []
         })
       });
       setModal(false);
@@ -108,6 +114,12 @@ export function ProfessorsLive() {
         onClose={() => setModal(false)}
         onSubmit={create}
       >
+        <Field label="Sede">
+          <select name="branchId" required defaultValue="">
+            <option value="" disabled>Seleccionar sede</option>
+            {branches.map((branch) => <option value={branch._id} key={branch._id}>{branch.name}</option>)}
+          </select>
+        </Field>
         <Field label="Nombre"><input name="firstName" required /></Field>
         <Field label="Apellido"><input name="lastName" required /></Field>
         <Field label="Nombre visible"><input name="displayName" required /></Field>
