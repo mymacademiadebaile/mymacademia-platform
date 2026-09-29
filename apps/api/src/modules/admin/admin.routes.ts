@@ -8,6 +8,8 @@ import { adminClassesRouter } from "./classes.routes";
 import { adminPaymentsRouter } from "./payments.routes";
 import { adminBranchesRouter } from "./branches.routes";
 import { adminSettingsRouter } from "./settings.routes";
+import { adminEnrollmentsRouter } from "./enrollments.routes";
+import { adminCommunicationsRouter } from "./communications.routes";
 
 export const adminRouter = Router();
 
@@ -18,5 +20,7 @@ adminRouter.use("/catalogs", adminCatalogsRouter);
 adminRouter.use("/professors", adminProfessorsRouter);
 adminRouter.use("/students", adminStudentsRouter);
 adminRouter.use("/classes", adminClassesRouter);
+adminRouter.use("/enrollments", adminEnrollmentsRouter);
 adminRouter.use("/payments", adminPaymentsRouter);
+adminRouter.use("/communications", adminCommunicationsRouter);
 adminRouter.use("/settings", adminSettingsRouter);

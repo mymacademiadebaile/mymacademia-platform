@@ -27,16 +27,41 @@ const updateDanceClassSchema = danceClassSchema.partial().extend({
 
 export const adminClassesRouter = Router();
 
+const populateClass = (query: ReturnType<typeof DanceClassModel.find>) =>
+  query
+    .populate("professorIds", "displayName avatarUrl")
+    .populate("disciplineIds segmentIds levelIds", "name type");
+
 adminClassesRouter.get("/", async (request, response, next) => {
   try {
-    const items = await DanceClassModel.find({
+    const items = await populateClass(
+      DanceClassModel.find({
+        organizationId: request.auth!.organizationId
+      })
+    ).sort({ name: 1 });
+
+    response.json(items);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminClassesRouter.get("/:id", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const item = await DanceClassModel.findOne({
+      _id: id,
       organizationId: request.auth!.organizationId
     })
       .populate("professorIds", "displayName avatarUrl")
-      .populate("disciplineIds segmentIds levelIds", "name type")
-      .sort({ name: 1 });
+      .populate("disciplineIds segmentIds levelIds", "name type");
 
-    response.json(items);
+    if (!item) {
+      response.status(404).json({ error: "CLASS_NOT_FOUND" });
+      return;
+    }
+
+    response.json(item);
   } catch (error) {
     next(error);
   }
