@@ -46,8 +46,32 @@ const classBodySchema = z.object({
   });
 });
 
-const updateDanceClassSchema = classBodySchema.partial().extend({
+const updateDanceClassSchema = z.object({
+  branchId: objectIdSchema.optional(),
+  name: z.string().trim().min(2).max(120).optional(),
+  professorIds: z.array(objectIdSchema).min(1).optional(),
+  disciplineIds: z.array(objectIdSchema).min(1).optional(),
+  segmentIds: z.array(objectIdSchema).min(1).optional(),
+  levelIds: z.array(objectIdSchema).min(1).optional(),
+  capacity: z.number().int().min(1).max(500).optional(),
+  schedules: z.array(scheduleSchema).min(1).max(14).optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional()
+}).superRefine((value, context) => {
+  if (!value.schedules) return;
+
+  const keys = new Set<string>();
+
+  value.schedules.forEach((schedule, index) => {
+    const key = `${schedule.day}:${schedule.startTime}:${schedule.endTime}`;
+    if (keys.has(key)) {
+      context.addIssue({
+        code: "custom",
+        path: ["schedules", index],
+        message: "El horario está repetido"
+      });
+    }
+    keys.add(key);
+  });
 });
 
 const listQuerySchema = z.object({
