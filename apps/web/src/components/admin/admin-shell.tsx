@@ -6,6 +6,7 @@ import {
   BookOpenCheck,
   CalendarDays,
   ChevronLeft,
+  CircleUserRound,
   CreditCard,
   LayoutDashboard,
   LogOut,
@@ -17,6 +18,7 @@ import {
   UsersRound,
   X
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -32,7 +34,8 @@ const navigation = [
   { href: "/admin/catalogs", label: "Catálogos", icon: SlidersHorizontal },
   { href: "/admin/communications", label: "Comunicaciones", icon: MessageCircleMore },
   { href: "/admin/reports", label: "Reportes", icon: BarChart3 },
-  { href: "/admin/settings", label: "Configuración", icon: Settings }
+  { href: "/admin/settings", label: "Configuración", icon: Settings },
+  { href: "/admin/profile", label: "Mi perfil", icon: CircleUserRound }
 ];
 
 type CurrentUser = {
@@ -51,7 +54,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     apiFetch<{ user: CurrentUser }>("/auth/me")
       .then((result) => setUser(result.user))
       .catch(() => undefined);
-  }, []);
+  }, [pathname]);
 
   async function logout() {
     await apiFetch<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
@@ -64,7 +67,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <aside className={styles.sidebar} data-open={open}>
         <div className={styles.sidebarTop}>
           <Link href="/admin" className={styles.brand}>
-            <span className={styles.brandMark}>M&M</span>
+            <Image
+              src="/mym-academia-logo.png"
+              alt="M&M Academia de Baile"
+              width={52}
+              height={52}
+              priority
+              className={styles.brandLogo}
+            />
             <span>
               <strong>Academia</strong>
               <small>Administración</small>
@@ -99,12 +109,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <BookOpenCheck size={18} />
             <span>
               <strong>Vista profesor</strong>
-              <small>Ver experiencia móvil</small>
+              <small>Abrir experiencia del profesor</small>
             </span>
             <ChevronLeft size={16} />
           </Link>
 
-          <div className={styles.adminIdentity}>
+          <Link href="/admin/profile" className={styles.adminIdentity}>
             <span className={styles.adminAvatar}>
               {(user?.firstName?.[0] ?? "A").toUpperCase()}
             </span>
@@ -112,7 +122,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <strong>{user ? `${user.firstName} ${user.lastName}` : "Administración"}</strong>
               <small>{user?.email ?? "M&M Academia"}</small>
             </span>
-          </div>
+          </Link>
 
           <button
             className={styles.professorPreview}
@@ -144,7 +154,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Bell size={20} />
               <i />
             </button>
-            <span className={styles.statusPill}>Sistema activo</span>
+            <Link href="/admin/profile" className={styles.profileShortcut} aria-label="Abrir mi perfil">
+              <CircleUserRound size={18} />
+              <span>{user?.firstName ?? "Perfil"}</span>
+            </Link>
           </div>
         </header>
         <div className={styles.content}>{children}</div>

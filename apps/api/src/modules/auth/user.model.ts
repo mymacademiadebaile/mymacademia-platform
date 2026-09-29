@@ -8,6 +8,7 @@ export interface User {
   passwordHash: string;
   firstName: string;
   lastName: string;
+  phone?: string;
   role: UserRole;
   isActive: boolean;
 }
@@ -20,6 +21,7 @@ const userSchema = new Schema<User>(
     passwordHash: { type: String, required: true, select: false },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
+    phone: { type: String, trim: true },
     role: { type: String, enum: USER_ROLES, required: true },
     isActive: { type: Boolean, default: true }
   },

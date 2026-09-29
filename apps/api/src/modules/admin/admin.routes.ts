@@ -10,10 +10,12 @@ import { adminBranchesRouter } from "./branches.routes";
 import { adminSettingsRouter } from "./settings.routes";
 import { adminEnrollmentsRouter } from "./enrollments.routes";
 import { adminCommunicationsRouter } from "./communications.routes";
+import { adminProfileRouter } from "./profile.routes";
 
 export const adminRouter = Router();
 
 adminRouter.use(requireAuth, requireRole("ADMIN"));
+adminRouter.use("/profile", adminProfileRouter);
 adminRouter.use("/summary", adminSummaryRouter);
 adminRouter.use("/branches", adminBranchesRouter);
 adminRouter.use("/catalogs", adminCatalogsRouter);

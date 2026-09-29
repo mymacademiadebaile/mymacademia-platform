@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiMessage } from "@/lib/api";
 import styles from "./login.module.css";
@@ -46,10 +47,21 @@ export default function LoginPage() {
     }
   }
 
+  const passwordChanged =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("passwordChanged") === "1";
+
   return (
     <main className={styles.page}>
       <section className={styles.visual}>
-        <div className={styles.brandMark}>M&M</div>
+        <Image
+          src="/mym-academia-logo.png"
+          alt="M&M Academia de Baile"
+          width={118}
+          height={118}
+          priority
+          className={styles.brandLogo}
+        />
         <span className={styles.kicker}>ACADEMIA DE BAILE</span>
         <h1>Todo lo que pasa en la academia, en un solo lugar.</h1>
         <p>
@@ -64,12 +76,24 @@ export default function LoginPage() {
       <section className={styles.loginPanel}>
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.mobileBrand}>
-            <span className={styles.brandMark}>M&M</span>
+            <Image
+              src="/mym-academia-logo.png"
+              alt="M&M Academia de Baile"
+              width={54}
+              height={54}
+              className={styles.mobileLogo}
+            />
             <strong>Academia de Baile</strong>
           </div>
           <span className={styles.kicker}>BIENVENIDO</span>
           <h2>Ingresá a tu cuenta</h2>
           <p>Usá el acceso asignado por M&M Academia.</p>
+
+          {passwordChanged && (
+            <div className={styles.success}>
+              Contraseña actualizada. Ingresá nuevamente con tu nueva clave.
+            </div>
+          )}
 
           <label>
             <span>Email</span>
