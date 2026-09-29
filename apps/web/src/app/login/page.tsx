@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiMessage } from "@/lib/api";
 import styles from "./login.module.css";
@@ -127,6 +128,10 @@ export default function LoginPage() {
             </div>
           </label>
 
+          <div className={styles.passwordHelp}>
+            <Link href="/forgot-password">Olvidé mi contraseña</Link>
+          </div>
+
           {error && <div className={styles.error}>{error}</div>}
 
           <button className={styles.submit} disabled={submitting}>
@@ -134,7 +139,7 @@ export default function LoginPage() {
           </button>
 
           <small className={styles.footerText}>
-            Si no recordás tu acceso, contactá a la administración.
+            El acceso está protegido por rol. Si necesitás ayuda, contactá a la administración.
           </small>
         </form>
       </section>

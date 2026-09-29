@@ -260,3 +260,29 @@
     font-size: 14px;
   }
 }
+
+
+.passwordHelp {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.passwordHelp a,
+.authBackLink {
+  color: #6d28d9;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.authBackLink {
+  display: inline-flex;
+  margin-top: 15px;
+}
+
+.helperText {
+  margin-top: 8px;
+  color: #807687;
+  font-size: 9px;
+  line-height: 1.45;
+}
