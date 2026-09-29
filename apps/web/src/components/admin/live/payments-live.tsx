@@ -1,32 +1,76 @@
 "use client";
 
+import {
+  Ban,
+  Check,
+  Download,
+  FileText,
+  Mail,
+  Paperclip,
+  Search
+} from "lucide-react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Check, Mail, Search } from "lucide-react";
 import { PageHeader } from "../admin-ui";
-import { apiFetch, apiMessage } from "@/lib/api";
-import type { Branch, Paginated, Payment, Student } from "./live-types";
+import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
+import type {
+  Branch,
+  Paginated,
+  Payment,
+  PaymentMethod,
+  Student
+} from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
-import styles from "./live.module.css";
+import styles from "./payments-live.module.css";
 
-function studentName(value: Payment["studentId"]): string {
-  return typeof value === "string"
-    ? value
-    : `${value.firstName} ${value.lastName}`;
+type PaymentSummary = {
+  total: number;
+  count: number;
+  paidAmount: number;
+  paidCount: number;
+  pendingAmount: number;
+  pendingCount: number;
+  overdueAmount: number;
+  overdueCount: number;
+  cancelledAmount: number;
+  cancelledCount: number;
+};
+
+function studentName(value: Payment["studentId"]) {
+  return typeof value === "string" ? value : `${value.firstName} ${value.lastName}`;
 }
 
-function paymentStatus(payment: Payment) {
-  if (payment.status === "PENDING" && new Date(payment.dueDate).getTime() < Date.now()) {
-    return "OVERDUE";
-  }
-  return payment.status;
+function statusOf(payment: Payment) {
+  return payment.effectiveStatus ?? payment.status;
+}
+
+function statusLabel(status: string) {
+  if (status === "PAID") return "Pagado";
+  if (status === "OVERDUE") return "Vencido";
+  if (status === "CANCELLED") return "Cancelado";
+  return "Pendiente";
+}
+
+function methodLabel(method?: PaymentMethod) {
+  return {
+    CASH: "Efectivo",
+    TRANSFER: "Transferencia",
+    CARD: "Tarjeta",
+    OTHER: "Otro"
+  }[method ?? "OTHER"];
 }
 
 export function PaymentsLive() {
   const [items, setItems] = useState<Payment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [search, setSearch] = useState("");
+  const [period, setPeriod] = useState("");
+  const [status, setStatus] = useState("");
+  const [branchId, setBranchId] = useState("");
   const [modal, setModal] = useState(false);
+  const [paying, setPaying] = useState<Payment | null>(null);
+  const [cancelling, setCancelling] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState("");
@@ -38,28 +82,52 @@ export function PaymentsLive() {
     setError("");
 
     try {
-      const [payments, studentList, branchList] = await Promise.all([
-        apiFetch<Paginated<Payment>>("/admin/payments?limit=100"),
-        apiFetch<Paginated<Student>>("/admin/students?limit=100"),
-        apiFetch<Branch[]>("/admin/branches")
+      const params = new URLSearchParams({ limit: "100" });
+      const summaryParams = new URLSearchParams();
+      if (search) params.set("q", search);
+      if (period) {
+        params.set("period", period);
+        summaryParams.set("period", period);
+      }
+      if (status) params.set("status", status);
+      if (branchId) {
+        params.set("branchId", branchId);
+        summaryParams.set("branchId", branchId);
+      }
+
+      const [payments, studentList, branchList, paymentSummary] = await Promise.all([
+        apiFetch<Paginated<Payment>>(`/admin/payments?${params.toString()}`),
+        apiFetch<Paginated<Student>>("/admin/students?limit=100&isActive=true"),
+        apiFetch<Branch[]>("/admin/branches"),
+        apiFetch<PaymentSummary>(`/admin/payments/summary?${summaryParams.toString()}`)
       ]);
+
       setItems(payments.items);
-      setStudents(studentList.items.filter((item) => item.isActive));
+      setStudents(studentList.items);
       setBranches(branchList.filter((item) => item.isActive));
+      setSummary(paymentSummary);
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search, period, status, branchId]);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 180);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const selectedStudent = students.find((student) => student._id === form.get("studentId"));
+
+    if (!selectedStudent) {
+      setError("Seleccioná un alumno.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
@@ -67,15 +135,17 @@ export function PaymentsLive() {
       await apiFetch<Payment>("/admin/payments", {
         method: "POST",
         body: JSON.stringify({
-          branchId: form.get("branchId"),
-          studentId: form.get("studentId"),
+          studentId: selectedStudent._id,
+          branchId: selectedStudent.branchId,
           concept: form.get("concept"),
           period: form.get("period"),
           amount: Number(form.get("amount")),
-          dueDate: form.get("dueDate")
+          dueDate: form.get("dueDate"),
+          notes: form.get("notes")
         })
       });
       setModal(false);
+      setNotice("Cuota creada.");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -84,23 +154,58 @@ export function PaymentsLive() {
     }
   }
 
-  async function markPaid(id: string) {
-    setBusyId(id);
-    setNotice("");
+  async function markPaid(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!paying) return;
+
+    const form = new FormData(event.currentTarget);
+    setSubmitting(true);
+    setError("");
 
     try {
-      await apiFetch<Payment>(`/admin/payments/${id}/mark-paid`, { method: "POST" });
+      await apiFetch<Payment>(`/admin/payments/${paying._id}/mark-paid`, {
+        method: "POST",
+        body: JSON.stringify({
+          paymentMethod: form.get("paymentMethod"),
+          paidAt: form.get("paidAt") || undefined
+        })
+      });
+      setPaying(null);
+      setNotice("Cobro registrado y recibo generado.");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
-      setBusyId("");
+      setSubmitting(false);
+    }
+  }
+
+  async function cancelPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!cancelling) return;
+
+    const form = new FormData(event.currentTarget);
+    setSubmitting(true);
+    setError("");
+
+    try {
+      await apiFetch(`/admin/payments/${cancelling._id}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ reason: form.get("reason") })
+      });
+      setCancelling(null);
+      setNotice("Registro cancelado y conservado en el historial.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function remind(id: string) {
     setBusyId(id);
-    setNotice("");
+    setError("");
 
     try {
       await apiFetch<{ ok: boolean }>(`/admin/payments/${id}/remind`, { method: "POST" });
@@ -112,116 +217,163 @@ export function PaymentsLive() {
     }
   }
 
-  const visible = items.filter((item) =>
-    (studentName(item.studentId) + " " + item.concept + " " + item.period)
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
+  async function uploadProof(paymentId: string, file?: File) {
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    setBusyId(paymentId);
+    setError("");
 
-  const pendingAmount = items
-    .filter((item) => paymentStatus(item) !== "PAID" && paymentStatus(item) !== "CANCELLED")
-    .reduce((sum, item) => sum + item.amount, 0);
+    try {
+      await apiFetch(`/admin/payments/${paymentId}/proof`, {
+        method: "POST",
+        body: form
+      });
+      setNotice("Comprobante guardado.");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  function exportExcel() {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (period) params.set("period", period);
+    if (status) params.set("status", status);
+    if (branchId) params.set("branchId", branchId);
+    window.open(apiUrl(`/admin/payments/export.xlsx?${params.toString()}`), "_blank");
+  }
 
   return (
     <>
       <PageHeader
         eyebrow="FINANZAS"
         title="Pagos y cuotas"
-        description="Cuotas reales, cobros y recordatorios enviados con Gmail + Nodemailer."
-        actionLabel="Registrar cuota"
+        description="Cobros, deuda, comprobantes, recibos y recordatorios con trazabilidad."
+        actionLabel="Nueva cuota"
         onAction={() => setModal(true)}
       />
 
-      <div className={styles.liveGrid3}>
-        <article className={styles.card}>
-          <span className={styles.cardLabel}>Registros</span>
-          <strong className={styles.cardValue}>{items.length}</strong>
-          <span className={styles.cardDetail}>Cuotas cargadas</span>
-        </article>
-        <article className={styles.card}>
-          <span className={styles.cardLabel}>Pendiente</span>
-          <strong className={styles.cardValue}>$ {pendingAmount.toLocaleString("es-AR")}</strong>
-          <span className={styles.cardDetail}>Incluye vencidas</span>
-        </article>
-        <article className={styles.card}>
-          <span className={styles.cardLabel}>Pagadas</span>
-          <strong className={styles.cardValue}>{items.filter((item) => item.status === "PAID").length}</strong>
-          <span className={styles.cardDetail}>Con fecha de pago registrada</span>
-        </article>
+      <div className={styles.summaryGrid}>
+        <article><span>Cobrado</span><strong>$ {(summary?.paidAmount ?? 0).toLocaleString("es-AR")}</strong><small>{summary?.paidCount ?? 0} pagos</small></article>
+        <article><span>Pendiente</span><strong>$ {(summary?.pendingAmount ?? 0).toLocaleString("es-AR")}</strong><small>{summary?.pendingCount ?? 0} cuotas</small></article>
+        <article data-tone="danger"><span>Vencido</span><strong>$ {(summary?.overdueAmount ?? 0).toLocaleString("es-AR")}</strong><small>{summary?.overdueCount ?? 0} cuotas</small></article>
+        <article><span>Registros</span><strong>{summary?.count ?? 0}</strong><small>incluye cancelados</small></article>
       </div>
 
-      {notice && <div className={styles.notice}>{notice}</div>}
-
-      <div className={styles.card} style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+      <div className={styles.filters}>
+        <div className={styles.search}>
           <Search size={17} />
-          <input
-            style={{ flex: 1, border: 0, outline: 0, background: "transparent" }}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar alumno, período o concepto..."
-          />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Alumno, concepto o recibo..." />
         </div>
+        <input type="month" value={period} onChange={(event) => setPeriod(event.target.value)} />
+        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="">Todos los estados</option>
+          <option value="PENDING">Pendientes</option>
+          <option value="OVERDUE">Vencidos</option>
+          <option value="PAID">Pagados</option>
+          <option value="CANCELLED">Cancelados</option>
+        </select>
+        <select value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+          <option value="">Todas las sedes</option>
+          {branches.map((branch) => <option value={branch._id} key={branch._id}>{branch.name}</option>)}
+        </select>
+        <button onClick={exportExcel}><Download size={15} /> Excel</button>
       </div>
 
+      {notice && <div className={styles.notice}><Check size={15} /> {notice}</div>}
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
       {!loading && (
-        <div className={styles.listCard}>
-          {visible.map((payment) => {
-            const status = paymentStatus(payment);
+        <div className={styles.table}>
+          <div className={styles.head}>
+            <span>Alumno / concepto</span><span>Período</span><span>Importe</span><span>Estado</span><span>Documentos</span><span>Acciones</span>
+          </div>
+          {items.length === 0 && <div className={styles.empty}>No hay pagos para estos filtros.</div>}
+          {items.map((payment) => {
+            const currentStatus = statusOf(payment);
+            const student = typeof payment.studentId === "string" ? null : payment.studentId;
+
             return (
-              <div className={styles.listRow} key={payment._id}>
-                <span className={styles.avatar}>$</span>
-                <span className={styles.rowBody}>
+              <div className={styles.row} key={payment._id}>
+                <span className={styles.mainCell}>
                   <strong>{studentName(payment.studentId)}</strong>
-                  <small>{payment.concept} · {payment.period} · vence {new Date(payment.dueDate).toLocaleDateString("es-AR")}</small>
+                  <small>{payment.concept} · vence {new Date(payment.dueDate).toLocaleDateString("es-AR")}</small>
                 </span>
-                <strong style={{ fontSize: 11 }}>$ {payment.amount.toLocaleString("es-AR")}</strong>
-                <span className={status === "PAID" ? styles.pill : status === "OVERDUE" ? styles.pillWarn : styles.pillOff}>
-                  {status === "PAID" ? "Pagado" : status === "OVERDUE" ? "Vencido" : "Pendiente"}
+                <span>{payment.period}</span>
+                <strong>$ {payment.amount.toLocaleString("es-AR")}</strong>
+                <span className={styles.status} data-status={currentStatus}>{statusLabel(currentStatus)}</span>
+                <span className={styles.documents}>
+                  {payment.receiptNumber && (
+                    <a href={apiUrl(`/admin/payments/${payment._id}/receipt.pdf`)} target="_blank" rel="noreferrer" title={payment.receiptNumber}>
+                      <FileText size={15} /> Recibo
+                    </a>
+                  )}
+                  {payment.proofUrl && <a href={payment.proofUrl} target="_blank" rel="noreferrer"><Paperclip size={15} /> Comprobante</a>}
                 </span>
-                {status !== "PAID" && (
-                  <>
-                    <button className={styles.inlineAction} disabled={busyId === payment._id} onClick={() => void markPaid(payment._id)}>
-                      <Check size={14} />
-                    </button>
-                    <button className={styles.inlineAction} disabled={busyId === payment._id} onClick={() => void remind(payment._id)}>
-                      <Mail size={14} />
-                    </button>
-                  </>
-                )}
+                <span className={styles.actions}>
+                  {currentStatus !== "PAID" && currentStatus !== "CANCELLED" && (
+                    <button disabled={busyId === payment._id} onClick={() => setPaying(payment)}><Check size={14} /> Cobrar</button>
+                  )}
+                  {currentStatus !== "PAID" && currentStatus !== "CANCELLED" && student?.email && (
+                    <button disabled={busyId === payment._id} onClick={() => void remind(payment._id)}><Mail size={14} /></button>
+                  )}
+                  {currentStatus !== "CANCELLED" && (
+                    <label className={styles.uploadAction}>
+                      <Paperclip size={14} />
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp,.pdf"
+                        disabled={busyId === payment._id}
+                        onChange={(event) => {
+                          void uploadProof(payment._id, event.target.files?.[0]);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                  {currentStatus !== "CANCELLED" && (
+                    <button className={styles.cancel} onClick={() => setCancelling(payment)}><Ban size={14} /></button>
+                  )}
+                </span>
               </div>
             );
           })}
         </div>
       )}
 
-      <LiveModal
-        open={modal}
-        title="Registrar cuota"
-        description="Generá un concepto de pago para un alumno."
-        submitting={submitting}
-        onClose={() => setModal(false)}
-        onSubmit={create}
-      >
-        <Field label="Sede">
-          <select name="branchId" required defaultValue="">
-            <option value="" disabled>Seleccionar sede</option>
-            {branches.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Alumno">
+      <LiveModal open={modal} title="Crear cuota" description="La sede se toma automáticamente del alumno." submitting={submitting} onClose={() => setModal(false)} onSubmit={create}>
+        <Field label="Alumno" wide>
           <select name="studentId" required defaultValue="">
             <option value="" disabled>Seleccionar alumno</option>
-            {students.map((item) => <option value={item._id} key={item._id}>{item.firstName} {item.lastName}</option>)}
+            {students.map((student) => <option key={student._id} value={student._id}>{student.firstName} {student.lastName}</option>)}
           </select>
         </Field>
         <Field label="Concepto"><input name="concept" defaultValue="Cuota mensual" required /></Field>
-        <Field label="Período"><input name="period" placeholder="2026-09" required /></Field>
-        <Field label="Importe"><input name="amount" type="number" min={0} required /></Field>
+        <Field label="Período"><input name="period" type="month" required /></Field>
+        <Field label="Importe"><input name="amount" type="number" min="1" step="0.01" required /></Field>
         <Field label="Vencimiento"><input name="dueDate" type="date" required /></Field>
+        <Field label="Notas" wide><textarea name="notes" rows={3} /></Field>
+      </LiveModal>
+
+      <LiveModal open={Boolean(paying)} title="Registrar cobro" description={paying ? `${studentName(paying.studentId)} · $ ${paying.amount.toLocaleString("es-AR")}` : ""} submitting={submitting} onClose={() => setPaying(null)} onSubmit={markPaid}>
+        <Field label="Medio de pago">
+          <select name="paymentMethod" defaultValue="TRANSFER" required>
+            <option value="CASH">Efectivo</option>
+            <option value="TRANSFER">Transferencia</option>
+            <option value="CARD">Tarjeta</option>
+            <option value="OTHER">Otro</option>
+          </select>
+        </Field>
+        <Field label="Fecha de pago"><input name="paidAt" type="date" /></Field>
+      </LiveModal>
+
+      <LiveModal open={Boolean(cancelling)} title="Cancelar registro" description="El registro no se borra: queda cancelado y auditado." submitting={submitting} onClose={() => setCancelling(null)} onSubmit={cancelPayment}>
+        <Field label="Motivo" wide><textarea name="reason" rows={4} minLength={3} required /></Field>
       </LiveModal>
     </>
   );

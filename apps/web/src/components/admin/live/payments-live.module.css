@@ -1,0 +1,162 @@
+.summaryGrid {
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 11px;
+}
+
+.summaryGrid article {
+  padding: 15px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid #e9e2ed;
+  border-radius: 17px;
+  background: white;
+}
+
+.summaryGrid span,.summaryGrid small { color: #807687; font-size: 9px; }
+.summaryGrid strong { font-size: 21px; }
+.summaryGrid article[data-tone="danger"] strong { color: #be123c; }
+
+.filters {
+  margin-bottom: 14px;
+  padding: 11px;
+  display: grid;
+  grid-template-columns: minmax(230px,1fr) 155px 155px 170px auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #e8e1ec;
+  border-radius: 16px;
+  background: white;
+}
+
+.search {
+  min-height: 40px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e6dfea;
+  border-radius: 11px;
+}
+
+.search input { width: 100%; border: 0; outline: 0; background: transparent; }
+.filters > input,.filters > select {
+  min-height: 40px;
+  padding: 0 9px;
+  border: 1px solid #e6dfea;
+  border-radius: 11px;
+  background: white;
+}
+.filters > button {
+  min-height: 40px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 11px;
+  background: #5b21b6;
+  color: white;
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.notice {
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #bbf7d0;
+  border-radius: 13px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.table {
+  overflow-x: auto;
+  border: 1px solid #e8e1ec;
+  border-radius: 17px;
+  background: white;
+}
+
+.head,.row {
+  min-width: 1030px;
+  display: grid;
+  grid-template-columns: 1.45fr .55fr .65fr .65fr 1fr 1.25fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.head {
+  min-height: 38px;
+  padding: 0 12px;
+  color: #817787;
+  background: #faf8fb;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.row {
+  min-height: 65px;
+  padding: 8px 12px;
+  border-top: 1px solid #f0ebf3;
+  font-size: 9px;
+}
+
+.mainCell { display: grid; gap: 3px; }
+.mainCell strong { font-size: 10px; }
+.mainCell small { color: #817787; font-size: 8px; }
+
+.status {
+  width: max-content;
+  padding: 5px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 900;
+}
+.status[data-status="PAID"] { color: #166534; background: #dcfce7; }
+.status[data-status="OVERDUE"] { color: #be123c; background: #ffe4e6; }
+.status[data-status="PENDING"] { color: #9a3412; background: #ffedd5; }
+.status[data-status="CANCELLED"] { color: #6b7280; background: #f3f4f6; }
+
+.documents,.actions { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.documents a,.actions button,.uploadAction {
+  min-height: 30px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e6deeb;
+  border-radius: 9px;
+  background: white;
+  color: #5b21b6;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.actions .cancel { color: #be123c; border-color: #fee2e2; }
+.uploadAction input { display: none; }
+
+.empty {
+  padding: 30px;
+  text-align: center;
+  color: #857b8b;
+  font-size: 9px;
+}
+
+@media (max-width: 1050px) {
+  .summaryGrid { grid-template-columns: repeat(2,1fr); }
+  .filters { grid-template-columns: 1fr 1fr; }
+  .search { grid-column: 1 / -1; }
+}
+
+@media (max-width: 620px) {
+  .summaryGrid,.filters { grid-template-columns: 1fr; }
+  .search { grid-column: auto; }
+}

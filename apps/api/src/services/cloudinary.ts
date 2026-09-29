@@ -1,4 +1,4 @@
-import { v2 as cloudinary } from "cloudinary";
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { AppError } from "../common/http/app-error";
 import { env } from "../config/env";
 
@@ -29,4 +29,32 @@ export function getCloudinary() {
   }
 
   return cloudinary;
+}
+
+export function uploadBuffer(
+  buffer: Buffer,
+  options: { folder: string; publicId?: string }
+): Promise<UploadApiResponse> {
+  const client = getCloudinary();
+
+  return new Promise((resolve, reject) => {
+    const stream = client.uploader.upload_stream(
+      {
+        folder: options.folder,
+        public_id: options.publicId,
+        resource_type: "auto",
+        overwrite: true
+      },
+      (error, result) => {
+        if (error || !result) {
+          reject(error ?? new Error("Cloudinary upload failed"));
+          return;
+        }
+
+        resolve(result);
+      }
+    );
+
+    stream.end(buffer);
+  });
 }

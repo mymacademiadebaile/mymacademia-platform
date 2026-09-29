@@ -11,6 +11,10 @@ export class ApiError extends Error {
   }
 }
 
+export function apiUrl(path: string) {
+  return `${API_URL}${path}`;
+}
+
 export async function apiFetch<T>(
   path: string,
   init: RequestInit = {}
@@ -21,7 +25,7 @@ export async function apiFetch<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers,
     credentials: "include",

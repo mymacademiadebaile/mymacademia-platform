@@ -66,6 +66,8 @@ export type DanceClass = {
   status: "ACTIVE" | "INACTIVE";
 };
 
+export type PaymentMethod = "CASH" | "TRANSFER" | "CARD" | "OTHER";
+
 export type Payment = {
   _id: string;
   branchId: string;
@@ -75,7 +77,13 @@ export type Payment = {
   amount: number;
   dueDate: string;
   status: "PENDING" | "PAID" | "OVERDUE" | "CANCELLED";
+  effectiveStatus?: "PENDING" | "PAID" | "OVERDUE" | "CANCELLED";
   paidAt?: string;
+  paymentMethod?: PaymentMethod;
+  receiptNumber?: string;
+  proofUrl?: string;
+  notes?: string;
+  cancellationReason?: string;
 };
 
 export type Summary = {
