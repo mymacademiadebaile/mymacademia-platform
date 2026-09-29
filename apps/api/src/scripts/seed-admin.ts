@@ -95,18 +95,18 @@ async function seedCatalogs(organizationId: unknown) {
 async function seed() {
   await connectDatabase();
 
-  const email = (process.env.ADMIN_EMAIL?.trim() || "mymacademiadebaile@gmail.com").toLowerCase();
+  const email = (
+    process.env.ADMIN_EMAIL?.trim() ||
+    process.env.SMTP_USER?.trim() ||
+    "mymacademiadebaile@gmail.com"
+  ).toLowerCase();
   const password = required("ADMIN_PASSWORD");
-  const academyName = process.env.ACADEMY_NAME?.trim() || "M&M Academia de Baile";
-  const academySlug = process.env.ACADEMY_SLUG?.trim() || "mym-academia";
-  const branchName = process.env.BRANCH_NAME?.trim() || "La Plata";
-  const branchAddress = process.env.BRANCH_ADDRESS?.trim() || "Calle 35 entre 3 y 4, La Plata";
 
   const organization = await OrganizationModel.findOneAndUpdate(
-    { slug: academySlug },
+    { slug: "mym-academia" },
     {
       $set: {
-        name: academyName,
+        name: "M&M Academia de Baile",
         email,
         timezone: "America/Argentina/Buenos_Aires",
         isActive: true
@@ -116,10 +116,10 @@ async function seed() {
   );
 
   const branch = await BranchModel.findOneAndUpdate(
-    { organizationId: organization._id, name: branchName },
+    { organizationId: organization._id, name: "La Plata" },
     {
       $set: {
-        address: branchAddress,
+        address: "Calle 35 entre 3 y 4, La Plata",
         isActive: true
       }
     },
@@ -133,8 +133,8 @@ async function seed() {
   });
 
   if (existingAdmin) {
-    existingAdmin.firstName = process.env.ADMIN_FIRST_NAME?.trim() || "Admin";
-    existingAdmin.lastName = process.env.ADMIN_LAST_NAME?.trim() || "M&M";
+    existingAdmin.firstName = "Admin";
+    existingAdmin.lastName = "M&M";
     existingAdmin.role = "ADMIN";
     existingAdmin.branchIds = [branch._id];
     existingAdmin.isActive = true;
@@ -146,8 +146,8 @@ async function seed() {
       branchIds: [branch._id],
       email,
       passwordHash,
-      firstName: process.env.ADMIN_FIRST_NAME?.trim() || "Admin",
-      lastName: process.env.ADMIN_LAST_NAME?.trim() || "M&M",
+      firstName: "Admin",
+      lastName: "M&M",
       role: "ADMIN",
       isActive: true
     });
