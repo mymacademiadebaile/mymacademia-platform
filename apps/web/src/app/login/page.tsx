@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { apiFetch, apiMessage } from "@/lib/api";
 import styles from "./login.module.css";
 
@@ -14,7 +14,6 @@ type LoginResponse = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("mymacademiadebaile@gmail.com");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,8 +31,12 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password })
       });
 
-      const requested = searchParams.get("next");
+      const requested =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("next")
+          : null;
       const fallback = user.role === "ADMIN" ? "/admin" : "/professor";
+
       router.replace(requested && requested.startsWith("/") ? requested : fallback);
       router.refresh();
     } catch (requestError) {

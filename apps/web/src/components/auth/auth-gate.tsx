@@ -4,21 +4,23 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
+type Role = "ADMIN" | "PROFESSOR";
+
 type AuthUser = {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: "ADMIN" | "PROFESSOR";
+  role: Role;
   branchIds: string[];
 };
 
 export function AuthGate({
   children,
-  role
+  roles
 }: {
   children: React.ReactNode;
-  role: "ADMIN" | "PROFESSOR";
+  roles: Role[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -31,7 +33,7 @@ export function AuthGate({
       .then(({ user }) => {
         if (!mounted) return;
 
-        if (user.role !== role) {
+        if (!roles.includes(user.role)) {
           router.replace(user.role === "ADMIN" ? "/admin" : "/professor");
           return;
         }
@@ -47,7 +49,7 @@ export function AuthGate({
     return () => {
       mounted = false;
     };
-  }, [pathname, role, router]);
+  }, [pathname, roles, router]);
 
   if (!ready) {
     return (
