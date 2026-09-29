@@ -1,17 +1,15 @@
 import { Router } from "express";
 import { z } from "zod";
+import { AppError } from "../../common/http/app-error";
+import { AuditLogModel } from "../audit/audit-log.model";
 import { OrganizationModel } from "../core/organization.model";
 import { BranchModel } from "../core/branch.model";
 
 const updateSettingsSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().trim().max(50).optional(),
-  timezone: z.string().trim().min(3).max(80).default("America/Argentina/Buenos_Aires"),
-  primaryBranch: z.object({
-    name: z.string().trim().min(2).max(100),
-    address: z.string().trim().max(180).optional()
-  }).optional()
+  phone: z.string().trim().max(50).optional().or(z.literal("")),
+  timezone: z.string().trim().min(3).max(80).default("America/Argentina/Buenos_Aires")
 });
 
 export const adminSettingsRouter = Router();
@@ -24,8 +22,7 @@ adminSettingsRouter.get("/", async (request, response, next) => {
     ]);
 
     if (!organization) {
-      response.status(404).json({ error: "ORGANIZATION_NOT_FOUND" });
-      return;
+      throw new AppError(404, "Organización no encontrada", "ORGANIZATION_NOT_FOUND");
     }
 
     response.json({
@@ -42,44 +39,43 @@ adminSettingsRouter.put("/", async (request, response, next) => {
   try {
     const input = updateSettingsSchema.parse(request.body);
     const organizationId = request.auth!.organizationId;
-
-    const organization = await OrganizationModel.findByIdAndUpdate(
-      organizationId,
-      {
-        $set: {
-          name: input.name,
-          email: input.email || undefined,
-          phone: input.phone,
-          timezone: input.timezone
-        }
-      },
-      { new: true }
-    );
+    const organization = await OrganizationModel.findById(organizationId);
 
     if (!organization) {
-      response.status(404).json({ error: "ORGANIZATION_NOT_FOUND" });
-      return;
+      throw new AppError(404, "Organización no encontrada", "ORGANIZATION_NOT_FOUND");
     }
 
-    let primaryBranch = await BranchModel.findOne({ organizationId }).sort({ createdAt: 1 });
+    const before = {
+      name: organization.name,
+      email: organization.email ?? "",
+      phone: organization.phone ?? "",
+      timezone: organization.timezone ?? "America/Argentina/Buenos_Aires"
+    };
 
-    if (input.primaryBranch) {
-      if (primaryBranch) {
-        primaryBranch = await BranchModel.findByIdAndUpdate(
-          primaryBranch._id,
-          { $set: input.primaryBranch },
-          { new: true }
-        );
-      } else {
-        primaryBranch = await BranchModel.create({
-          organizationId,
-          ...input.primaryBranch,
-          isActive: true
-        });
+    organization.name = input.name;
+    organization.email = input.email || undefined;
+    organization.phone = input.phone?.trim() || undefined;
+    organization.timezone = input.timezone;
+    await organization.save();
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "ORGANIZATION_SETTINGS_UPDATED",
+      entityType: "Organization",
+      entityId: organization._id,
+      metadata: {
+        before,
+        after: {
+          name: organization.name,
+          email: organization.email ?? "",
+          phone: organization.phone ?? "",
+          timezone: organization.timezone ?? "America/Argentina/Buenos_Aires"
+        }
       }
-    }
+    });
 
-    response.json({ organization, primaryBranch });
+    response.json({ organization });
   } catch (error) {
     next(error);
   }

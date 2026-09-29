@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpenCheck,
   CalendarDays,
+  ClipboardList,
   ChevronLeft,
   CircleUserRound,
   CreditCard,
@@ -34,6 +35,7 @@ const navigation = [
   { href: "/admin/catalogs", label: "Catálogos", icon: SlidersHorizontal },
   { href: "/admin/communications", label: "Comunicaciones", icon: MessageCircleMore },
   { href: "/admin/reports", label: "Reportes", icon: BarChart3 },
+  { href: "/admin/audit", label: "Auditoría", icon: ClipboardList },
   { href: "/admin/settings", label: "Configuración", icon: Settings },
   { href: "/admin/profile", label: "Mi perfil", icon: CircleUserRound }
 ];

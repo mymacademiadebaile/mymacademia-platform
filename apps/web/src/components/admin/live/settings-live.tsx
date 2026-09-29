@@ -1,11 +1,11 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Check, Mail } from "lucide-react";
+import { Building2, Check, Edit3, Mail, Plus, Power } from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import type { Branch } from "./live-types";
-import { ErrorBlock, LoadingBlock } from "./live-common";
+import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
 
 type SettingsData = {
@@ -24,6 +24,9 @@ export function SettingsLive() {
   const [data, setData] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [branchModal, setBranchModal] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [branchSaving, setBranchSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -58,14 +61,10 @@ export function SettingsLive() {
           name: form.get("name"),
           email: form.get("email"),
           phone: form.get("phone"),
-          timezone: form.get("timezone"),
-          primaryBranch: {
-            name: form.get("branchName"),
-            address: form.get("address")
-          }
+          timezone: form.get("timezone")
         })
       });
-      setNotice("Configuración guardada.");
+      setNotice("Configuración general guardada.");
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -74,59 +73,197 @@ export function SettingsLive() {
     }
   }
 
+  function openNewBranch() {
+    setEditingBranch(null);
+    setBranchModal(true);
+  }
+
+  function openEditBranch(branch: Branch) {
+    setEditingBranch(branch);
+    setBranchModal(true);
+  }
+
+  async function saveBranch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setBranchSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const body = JSON.stringify({
+        name: form.get("name"),
+        address: form.get("address")
+      });
+
+      if (editingBranch) {
+        await apiFetch(`/admin/branches/${editingBranch._id}`, {
+          method: "PATCH",
+          body
+        });
+        setNotice("Sede actualizada.");
+      } else {
+        await apiFetch("/admin/branches", {
+          method: "POST",
+          body
+        });
+        setNotice("Sede creada.");
+      }
+
+      setBranchModal(false);
+      setEditingBranch(null);
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setBranchSaving(false);
+    }
+  }
+
+  async function toggleBranch(branch: Branch) {
+    const confirmed = window.confirm(
+      `¿Querés ${branch.isActive ? "desactivar" : "activar"} la sede ${branch.name}?`
+    );
+    if (!confirmed) return;
+
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch(`/admin/branches/${branch._id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive: !branch.isActive })
+      });
+      setNotice(`Sede ${branch.isActive ? "desactivada" : "activada"}.`);
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    }
+  }
+
   return (
     <>
       <PageHeader
         eyebrow="SISTEMA"
         title="Configuración"
-        description="Datos reales de la academia y su sede principal."
+        description="Datos de la academia, integraciones y sedes operativas."
       />
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !data && <LoadingBlock />}
 
       {data && (
-        <form className={styles.card} onSubmit={save}>
-          {notice && <div className={styles.notice}>{notice}</div>}
-          <div className={styles.liveGrid3}>
-            <label className={styles.field}>
-              <span>Nombre de la academia</span>
-              <input name="name" defaultValue={data.organization.name} required />
-            </label>
-            <label className={styles.field}>
-              <span>Email</span>
-              <input name="email" type="email" defaultValue={data.organization.email ?? ""} />
-            </label>
-            <label className={styles.field}>
-              <span>Teléfono</span>
-              <input name="phone" defaultValue={data.organization.phone ?? ""} />
-            </label>
-            <label className={styles.field}>
-              <span>Sede principal</span>
-              <input name="branchName" defaultValue={data.primaryBranch?.name ?? "La Plata"} required />
-            </label>
-            <label className={styles.fieldWide}>
-              <span>Dirección</span>
-              <input name="address" defaultValue={data.primaryBranch?.address ?? "Calle 35 entre 3 y 4, La Plata"} />
-            </label>
-            <label className={styles.field}>
-              <span>Zona horaria</span>
-              <input name="timezone" defaultValue={data.organization.timezone ?? "America/Argentina/Buenos_Aires"} required />
-            </label>
-          </div>
+        <>
+          <form className={styles.card} onSubmit={save}>
+            {notice && <div className={styles.notice}>{notice}</div>}
+            <div className={styles.communicationHeader}>
+              <div>
+                <span className={styles.cardLabel}>DATOS GENERALES</span>
+                <strong>Academia</strong>
+              </div>
+              <Building2 size={22} color="#5b21b6" />
+            </div>
 
-          <div style={{ marginTop: 18, paddingTop: 15, borderTop: "1px solid #eee8f2", display: "flex", alignItems: "center", gap: 9 }}>
-            <span className={styles.avatar}><Mail size={17} /></span>
-            <span className={styles.rowBody}>
-              <strong>Gmail + Nodemailer</strong>
-              <small>La contraseña de aplicación se configura únicamente en variables de entorno.</small>
-            </span>
-            <button className={styles.primary} disabled={saving}>
-              <Check size={16} />
-              {saving ? "Guardando..." : "Guardar cambios"}
-            </button>
-          </div>
-        </form>
+            <div className={styles.liveGrid3}>
+              <label className={styles.field}>
+                <span>Nombre de la academia</span>
+                <input name="name" defaultValue={data.organization.name} required />
+              </label>
+              <label className={styles.field}>
+                <span>Email</span>
+                <input name="email" type="email" defaultValue={data.organization.email ?? ""} />
+              </label>
+              <label className={styles.field}>
+                <span>Teléfono</span>
+                <input name="phone" defaultValue={data.organization.phone ?? ""} />
+              </label>
+              <label className={styles.fieldWide}>
+                <span>Zona horaria</span>
+                <input
+                  name="timezone"
+                  defaultValue={data.organization.timezone ?? "America/Argentina/Buenos_Aires"}
+                  required
+                />
+              </label>
+            </div>
+
+            <div style={{ marginTop: 18, paddingTop: 15, borderTop: "1px solid #eee8f2", display: "flex", alignItems: "center", gap: 9 }}>
+              <span className={styles.avatar}><Mail size={17} /></span>
+              <span className={styles.rowBody}>
+                <strong>Gmail + Nodemailer</strong>
+                <small>Las credenciales SMTP viven únicamente en variables de entorno.</small>
+              </span>
+              <button className={styles.primary} disabled={saving}>
+                <Check size={16} />
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </div>
+          </form>
+
+          <section className={styles.historySection}>
+            <div className={styles.sectionTitleRow}>
+              <div>
+                <span className={styles.cardLabel}>SEDES</span>
+                <h3>Sedes de la academia</h3>
+                <p>Administrá ubicaciones actuales y futuras sin cambiar código.</p>
+              </div>
+              <button className={styles.primary} onClick={openNewBranch}>
+                <Plus size={16} /> Nueva sede
+              </button>
+            </div>
+
+            <div className={styles.liveGrid3}>
+              {data.branches.map((branch) => (
+                <article className={styles.card} key={branch._id}>
+                  <div className={styles.cardTopLine}>
+                    <span className={styles.avatar}><Building2 size={17} /></span>
+                    <span className={branch.isActive ? styles.pill : styles.pillOff}>
+                      {branch.isActive ? "Activa" : "Inactiva"}
+                    </span>
+                  </div>
+                  <strong className={styles.cardTitle}>{branch.name}</strong>
+                  <span className={styles.cardDetail}>{branch.address || "Sin dirección cargada"}</span>
+                  <div className={styles.branchActions}>
+                    <button className={styles.inlineAction} onClick={() => openEditBranch(branch)}>
+                      <Edit3 size={14} /> Editar
+                    </button>
+                    <button className={styles.inlineAction} onClick={() => void toggleBranch(branch)}>
+                      <Power size={14} /> {branch.isActive ? "Desactivar" : "Activar"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <LiveModal
+            open={branchModal}
+            title={editingBranch ? "Editar sede" : "Nueva sede"}
+            description="Nombre y dirección operativa de la academia."
+            submitting={branchSaving}
+            onClose={() => {
+              setBranchModal(false);
+              setEditingBranch(null);
+            }}
+            onSubmit={saveBranch}
+          >
+            <Field label="Nombre">
+              <input
+                name="name"
+                defaultValue={editingBranch?.name ?? ""}
+                required
+                key={editingBranch?._id ?? "new-name"}
+              />
+            </Field>
+            <Field label="Dirección" wide>
+              <input
+                name="address"
+                defaultValue={editingBranch?.address ?? ""}
+                key={editingBranch?._id ?? "new-address"}
+              />
+            </Field>
+          </LiveModal>
+        </>
       )}
     </>
   );

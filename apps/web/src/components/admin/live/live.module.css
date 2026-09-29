@@ -317,3 +317,13 @@
     align-items: flex-start;
   }
 }
+
+
+.branchActions {
+  margin-top: 14px;
+  padding-top: 11px;
+  border-top: 1px solid #f0ebf3;
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}

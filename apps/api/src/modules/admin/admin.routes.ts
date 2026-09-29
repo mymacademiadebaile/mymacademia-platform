@@ -11,6 +11,7 @@ import { adminSettingsRouter } from "./settings.routes";
 import { adminEnrollmentsRouter } from "./enrollments.routes";
 import { adminCommunicationsRouter } from "./communications.routes";
 import { adminProfileRouter } from "./profile.routes";
+import { adminAuditRouter } from "./audit.routes";
 
 export const adminRouter = Router();
 
@@ -25,4 +26,5 @@ adminRouter.use("/classes", adminClassesRouter);
 adminRouter.use("/enrollments", adminEnrollmentsRouter);
 adminRouter.use("/payments", adminPaymentsRouter);
 adminRouter.use("/communications", adminCommunicationsRouter);
+adminRouter.use("/audit", adminAuditRouter);
 adminRouter.use("/settings", adminSettingsRouter);
