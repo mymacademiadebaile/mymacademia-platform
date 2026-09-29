@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, CreditCard, UsersRound } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  CalendarDays,
+  Clock3,
+  CreditCard,
+  UsersRound
+} from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import type { Summary } from "./live-types";
@@ -31,21 +38,69 @@ type ReportOverview = {
   }>;
 };
 
+type TodaySession = {
+  id: string;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  class: {
+    id: string;
+    name: string;
+    capacity: number;
+    billingMode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
+    pricePerClass: number;
+    monthlyPrice: number;
+    professors: Array<{
+      id: string;
+      displayName: string;
+      avatarUrl?: string;
+    }>;
+  };
+  enrolledCount: number;
+};
+
+type TodayResponse = {
+  date: string;
+  items: TodaySession[];
+};
+
+function localDateValue() {
+  const date = new Date();
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function billingSummary(session: TodaySession) {
+  if (session.class.billingMode === "FREE") return "Sin cargo";
+  if (session.class.billingMode === "PER_CLASS") {
+    return "$ " + session.class.pricePerClass.toLocaleString("es-AR") + " / clase";
+  }
+  if (session.class.billingMode === "MONTHLY") {
+    return "$ " + session.class.monthlyPrice.toLocaleString("es-AR") + " / mes";
+  }
+  return "Por clase o mensual";
+}
+
 export function DashboardLive() {
   const [data, setData] = useState<Summary | null>(null);
   const [report, setReport] = useState<ReportOverview | null>(null);
+  const [today, setToday] = useState<TodayResponse | null>(null);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setError("");
 
     try {
-      const [summary, overview] = await Promise.all([
+      const date = localDateValue();
+      const [summary, overview, todayResponse] = await Promise.all([
         apiFetch<Summary>("/admin/summary"),
-        apiFetch<ReportOverview>("/admin/reports/overview")
+        apiFetch<ReportOverview>("/admin/reports/overview"),
+        apiFetch<TodayResponse>("/admin/sessions?date=" + date)
       ]);
       setData(summary);
       setReport(overview);
+      setToday(todayResponse);
     } catch (requestError) {
       setError(apiMessage(requestError));
     }
@@ -60,13 +115,13 @@ export function DashboardLive() {
       <PageHeader
         eyebrow="RESUMEN GENERAL"
         title="Así viene la academia hoy"
-        description="Actividad operativa y financiera tomada directamente de MongoDB."
+        description="Agenda operativa, alumnos y finanzas en un solo lugar."
       />
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
-      {!error && (!data || !report) && <LoadingBlock label="Cargando resumen..." />}
+      {!error && (!data || !report || !today) && <LoadingBlock label="Cargando resumen..." />}
 
-      {data && report && (
+      {data && report && today && (
         <>
           <div className={styles.liveGrid4}>
             <article className={styles.card}>
@@ -80,9 +135,9 @@ export function DashboardLive() {
               <span className={styles.cardDetail}>Equipo con acceso habilitado</span>
             </article>
             <article className={styles.card}>
-              <span className={styles.cardLabel}>Clases activas</span>
-              <strong className={styles.cardValue}>{data.activeClasses}</strong>
-              <span className={styles.cardDetail}>{data.activeEnrollments} inscripciones activas</span>
+              <span className={styles.cardLabel}>Clases de hoy</span>
+              <strong className={styles.cardValue}>{today.items.length}</strong>
+              <span className={styles.cardDetail}>{data.activeClasses} clases activas configuradas</span>
             </article>
             <article className={styles.card}>
               <span className={styles.cardLabel}>Cobrado este mes</span>
@@ -90,6 +145,58 @@ export function DashboardLive() {
               <span className={styles.cardDetail}>{report.financial.paidCount} pagos registrados</span>
             </article>
           </div>
+
+          <section className={styles.todaySection}>
+            <div className={styles.todaySectionHeader}>
+              <div>
+                <span className={styles.cardLabel}>HOY</span>
+                <h3>Clases del día</h3>
+                <p>
+                  {new Date(today.date + "T12:00:00").toLocaleDateString("es-AR", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long"
+                  })}
+                </p>
+              </div>
+              <CalendarDays size={22} />
+            </div>
+
+            {today.items.length === 0 ? (
+              <div className={styles.todayEmpty}>No hay clases programadas para hoy.</div>
+            ) : (
+              <div className={styles.todayList}>
+                {today.items.map((session) => (
+                  <Link
+                    href={"/admin/sessions/" + session.id}
+                    className={styles.todayCard}
+                    key={session.id}
+                  >
+                    <span className={styles.todayTime}>
+                      <Clock3 size={15} />
+                      <strong>{session.startTime}</strong>
+                      <small>{session.endTime}</small>
+                    </span>
+                    <span className={styles.todayBody}>
+                      <strong>{session.class.name}</strong>
+                      <small>
+                        {session.class.professors.map((professor) => professor.displayName).join(", ") || "Sin profesor asignado"}
+                      </small>
+                    </span>
+                    <span className={styles.todayMeta}>
+                      <strong>{session.enrolledCount}/{session.class.capacity}</strong>
+                      <small>alumnos</small>
+                    </span>
+                    <span className={styles.todayBilling}>{billingSummary(session)}</span>
+                    <span className={styles.todayState} data-status={session.status}>
+                      {session.status === "COMPLETED" ? "Finalizada" : session.status === "CANCELLED" ? "Cancelada" : "Abrir"}
+                    </span>
+                    <ArrowRight size={15} />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
 
           <div className={styles.dashboardGrid}>
             <section className={styles.card}>
@@ -131,7 +238,7 @@ export function DashboardLive() {
                       <small>{item.occupied}/{item.capacity}</small>
                     </span>
                     <div className={styles.reportProgress}>
-                      <span style={{ width: `${Math.min(100, item.occupancyPercent)}%` }} />
+                      <span style={{ width: Math.min(100, item.occupancyPercent) + "%" }} />
                     </div>
                   </div>
                 ))}
@@ -147,7 +254,7 @@ export function DashboardLive() {
 
           <div className={styles.notice}>
             <UsersRound size={15} style={{ verticalAlign: "middle", marginRight: 6 }} />
-            El dashboard usa datos persistidos. Los resultados cambian al cargar alumnos, clases, inscripciones y pagos reales.
+            La agenda de hoy se genera desde los horarios configurados y mantiene cada clase como una ocurrencia independiente.
           </div>
         </>
       )}

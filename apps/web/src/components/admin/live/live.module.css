@@ -700,3 +700,335 @@
   }
   .notificationTime { grid-column: 2 / -1; text-align: left; }
 }
+
+
+.todaySection,
+.sessionParticipantsCard {
+  margin-bottom: 15px;
+  border: 1px solid #e8e0ed;
+  border-radius: 18px;
+  background: white;
+  overflow: hidden;
+}
+
+.todaySectionHeader {
+  padding: 15px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f0ebf3;
+}
+
+.todaySectionHeader h3 {
+  margin: 3px 0 2px;
+  font-size: 16px;
+}
+
+.todaySectionHeader p {
+  margin: 0;
+  color: #7c7283;
+  font-size: 9px;
+  text-transform: capitalize;
+}
+
+.todayList {
+  display: grid;
+}
+
+.todayCard {
+  min-height: 70px;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: 78px minmax(150px, 1fr) 70px minmax(120px, auto) 80px 18px;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #f3eef5;
+  color: #33263a;
+  transition: background .16s ease;
+}
+
+.todayCard:first-child { border-top: 0; }
+.todayCard:hover { background: #faf8fc; }
+
+.todayTime {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  color: #5b21b6;
+}
+
+.todayTime strong { font-size: 12px; }
+.todayTime small {
+  grid-column: 2;
+  color: #8a818f;
+  font-size: 8px;
+}
+
+.todayBody,
+.todayMeta {
+  display: grid;
+  gap: 2px;
+}
+
+.todayBody strong { font-size: 11px; }
+.todayBody small,
+.todayMeta small {
+  color: #817788;
+  font-size: 8px;
+}
+
+.todayMeta strong { font-size: 11px; }
+.todayBilling { color: #5b21b6; font-size: 9px; font-weight: 800; }
+
+.todayState {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f1ebfa;
+  color: #5b21b6;
+  font-size: 8px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.todayState[data-status="COMPLETED"] { background: #ecfdf5; color: #15803d; }
+.todayState[data-status="CANCELLED"] { background: #fff1f2; color: #be123c; }
+
+.todayEmpty {
+  padding: 28px;
+  color: #817788;
+  font-size: 10px;
+  text-align: center;
+}
+
+.sessionBack {
+  margin-bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #675a6f;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.sessionHero {
+  margin-bottom: 14px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #e6ddeb;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #faf7fd 100%);
+}
+
+.sessionHero h2 {
+  margin: 5px 0;
+  font-size: 20px;
+}
+
+.sessionHero p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #5f5465;
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.sessionHero small {
+  margin-top: 5px;
+  display: block;
+  color: #857b8a;
+  font-size: 9px;
+}
+
+.sessionStatus {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f0e9fb;
+  color: #5b21b6;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.sessionStatus[data-status="COMPLETED"] { background: #ecfdf5; color: #15803d; }
+.sessionStatus[data-status="CANCELLED"] { background: #fff1f2; color: #be123c; }
+
+.sessionCompleteButton {
+  min-height: 39px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 11px;
+  background: #5b21b6;
+  color: white;
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.sessionParticipantsCard {
+  padding: 15px;
+}
+
+.sessionParticipantHead,
+.sessionParticipantRow {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.5fr) minmax(180px, 1fr) 110px minmax(130px, .8fr) 90px;
+  align-items: center;
+  gap: 10px;
+}
+
+.sessionParticipantHead {
+  padding: 9px 8px;
+  color: #8b818f;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.sessionParticipantRow {
+  min-height: 66px;
+  padding: 9px 8px;
+  border-top: 1px solid #f0ebf3;
+}
+
+.sessionStudent {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sessionStudent > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.sessionStudent strong { font-size: 10px; }
+.sessionStudent small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #7f7585;
+  font-size: 8px;
+}
+
+.attendanceActions {
+  display: flex;
+  gap: 5px;
+}
+
+.attendanceActions button {
+  min-height: 30px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e5ddea;
+  border-radius: 9px;
+  background: white;
+  color: #6f6576;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.attendanceActions button[data-active="true"]:first-child {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.attendanceActions button[data-active="true"]:last-child {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.sessionBilling {
+  color: #655a6b;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.sessionPaymentState {
+  display: grid;
+  gap: 2px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.sessionPaymentState small {
+  color: #887e8e;
+  font-size: 8px;
+}
+
+.sessionPaymentState[data-tone="ok"] { color: #15803d; }
+.sessionPaymentState[data-tone="danger"] { color: #be123c; }
+.sessionPaymentState[data-tone="pending"] { color: #b45309; }
+
+.sessionRowAction {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sessionRowAction button {
+  min-height: 31px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 9px;
+  background: #5b21b6;
+  color: white;
+  font-size: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.sessionPaidMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #15803d;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+@media (max-width: 900px) {
+  .todayCard {
+    grid-template-columns: 68px minmax(130px, 1fr) 60px 18px;
+  }
+  .todayBilling,
+  .todayState { display: none; }
+
+  .sessionParticipantHead { display: none; }
+  .sessionParticipantRow {
+    grid-template-columns: minmax(160px, 1fr) auto;
+    align-items: start;
+  }
+  .attendanceActions,
+  .sessionBilling,
+  .sessionPaymentState,
+  .sessionRowAction {
+    grid-column: 1 / -1;
+  }
+  .sessionRowAction { justify-content: flex-start; }
+}
+
+@media (max-width: 620px) {
+  .sessionHero { align-items: flex-start; flex-direction: column; }
+  .todayCard {
+    grid-template-columns: 64px minmax(0, 1fr) 16px;
+  }
+  .todayMeta { display: none; }
+}
