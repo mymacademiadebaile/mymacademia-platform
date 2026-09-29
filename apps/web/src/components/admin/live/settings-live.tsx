@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Building2, Check, Edit3, Mail, Plus, Power } from "lucide-react";
+import { Building2, Check, Edit3, Mail, MessageCircle, Plus, Power, UserRound } from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import type { Branch } from "./live-types";
@@ -14,6 +14,8 @@ type SettingsData = {
     name: string;
     email?: string;
     phone?: string;
+    inquiryContactName?: string;
+    inquiryWhatsApp?: string;
     timezone?: string;
   };
   primaryBranch: Branch | null;
@@ -61,6 +63,8 @@ export function SettingsLive() {
           name: form.get("name"),
           email: form.get("email"),
           phone: form.get("phone"),
+          inquiryContactName: form.get("inquiryContactName"),
+          inquiryWhatsApp: form.get("inquiryWhatsApp"),
           timezone: form.get("timezone")
         })
       });
@@ -177,6 +181,30 @@ export function SettingsLive() {
                 <span>Teléfono</span>
                 <input name="phone" defaultValue={data.organization.phone ?? ""} />
               </label>
+              <label className={styles.field}>
+                <span>Responsable de consultas</span>
+                <div style={{ position: "relative" }}>
+                  <UserRound size={15} style={{ position: "absolute", left: 10, top: 13, color: "#7c7284" }} />
+                  <input
+                    name="inquiryContactName"
+                    defaultValue={data.organization.inquiryContactName ?? ""}
+                    placeholder="Ej. Administración"
+                    style={{ paddingLeft: 34 }}
+                  />
+                </div>
+              </label>
+              <label className={styles.field}>
+                <span>WhatsApp de consultas e inscripción</span>
+                <div style={{ position: "relative" }}>
+                  <MessageCircle size={15} style={{ position: "absolute", left: 10, top: 13, color: "#7c7284" }} />
+                  <input
+                    name="inquiryWhatsApp"
+                    defaultValue={data.organization.inquiryWhatsApp ?? ""}
+                    placeholder="Ej. +54 9 221 ..."
+                    style={{ paddingLeft: 34 }}
+                  />
+                </div>
+              </label>
               <label className={styles.fieldWide}>
                 <span>Zona horaria</span>
                 <input
@@ -185,6 +213,10 @@ export function SettingsLive() {
                   required
                 />
               </label>
+            </div>
+
+            <div className={styles.notice} style={{ marginTop: 14 }}>
+              Las consultas e inscripciones se centralizan en el contacto de la academia. Los profesores no reciben leads públicos directamente.
             </div>
 
             <div style={{ marginTop: 18, paddingTop: 15, borderTop: "1px solid #eee8f2", display: "flex", alignItems: "center", gap: 9 }}>

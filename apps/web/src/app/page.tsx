@@ -1,18 +1,26 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function HomePage() {
   return (
     <main className="landing">
       <section className="landingCard">
-        <div className="brandMark">M&M</div>
-        <p className="eyebrow">ACADEMIA DE BAILE</p>
-        <h1>Una plataforma pensada para moverse.</h1>
+        <Image
+          src="/mym-academia-logo.png"
+          alt="M&M Academia de Baile"
+          width={96}
+          height={96}
+          priority
+          style={{ objectFit: "contain", marginBottom: 18 }}
+        />
+        <p className="eyebrow">M&M ACADEMIA DE BAILE</p>
+        <h1>Gestión de la academia.</h1>
         <p className="landingCopy">
-          Gestión de clases, alumnos, profesores y pagos con una experiencia simple desde cualquier dispositivo.
+          Acceso seguro para administración y profesores. Cada usuario ingresa únicamente a la información permitida por su rol.
         </p>
         <div className="landingActions">
-          <Link className="primaryLink" href="/professor">
-            Ver experiencia profesor
+          <Link className="primaryLink" href="/login">
+            Ingresar al sistema
           </Link>
         </div>
       </section>

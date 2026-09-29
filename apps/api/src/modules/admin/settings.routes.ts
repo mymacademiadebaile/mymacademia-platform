@@ -9,6 +9,8 @@ const updateSettingsSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().trim().max(50).optional().or(z.literal("")),
+  inquiryContactName: z.string().trim().max(120).optional().or(z.literal("")),
+  inquiryWhatsApp: z.string().trim().max(50).optional().or(z.literal("")),
   timezone: z.string().trim().min(3).max(80).default("America/Argentina/Buenos_Aires")
 });
 
@@ -49,12 +51,16 @@ adminSettingsRouter.put("/", async (request, response, next) => {
       name: organization.name,
       email: organization.email ?? "",
       phone: organization.phone ?? "",
+      inquiryContactName: organization.inquiryContactName ?? "",
+      inquiryWhatsApp: organization.inquiryWhatsApp ?? "",
       timezone: organization.timezone ?? "America/Argentina/Buenos_Aires"
     };
 
     organization.name = input.name;
     organization.email = input.email || undefined;
     organization.phone = input.phone?.trim() || undefined;
+    organization.inquiryContactName = input.inquiryContactName?.trim() || undefined;
+    organization.inquiryWhatsApp = input.inquiryWhatsApp?.trim() || undefined;
     organization.timezone = input.timezone;
     await organization.save();
 
@@ -70,6 +76,8 @@ adminSettingsRouter.put("/", async (request, response, next) => {
           name: organization.name,
           email: organization.email ?? "",
           phone: organization.phone ?? "",
+          inquiryContactName: organization.inquiryContactName ?? "",
+          inquiryWhatsApp: organization.inquiryWhatsApp ?? "",
           timezone: organization.timezone ?? "America/Argentina/Buenos_Aires"
         }
       }
