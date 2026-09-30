@@ -64,6 +64,7 @@ Las variables antiguas `GMAIL_USER`, `GMAIL_APP_PASSWORD` y `MAIL_FROM` no se ut
 
 ## Despliegue en Vercel
 
-El frontend y la API se despliegan como proyectos Vercel independientes. La
-configuración, las variables de producción y el orden de publicación están en
+El frontend y la API se despliegan juntos, dentro de un único proyecto de
+Vercel Services y un único dominio. La configuración, las variables de
+producción y el checklist de publicación están en
 [`docs/vercel-deployment.md`](docs/vercel-deployment.md).

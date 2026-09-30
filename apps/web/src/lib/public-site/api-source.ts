@@ -8,7 +8,14 @@ import type { DanceStyle, PublicProfessor, ScheduleEntry, WeekDay } from "./type
 
 export const REVALIDATE_SECONDS = 60;
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
+// Browser requests use the same-origin `/api` path. Server components instead
+// use Vercel's private service binding when it is available, because Node's
+// fetch requires an absolute URL. The local development fallback stays intact.
+const API_URL = (
+  process.env.API_INTERNAL_URL
+    ? `${process.env.API_INTERNAL_URL.replace(/\/+$/, "")}/api`
+    : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api"
+).replace(/\/+$/, "");
 
 interface ApiImage {
   src: string;

@@ -1,111 +1,155 @@
-# Despliegue en Vercel
+# Despliegue en Vercel Services
 
-El repositorio se despliega como **dos proyectos de Vercel**:
+## Arquitectura
 
-| Proyecto | Directorio raíz | Framework | URL resultante |
-| --- | --- | --- | --- |
-| Web | `apps/web` | Next.js | `https://app.tu-dominio.com` |
-| API | `apps/api` | Express | `https://api.tu-dominio.com` |
+```
+1 repositorio de GitHub
+        ↓
+1 proyecto de Vercel
+        ↓
+Vercel Services
+├── web  → apps/web (Next.js)
+└── api  → apps/api (Express)
+```
 
-La API exporta Express desde `src/app.ts`, por lo que Vercel la ejecuta como
-una Function. No se debe configurar un comando `start`, ni una variable `PORT`:
-Vercel gestiona ambos.
+Los dos services se construyen y despliegan en forma coordinada, con un único
+dominio público. La configuración está en [`../vercel.json`](../vercel.json) y
+usa el modelo actual `services`; no usa el modelo obsoleto
+`experimentalServices` ni dos proyectos independientes.
 
-## Antes de importar
+## Routing
 
-1. Subí el repositorio a GitHub, GitLab o Bitbucket, sin archivos `.env`.
-2. Creá una base de datos MongoDB Atlas y permití conexiones desde Vercel.
-3. Elegí dos dominios bajo el mismo dominio raíz, por ejemplo
-   `app.tu-dominio.com` y `api.tu-dominio.com`. Así las cookies de sesión siguen
-   siendo *same-site*.
+Las reglas de nivel superior se evalúan en este orden:
 
-## Proyecto API
+| Solicitud pública | Service | Ruta que recibe el service |
+| --- | --- | --- |
+| `/api/*` | `api` | `/api/*` |
+| `/*` | `web` | la ruta original |
 
-En Vercel, importá el repositorio y elegí `apps/api` como **Root Directory**.
-Dejá habilitada la opción de incluir archivos fuente fuera del directorio raíz:
-la API depende de `packages/shared`.
+Por ejemplo, `GET /api/health` llega a la ruta Express existente
+`/api/health`. Los requests del navegador usan `/api` relativo al mismo origen:
+no hay una URL ni un dominio público independiente para la API.
 
-Usá este Build Command:
+El service `web` también declara un binding privado hacia `api`. Vercel inyecta
+`API_INTERNAL_URL` en el runtime de Next.js para que los Server Components
+consulten el catálogo público sin salir a Internet. Esa variable es generada
+por Vercel, no se carga manualmente ni se expone al navegador.
+
+## Crear el proyecto
+
+1. En Vercel, elegí **Add New → Project** e importá
+   `mymacademiadebaile/mymacademia-platform`.
+2. Usá el nombre `mymacademia-platform`.
+3. Dejá **Root Directory** en `./`.
+4. En **Framework Preset**, seleccioná **Services**.
+5. Elegí `main` como rama de producción.
+6. Cargá las variables de producción antes del primer deploy y desplegá una vez.
+
+No hay que crear proyectos llamados `mymacademia-web` ni `mymacademia-api`.
+Los comandos de instalación y build viven dentro de cada service de
+`vercel.json`; ambos parten del workspace raíz y el build de `api` incluye
+`@mym/shared` mediante Turbo.
+
+## Variables de entorno de producción
+
+### Obligatorias
+
+| Variable | Uso |
+| --- | --- |
+| `APP_ORIGIN` | URL pública completa del único deployment, sin barra final. También forma los enlaces de recuperación y conserva CORS para desarrollo local. |
+| `MONGODB_URI` | URI de MongoDB Atlas u otra base de datos de producción. |
+| `JWT_ACCESS_SECRET` | Secreto aleatorio de al menos 32 caracteres para firmar sesiones. |
+| `NEXT_PUBLIC_SITE_URL` | URL pública completa, sin barra final, para canonical, sitemap, OpenGraph y JSON-LD. Debe coincidir con `APP_ORIGIN`. |
+
+### Opcionales con valores por defecto
+
+| Variable | Valor por defecto | Uso |
+| --- | --- | --- |
+| `RATE_LIMIT_WINDOW_MS` | `60000` | Ventana del rate limit. |
+| `RATE_LIMIT_MAX` | `120` | Máximo de requests por ventana. |
+| `PUBLIC_ORGANIZATION_SLUG` | `mym-academia` | Organización cuyo catálogo público muestra la web. |
+| `SMTP_HOST` | `smtp.gmail.com` | Host SMTP. |
+| `SMTP_PORT` | `465` | Puerto SMTP. |
+| `SMTP_SECURE` | `true` | TLS SMTP. |
+| `MAIL_FROM_NAME` | `M&M Academia` | Nombre remitente. |
+
+### Integraciones que habilitan funcionalidades
+
+| Variables | Funcionalidad |
+| --- | --- |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Carga de imágenes y archivos. |
+| `SMTP_USER`, `SMTP_PASSWORD` | Recuperación de contraseña por email. `SMTP_PASSWORD` es una contraseña de aplicación de Google. |
+
+### Solo seed inicial
+
+`ADMIN_PASSWORD` es requerido únicamente por `pnpm --filter @mym/api
+seed:initial`. `ADMIN_EMAIL` es opcional y, si falta, el seed utiliza
+`SMTP_USER`. No cargues `ADMIN_PASSWORD` como variable permanente de runtime
+en Vercel.
+
+### Desarrollo local
+
+Copiá `apps/api/.env.example` como `apps/api/.env` y
+`apps/web/.env.example` como `apps/web/.env.local`. Para el desarrollo
+separado, `NEXT_PUBLIC_API_URL=http://localhost:4000/api` mantiene:
+
+- Web: `http://localhost:3000`
+- API: `http://localhost:4000`
+- Health: `http://localhost:4000/api/health`
+
+### Variables que no hay que cargar manualmente en Vercel
+
+- `PORT` y `NODE_ENV`: Vercel las administra.
+- `NEXT_PUBLIC_API_URL`: en producción la app usa `/api` same-origin. Solo es
+  necesaria para el desarrollo local separado.
+- `API_INTERNAL_URL`: la genera el binding de Services para el runtime web.
+- `VERCEL_URL`: no se usa.
+- `ADMIN_PASSWORD`: salvo una ejecución puntual y controlada del seed.
+- Cualquier secreto con prefijo `NEXT_PUBLIC_`.
+
+## Cookies, autenticación y CORS
+
+La sesión sigue usando una cookie `HttpOnly` con `Path=/`, `SameSite=Lax` y
+`Secure` en producción. No se fija `Domain`, por lo que el navegador la asocia
+correctamente al único dominio público. El cliente conserva
+`credentials: "include"` para login, logout y sesión persistente.
+
+La API mantiene `APP_ORIGIN` y CORS para el desarrollo local
+`localhost:3000 → localhost:4000`; en producción frontend y API comparten
+origen, por lo que no hay dependencia de una segunda URL de API.
+
+## Verificación de producción
+
+Después del deploy, comprobá:
+
+- [ ] `/` carga el sitio.
+- [ ] `/api/health` responde correctamente.
+- [ ] Login, logout y sesión persistente.
+- [ ] Recuperación de contraseña y envío de email.
+- [ ] Navegación de administración.
+- [ ] Navegación del portal de profesor.
+- [ ] Carga y visualización de imágenes de Cloudinary.
+- [ ] Conexión a MongoDB y catálogo público publicado.
+
+## Desarrollo y validación
+
+El flujo local existente no cambia:
 
 ```bash
-cd ../.. && pnpm exec turbo run build --filter=@mym/api...
+pnpm dev
 ```
 
-Configurá estas variables en **Production**:
-
-```env
-APP_ORIGIN=https://app.tu-dominio.com
-MONGODB_URI=mongodb+srv://...
-JWT_ACCESS_SECRET=<secreto-aleatorio-de-al-menos-32-caracteres>
-
-RATE_LIMIT_WINDOW_MS=60000
-RATE_LIMIT_MAX=120
-
-CLOUDINARY_CLOUD_NAME=<cloud-name>
-CLOUDINARY_API_KEY=<api-key>
-CLOUDINARY_API_SECRET=<api-secret>
-
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USER=<cuenta-remitente>
-SMTP_PASSWORD=<contrasena-de-aplicacion-de-google>
-MAIL_FROM_NAME=M&M Academia
-```
-
-`CLOUDINARY_*` es necesario para las cargas de archivos y `SMTP_*` para el
-restablecimiento de contraseña. Si esos flujos no se usan aún, la API inicia
-igual, pero responde con un error de servicio no configurado al invocarlos.
-
-No configures `PORT`. Vercel provee `NODE_ENV=production` automáticamente.
-
-## Proyecto web
-
-Importá el mismo repositorio por segunda vez y elegí `apps/web` como **Root
-Directory**. El framework debe quedar en **Next.js**. Usá este Build Command:
+Para simular la tabla de routing de Services localmente, con una versión actual
+del CLI de Vercel, se puede usar desde la raíz:
 
 ```bash
-cd ../.. && pnpm exec turbo run build --filter=@mym/web...
+vercel dev -L
 ```
 
-En **Production**, agregá:
-
-```env
-NEXT_PUBLIC_API_URL=https://api.tu-dominio.com/api
-NEXT_PUBLIC_SITE_URL=https://app.tu-dominio.com
-```
-
-Estas variables se incorporan al build del navegador: cambiarlas requiere un
-redeploy. No cargues secretos en variables `NEXT_PUBLIC_*`.
-
-## Orden de publicación
-
-1. Desplegá primero la API y comprobá `https://api.tu-dominio.com/api/health`.
-2. Asigná el dominio definitivo de la API y usalo en `NEXT_PUBLIC_API_URL` del
-   proyecto web.
-3. Desplegá el frontend y asigná su dominio definitivo.
-4. Actualizá `APP_ORIGIN` de la API con la URL final del frontend y redeplegá la
-   API.
-5. Ejecutá una prueba de inicio de sesión, cierre de sesión y recuperación de
-   contraseña desde el dominio público.
-
-## Seed inicial
-
-El seed no se ejecuta durante el deploy. Una sola vez, con las variables de
-producción cargadas localmente, ejecutá:
+Antes de publicar cambios, ejecutar:
 
 ```bash
-pnpm --filter @mym/api seed:initial
+pnpm typecheck
+pnpm build
+pnpm test
 ```
-
-Requiere `MONGODB_URI`, `ADMIN_PASSWORD` y, opcionalmente, `ADMIN_EMAIL`
-(si se omite, se utiliza `SMTP_USER`). Nunca pongas `ADMIN_PASSWORD` en las
-variables de Vercel salvo que tengas un motivo puntual para ejecutar el seed
-desde allí.
-
-## Previews
-
-La configuración actual está pensada para producción. Antes de habilitar
-previews que permitan login, configurá URLs de preview específicas para ambos
-proyectos y una política CORS que las autorice. No apuntes un preview a la base
-de datos de producción.

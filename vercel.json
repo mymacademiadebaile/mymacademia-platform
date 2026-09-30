@@ -1,0 +1,39 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": "apps/web",
+      "framework": "nextjs",
+      "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+      "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=@mym/web",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "api",
+          "format": "url",
+          "env": "API_INTERNAL_URL"
+        }
+      ]
+    },
+    "api": {
+      "root": "apps/api",
+      "framework": "express",
+      "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+      "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=@mym/api..."
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
+    }
+  ]
+}
