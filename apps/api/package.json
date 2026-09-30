@@ -12,7 +12,8 @@
     "test": "vitest run",
     "seed:initial": "pnpm --filter @mym/shared build && tsx src/scripts/seed-admin.ts",
     "seed:natalia-catalogs": "pnpm --filter @mym/shared build && tsx src/scripts/seed-natalia-catalogs.ts",
-    "payments:backfill-charge-keys": "pnpm --filter @mym/shared build && tsx src/scripts/backfill-payment-charge-keys.ts"
+    "payments:backfill-charge-keys": "pnpm --filter @mym/shared build && tsx src/scripts/backfill-payment-charge-keys.ts",
+    "seed:public-demo": "pnpm --filter @mym/shared build && tsx src/scripts/seed-public-demo.ts"
   },
   "dependencies": {
     "@mym/shared": "workspace:*",
