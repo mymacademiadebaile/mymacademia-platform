@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Types } from "mongoose";
 import { AppError } from "../../common/http/app-error";
 import {
   deleteProfessorMedia,
@@ -13,10 +12,9 @@ import { requireAuth, requireRole } from "../../middleware/require-auth";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { UserModel } from "../auth/user.model";
 import { BranchModel } from "../core/branch.model";
-import { DanceClassModel } from "../classes/class.model";
-import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { ProfessorModel } from "../professors/professor.model";
-import { StudentModel } from "../students/student.model";
+import { professorOperationsRouter } from "./professor-operations.routes";
+import { loadProfessorContext, ownedClasses } from "./professor-scope";
 
 const updateOwnProfileSchema = z.object({
   displayName: z.string().trim().min(2).max(120).optional(),
@@ -29,82 +27,32 @@ export const professorPortalRouter = Router();
 
 professorPortalRouter.use(requireAuth, requireRole("PROFESSOR"));
 
-professorPortalRouter.get("/dashboard", async (request, response, next) => {
+professorPortalRouter.use(professorOperationsRouter);
+
+professorPortalRouter.get("/profile", async (request, response, next) => {
   try {
-    const organizationId = request.auth!.organizationId;
-    const userId = request.auth!.userId;
+    const context = await loadProfessorContext(request);
+    const { organizationId, user, professor } = context;
+    const classes = await ownedClasses(context, { activeOnly: true });
 
-    const [user, professor] = await Promise.all([
-      UserModel.findOne({
-        _id: userId,
-        organizationId,
-        role: "PROFESSOR",
-        isActive: true
-      }).select("firstName lastName email phone branchIds"),
-      ProfessorModel.findOne({
-        organizationId,
-        userId,
-        isActive: true
-      }).populate("disciplineIds", "name type")
-    ]);
-
-    if (!user || !professor) {
-      throw new AppError(
-        404,
-        "Perfil de profesor no encontrado o inactivo",
-        "PROFESSOR_PROFILE_NOT_FOUND"
-      );
-    }
-
-    const classes = await DanceClassModel.find({
+    const branches = await BranchModel.find({
       organizationId,
-      professorIds: professor._id,
-      status: "ACTIVE"
+      _id: { $in: user.branchIds }
     })
-      .populate("disciplineIds segmentIds levelIds", "name type")
-      .sort({ name: 1 });
+      .select("name address isActive")
+      .sort({ name: 1 })
+      .lean();
 
-    const classIds = classes.map((item) => item._id);
-
-    const [enrollmentCounts, studentIds, branches] = await Promise.all([
-      classIds.length
-        ? EnrollmentModel.aggregate<{ _id: Types.ObjectId; count: number }>([
-            {
-              $match: {
-                organizationId: new Types.ObjectId(organizationId),
-                classId: { $in: classIds },
-                status: "ACTIVE"
-              }
-            },
-            { $group: { _id: "$classId", count: { $sum: 1 } } }
-          ])
-        : Promise.resolve([]),
-      classIds.length
-        ? EnrollmentModel.distinct("studentId", {
-            organizationId,
-            classId: { $in: classIds },
-            status: "ACTIVE"
-          })
-        : Promise.resolve([]),
-      BranchModel.find({
-        organizationId,
-        _id: { $in: user.branchIds }
-      }).select("name address isActive").sort({ name: 1 })
-    ]);
-
-    const students = studentIds.length
-      ? await StudentModel.find({
-          organizationId,
-          _id: { $in: studentIds },
-          isActive: true
-        })
-          .select("firstName lastName email phone branchId")
-          .sort({ lastName: 1, firstName: 1 })
-      : [];
-
-    const countMap = new Map(
-      enrollmentCounts.map((item) => [item._id.toString(), item.count])
-    );
+    // Specialties: profile disciplines plus the ones of the classes actually taught.
+    const specialties = new Map<string, { id: string; name: string }>();
+    for (const item of professor.disciplineIds ?? []) {
+      specialties.set(String(item._id), { id: String(item._id), name: item.name });
+    }
+    for (const danceClass of classes) {
+      for (const item of danceClass.disciplineIds ?? []) {
+        specialties.set(String(item._id), { id: String(item._id), name: item.name });
+      }
+    }
 
     response.json({
       user: {
@@ -117,24 +65,24 @@ professorPortalRouter.get("/dashboard", async (request, response, next) => {
       professor: {
         id: professor.id,
         displayName: professor.displayName,
+        phone: professor.phone ?? user.phone ?? "",
         bio: professor.bio ?? "",
         instagram: professor.instagram ?? "",
         avatarUrl: professor.avatarUrl ?? "",
         introVideoUrl: professor.introVideoUrl ?? "",
-        disciplines: professor.disciplineIds
+        specialties: [...specialties.values()]
       },
-      branches,
-      classes: classes.map((item) => ({
-        ...item.toObject(),
-        activeEnrollmentCount: countMap.get(item.id) ?? 0
-      })),
-      students
+      branches: branches.map((item) => ({
+        id: String(item._id),
+        name: item.name,
+        address: item.address ?? "",
+        isActive: item.isActive
+      }))
     });
   } catch (error) {
     next(error);
   }
 });
-
 
 professorPortalRouter.patch("/profile", async (request, response, next) => {
   try {

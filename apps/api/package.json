@@ -43,6 +43,7 @@
     "@types/nodemailer": "^7.0.1",
     "@types/pdfkit": "^0.17.3",
     "@types/supertest": "^6.0.3",
+    "mongodb-memory-server": "^11.3.0",
     "supertest": "^7.1.4",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
