@@ -40,6 +40,7 @@ type SessionParticipant = {
   payment: {
     status: PaymentState;
     paymentId?: string;
+    paymentType?: "PER_CLASS" | "MONTHLY" | null;
     amount: number;
     paymentMethod?: string;
     receiptNumber?: string;
@@ -85,7 +86,10 @@ function paymentLabel(participant: SessionParticipant) {
 
   if (status === "FREE") return participant.participantType === "TRIAL" ? "Prueba gratis" : "Sin cargo";
   if (status === "PAID") {
-    return participant.billingType === "MONTHLY" ? "Mensual al día" : "Clase pagada";
+    // The covering payment can differ from the current billing type (history is kept).
+    return (participant.payment.paymentType ?? participant.billingType) === "MONTHLY"
+      ? "Mensual al día"
+      : "Clase pagada";
   }
   if (status === "OVERDUE") return "Vencido";
   if (status === "PENDING") return "Pendiente";

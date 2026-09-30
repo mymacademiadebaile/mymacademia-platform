@@ -201,7 +201,7 @@ beforeAll(async () => {
   // MONTHLY: Jorge paid the month, Ana has a pending one.
   await payment(org._id, branch._id, jorge._id, monthly._id, "MONTHLY", FUTURE_DATE, "PAID");
   await payment(org._id, branch._id, ana._id, monthly._id, "MONTHLY", FUTURE_DATE, "PENDING");
-  // BOTH: Luis (MONTHLY pref) paid the month; Sofia (PER_CLASS pref) paid the month only, not the class.
+  // BOTH: Luis (MONTHLY pref) paid the month; Sofia (PER_CLASS pref) also paid the month, which still covers the session.
   await payment(org._id, branch._id, luis._id, both._id, "MONTHLY", FUTURE_DATE, "PAID");
   await payment(org._id, branch._id, sofia._id, both._id, "MONTHLY", FUTURE_DATE, "PAID");
   // Another professor's payment for a student that also studies with Juan.
@@ -298,7 +298,9 @@ describe("professor portal: payment status per billing mode", () => {
     expect(roster.Luis.billingType).toBe("MONTHLY");
     expect(roster.Luis.payment.status).toBe("PAID");
     expect(roster.Sofia.billingType).toBe("PER_CLASS");
-    expect(roster.Sofia.payment.status).toBe("PENDING");
+    // Current preference is PER_CLASS, but the MONTHLY payment of the month covers the session.
+    expect(roster.Sofia.payment.status).toBe("PAID");
+    expect(roster.Sofia.payment.reference).toEqual({ kind: "MONTH", value: "2099-03" });
   });
 
   it("FREE classes never owe", async () => {

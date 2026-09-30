@@ -15,6 +15,7 @@ import {
   effectivePaymentStatus,
   expectedAmount,
   resolvedBillingPreference,
+  resolveSessionPaymentCoverage,
   sessionPhase,
   type BillingType
 } from "../sessions/session-service";
@@ -199,11 +200,17 @@ export async function summarizeSessions(
         danceClass ?? {},
         enrollment.billingPreference
       );
-      const when = billingType === "MONTHLY" ? session.sessionDate.slice(0, 7) : session.sessionDate;
-      const payment = paymentByKey.get(
-        `${enrollment.studentId}:${session.classId}:${billingType}:${when}`
+      const coverage = resolveSessionPaymentCoverage(
+        billingType,
+        (["PER_CLASS", "MONTHLY"] as const).flatMap((type) => {
+          const when = type === "MONTHLY" ? session.sessionDate.slice(0, 7) : session.sessionDate;
+          const found = paymentByKey.get(
+            `${enrollment.studentId}:${session.classId}:${type}:${when}`
+          );
+          return found ? [found] : [];
+        })
       );
-      const status = professorPaymentStatus(billingType, payment);
+      const status = professorPaymentStatus(billingType, coverage.payment);
       if (status === "PAID") summary.paid += 1;
       else if (status === "OVERDUE") summary.overdue += 1;
       else if (status === "FREE") summary.free += 1;

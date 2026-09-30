@@ -62,6 +62,55 @@ export function resolvedBillingPreference(
   return preference === "MONTHLY" ? "MONTHLY" : "PER_CLASS";
 }
 
+export type SessionPaymentStatus = "FREE" | "PAID" | "OVERDUE" | "PENDING" | "NONE";
+
+export interface CoveragePayment {
+  _id?: unknown;
+  paymentType: string;
+  status: string;
+  dueDate: Date;
+  createdAt?: Date;
+}
+
+const COVERAGE_RANK: Record<string, number> = { PAID: 0, OVERDUE: 1, PENDING: 2 };
+
+/**
+ * Financial state of one session for one student, from the Payments that really cover it
+ * (PER_CLASS of that day, MONTHLY of that month), whatever the current billing preference is.
+ * Enrollment.billingPreference is only the present/future rule; Payment.paymentType is history.
+ * CANCELLED payments never cover. Representative payment, deterministic:
+ * PAID > OVERDUE > PENDING; ties prefer the payment of the current billingType, then the most
+ * recent createdAt, then the highest _id. FREE classes owe nothing and expose no payment.
+ */
+export function resolveSessionPaymentCoverage<P extends CoveragePayment>(
+  billingType: BillingType,
+  payments: P[]
+): { status: SessionPaymentStatus; payment: P | null; paymentType: "PER_CLASS" | "MONTHLY" | null } {
+  if (billingType === "FREE") return { status: "FREE", payment: null, paymentType: null };
+
+  const time = (payment: P) => payment.createdAt?.getTime() ?? 0;
+  const candidates = payments
+    .filter((payment) => payment.status !== "CANCELLED")
+    .map((payment) => ({ payment, status: effectivePaymentStatus(payment) }))
+    .filter((item) => item.status in COVERAGE_RANK)
+    .sort(
+      (a, b) =>
+        COVERAGE_RANK[a.status]! - COVERAGE_RANK[b.status]! ||
+        Number(b.payment.paymentType === billingType) - Number(a.payment.paymentType === billingType) ||
+        time(b.payment) - time(a.payment) ||
+        String(b.payment._id ?? "").localeCompare(String(a.payment._id ?? ""))
+    );
+
+  const best = candidates[0];
+  if (!best) return { status: "NONE", payment: null, paymentType: null };
+
+  return {
+    status: best.status as SessionPaymentStatus,
+    payment: best.payment,
+    paymentType: best.payment.paymentType as "PER_CLASS" | "MONTHLY"
+  };
+}
+
 export function expectedAmount(danceClass: ClassLike, billingType: BillingType) {
   if (billingType === "PER_CLASS") return danceClass.pricePerClass ?? 0;
   if (billingType === "MONTHLY") return danceClass.monthlyPrice ?? 0;
@@ -150,6 +199,8 @@ export type SessionParticipant = {
   payment: {
     status: string;
     paymentId?: string;
+    /** Type of the Payment that covers this session (may differ from billingType); null if none. */
+    paymentType: "PER_CLASS" | "MONTHLY" | null;
     amount: number;
     paymentMethod?: string;
     receiptNumber?: string;
@@ -240,24 +291,20 @@ export async function loadSessionParticipants(
   const attendanceMap = new Map(
     attendance.map((item) => [String(item.studentId), item.status])
   );
-  const paymentMap = new Map<string, any>();
+  // One query for everyone; grouped per student in memory (no per-student queries).
+  const paymentsByStudent = new Map<string, any[]>();
   for (const payment of payments as Array<any>) {
-    const key = String(payment.studentId) + ":" + payment.paymentType;
-    if (!paymentMap.has(key)) paymentMap.set(key, payment);
+    const key = String(payment.studentId);
+    paymentsByStudent.set(key, [...(paymentsByStudent.get(key) ?? []), payment]);
   }
 
   return participants.map((participant) => {
-    const payment =
-      participant.billingType === "FREE"
-        ? null
-        : paymentMap.get(participant.studentId + ":" + participant.billingType);
-
-    const paymentStatus =
-      participant.billingType === "FREE"
-        ? "FREE"
-        : payment
-          ? effectivePaymentStatus(payment)
-          : "NONE";
+    const coverage = resolveSessionPaymentCoverage(
+      participant.billingType,
+      paymentsByStudent.get(participant.studentId) ?? []
+    );
+    const payment = coverage.payment;
+    const paymentStatus = coverage.status;
 
     return {
       studentId: participant.studentId,
@@ -275,6 +322,7 @@ export async function loadSessionParticipants(
       payment: {
         status: paymentStatus,
         paymentId: payment ? String(payment._id) : undefined,
+        paymentType: coverage.paymentType,
         amount: payment?.amount ?? expectedAmount(danceClass, participant.billingType),
         paymentMethod: payment?.paymentMethod,
         receiptNumber: payment?.receiptNumber

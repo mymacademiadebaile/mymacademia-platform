@@ -361,7 +361,7 @@ professorOperationsRouter.get("/sessions/:id", async (request, response, next) =
         reference:
           item.billingType === "FREE"
             ? null
-            : item.billingType === "MONTHLY"
+            : (item.payment.paymentType ?? item.billingType) === "MONTHLY"
               ? { kind: "MONTH", value: session.sessionDate.slice(0, 7) }
               : { kind: "CLASS", value: session.sessionDate }
       }
