@@ -61,3 +61,9 @@ Ver `docs/functional-scope.md`.
 La API valida desde `apps/api/src/config/env.ts` únicamente la configuración necesaria para runtime: aplicación, MongoDB, JWT, rate limit, Cloudinary y SMTP. El seed inicial usa además `ADMIN_PASSWORD`; el email del administrador se toma de `SMTP_USER`.
 
 Las variables antiguas `GMAIL_USER`, `GMAIL_APP_PASSWORD` y `MAIL_FROM` no se utilizan. La configuración de Gmail se centraliza en las variables `SMTP_*` y `MAIL_FROM_NAME`.
+
+## Despliegue en Vercel
+
+El frontend y la API se despliegan como proyectos Vercel independientes. La
+configuración, las variables de producción y el orden de publicación están en
+[`docs/vercel-deployment.md`](docs/vercel-deployment.md).

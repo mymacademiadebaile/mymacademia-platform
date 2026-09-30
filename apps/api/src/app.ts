@@ -10,8 +10,9 @@ import { authRouter } from "./modules/auth/auth.routes";
 import { healthRouter } from "./modules/health/health.routes";
 import { adminRouter } from "./modules/admin/admin.routes";
 import { professorPortalRouter } from "./modules/professor-portal/professor.routes";
+import { connectDatabase } from "./database/connect";
 
-export function createApp() {
+export function createApp(options: { connectDatabaseOnRequest?: boolean } = {}) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -30,6 +31,13 @@ export function createApp() {
   app.use(pinoHttp());
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
+
+  if (options.connectDatabaseOnRequest) {
+    app.use((_request, _response, next) => {
+      void connectDatabase().then(() => next(), next);
+    });
+  }
+
   app.use("/api", apiRateLimiter);
 
   app.use("/api/health", healthRouter);
@@ -48,3 +56,10 @@ export function createApp() {
 
   return app;
 }
+
+// Vercel recognizes `src/app.ts` as an Express entry point. The database
+// connection is lazy so importing this module locally does not connect until a
+// request is received.
+const vercelApp = createApp({ connectDatabaseOnRequest: true });
+
+export default vercelApp;
