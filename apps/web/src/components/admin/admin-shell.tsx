@@ -18,6 +18,7 @@ import {
   Settings,
   SlidersHorizontal,
   Sparkles,
+  ShieldCheck,
   UsersRound,
   X
 } from "lucide-react";
@@ -112,6 +113,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     (notifications?.attention.overdueCount ?? 0) +
     (notifications?.attention.failedCommunications ?? 0);
 
+  const visibleNavigation = user?.role === "SUPER_ADMIN"
+    ? [...navigation.slice(0, -1), { href: "/admin/users", label: "Usuarios", icon: ShieldCheck }, navigation.at(-1)!]
+    : navigation;
+
   return (
     <div className={styles.adminRoot}>
       <aside className={styles.sidebar} data-open={open}>
@@ -136,7 +141,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className={styles.nav}>
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
             const Icon = item.icon;
 

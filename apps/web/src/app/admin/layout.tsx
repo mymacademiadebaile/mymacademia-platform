@@ -4,7 +4,7 @@ import { AdminFeedbackProvider } from "@/components/ui/admin-feedback";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGate roles={["ADMIN"]}>
+    <AuthGate roles={["SUPER_ADMIN", "ADMIN"]}>
       <AdminFeedbackProvider>
         <AdminShell>{children}</AdminShell>
       </AdminFeedbackProvider>

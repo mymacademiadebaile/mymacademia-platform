@@ -92,6 +92,42 @@
 .liveGrid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 13px; margin-bottom: 16px; }
 .liveGrid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; margin-bottom: 16px; }
 
+.userList {
+  margin-bottom: 16px;
+  border: 1px solid #e8e1ec;
+  border-radius: 18px;
+  background: white;
+  overflow: hidden;
+}
+
+.userRow {
+  min-height: 74px;
+  padding: 12px 15px;
+  display: grid;
+  grid-template-columns: 40px minmax(180px, 1fr) 120px 78px auto;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #f0ebf3;
+}
+
+.userRow:first-child { border-top: 0; }
+.userIdentity { min-width: 0; display: grid; gap: 3px; }
+.userIdentity strong { font-size: 12px; }
+.userIdentity small { overflow: hidden; color: #817788; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.userRole { color: #665b6d; font-size: 9px; font-weight: 850; }
+.userActions { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.dangerAction {
+  width: 31px; min-height: 31px; padding: 0; border: 1px solid #fecdd3; border-radius: 9px;
+  display: grid; place-items: center; background: #fff1f2; color: #be123c; cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .userRow { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 9px; }
+  .userRole { grid-column: 2; }
+  .userRow > .pill,.userRow > .pillOff { grid-column: 3; grid-row: 1; }
+  .userActions { grid-column: 2 / -1; justify-content: flex-start; }
+}
+
 .card,.cardLink {
   padding: 18px; border: 1px solid #e8e1ec; border-radius: 20px;
   background: white; box-shadow: 0 7px 28px rgba(48,27,59,.035);
@@ -535,6 +571,57 @@
 .viewActive { background: #efe8fa; color: #5b21b6; }
 .viewToolbar > span { color: #817887; font-size: 11px; }
 
+.calendarControls {
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calendarModeSwitch {
+  padding: 4px;
+  display: inline-flex;
+  gap: 3px;
+  border: 1px solid #e8e1ec;
+  border-radius: 12px;
+  background: white;
+}
+
+.calendarModeSwitch button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #756d7d;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.calendarModeSwitch .calendarModeActive { background: #efe8fa; color: #5b21b6; }
+
+.monthNavigation {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: capitalize;
+}
+
+.monthNavigation strong { min-width: 142px; text-align: center; font-size: 13px; }
+.monthNavigation button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e8e1ec;
+  border-radius: 9px;
+  background: white;
+  color: #5b21b6;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
 .weekCalendarWrap {
   width: 100%;
   overflow-x: auto;
@@ -619,6 +706,72 @@
   align-items: center;
   gap: 4px;
 }
+
+.monthCalendarWrap { width: 100%; overflow-x: auto; padding-bottom: 7px; }
+
+.monthCalendar {
+  min-width: 850px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  border-top: 1px solid #e8e1ec;
+  border-left: 1px solid #e8e1ec;
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+}
+
+.monthWeekday {
+  min-height: 40px;
+  padding: 0 10px;
+  border-right: 1px solid #e8e1ec;
+  border-bottom: 1px solid #e8e1ec;
+  background: #fbf9fc;
+  display: flex;
+  align-items: center;
+  color: #62586a;
+  font-size: 11px;
+}
+
+.monthDay {
+  min-height: 126px;
+  padding: 8px;
+  border-right: 1px solid #e8e1ec;
+  border-bottom: 1px solid #e8e1ec;
+  background: white;
+}
+
+.monthDay[data-outside="true"] { background: #fbf9fc; }
+.monthDay > header { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.monthDay > header time {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #62586a;
+  font-size: 11px;
+  font-weight: 800;
+}
+.monthDay[data-outside="true"] > header time { color: #b1a8b5; }
+.monthDay[data-today="true"] > header time { background: #6d28d9; color: white; }
+.monthDay > div { display: grid; gap: 4px; }
+
+.monthEvent {
+  padding: 4px 5px;
+  border-radius: 5px;
+  background: #f0e9fb;
+  color: #4c1d95;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.monthEvent time { flex: 0 0 auto; font-size: 9px; font-weight: 900; }
+.monthEvent span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .classCommercialLine {
   margin-top: 10px;

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Clock3, Gift, LayoutGrid, Plus, Search, Trash2, UsersRound } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Gift, LayoutGrid, Plus, Search, Trash2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
@@ -22,6 +22,21 @@ const dayLabels: Record<string, string> = {
 };
 
 type ScheduleDraft = { day: string; startTime: string; endTime: string };
+
+const calendarDayByIndex = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+const calendarWeekdayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+function monthDays(month: Date) {
+  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+  const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+  const leadingDays = firstDay.getDay();
+  const totalCells = Math.ceil((leadingDays + lastDay.getDate()) / 7) * 7;
+
+  return Array.from({ length: totalCells }, (_, index) => {
+    const date = new Date(month.getFullYear(), month.getMonth(), index - leadingDays + 1);
+    return { date, isCurrentMonth: date.getMonth() === month.getMonth() };
+  });
+}
 
 function refName<T extends { name?: string; displayName?: string }>(value: T | string): string {
   return typeof value === "string" ? value : value.displayName ?? value.name ?? "Sin nombre";
@@ -47,7 +62,9 @@ export function ClassesLive() {
   const [professorId, setProfessorId] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [modal, setModal] = useState(false);
-  const [view, setView] = useState<"CARDS" | "CALENDAR">("CARDS");
+  const [view, setView] = useState<"CARDS" | "CALENDAR">("CALENDAR");
+  const [calendarMode, setCalendarMode] = useState<"WEEK" | "MONTH">("WEEK");
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [billingMode, setBillingMode] = useState<BillingMode>("PER_CLASS");
   const [schedules, setSchedules] = useState<ScheduleDraft[]>([
     { day: "MONDAY", startTime: "18:00", endTime: "19:00" }
@@ -93,6 +110,25 @@ export function ClassesLive() {
   const disciplines = useMemo(() => catalogs.filter((item) => item.type === "DISCIPLINE"), [catalogs]);
   const segments = useMemo(() => catalogs.filter((item) => item.type === "SEGMENT"), [catalogs]);
   const levels = useMemo(() => catalogs.filter((item) => item.type === "LEVEL"), [catalogs]);
+  const visibleMonthDays = useMemo(() => monthDays(calendarMonth), [calendarMonth]);
+  const monthLabel = useMemo(
+    () => new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(calendarMonth),
+    [calendarMonth]
+  );
+
+  const calendarEntriesFor = useCallback((day: string) => (
+    items
+      .flatMap((danceClass) =>
+        danceClass.schedules
+          .filter((schedule) => schedule.day === day)
+          .map((schedule) => ({ danceClass, schedule }))
+      )
+      .sort((a, b) => a.schedule.startTime.localeCompare(b.schedule.startTime))
+  ), [items]);
+
+  function changeCalendarMonth(offset: number) {
+    setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+  }
 
   function updateSchedule(index: number, patch: Partial<ScheduleDraft>) {
     setSchedules((current) =>
@@ -236,37 +272,72 @@ export function ClassesLive() {
       )}
 
       {(items.length > 0 || !loading) && view === "CALENDAR" && (
-        <div className={styles.weekCalendarWrap}>
-          <div className={styles.weekCalendar}>
-            {Object.entries(dayLabels).map(([day, label]) => {
-              const entries = items
-                .flatMap((danceClass) =>
-                  danceClass.schedules
-                    .filter((schedule) => schedule.day === day)
-                    .map((schedule) => ({ danceClass, schedule }))
-                )
-                .sort((a, b) => a.schedule.startTime.localeCompare(b.schedule.startTime));
-
-              return (
-                <section className={styles.calendarDay} key={day}>
-                  <header><strong>{label}</strong><span>{entries.length}</span></header>
-                  <div className={styles.calendarDayBody}>
-                    {entries.length === 0 && <small className={styles.calendarEmpty}>Sin clases</small>}
-                    {entries.map(({ danceClass, schedule }, index) => (
-                      <Link href={"/admin/classes/" + danceClass._id} className={styles.calendarEvent} key={danceClass._id + "-" + schedule.startTime + "-" + index}>
-                        <time>{schedule.startTime}–{schedule.endTime}</time>
-                        <strong>{danceClass.name}</strong>
-                        <small>{danceClass.professorIds.map((item) => refName(item)).join(", ")}</small>
-                        <div><span>{danceClass.activeEnrollmentCount ?? 0}/{danceClass.capacity}</span><span>{billingLabel(danceClass)}</span></div>
-                        {danceClass.freeTrialEnabled && <em><Gift size={12} /> Prueba</em>}
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
+        <>
+          <div className={styles.calendarControls}>
+            <div className={styles.calendarModeSwitch} aria-label="Formato de calendario">
+              <button className={calendarMode === "WEEK" ? styles.calendarModeActive : undefined} onClick={() => setCalendarMode("WEEK")}>Semanal</button>
+              <button className={calendarMode === "MONTH" ? styles.calendarModeActive : undefined} onClick={() => setCalendarMode("MONTH")}>Mensual</button>
+            </div>
+            {calendarMode === "MONTH" && (
+              <div className={styles.monthNavigation}>
+                <button type="button" onClick={() => changeCalendarMonth(-1)} aria-label="Mes anterior"><ChevronLeft size={17} /></button>
+                <strong>{monthLabel}</strong>
+                <button type="button" onClick={() => changeCalendarMonth(1)} aria-label="Mes siguiente"><ChevronRight size={17} /></button>
+              </div>
+            )}
           </div>
-        </div>
+
+          {calendarMode === "WEEK" ? (
+            <div className={styles.weekCalendarWrap}>
+              <div className={styles.weekCalendar}>
+                {Object.entries(dayLabels).map(([day, label]) => {
+                  const entries = calendarEntriesFor(day);
+
+                  return (
+                    <section className={styles.calendarDay} key={day}>
+                      <header><strong>{label}</strong><span>{entries.length}</span></header>
+                      <div className={styles.calendarDayBody}>
+                        {entries.length === 0 && <small className={styles.calendarEmpty}>Sin clases</small>}
+                        {entries.map(({ danceClass, schedule }, index) => (
+                          <Link href={"/admin/classes/" + danceClass._id} className={styles.calendarEvent} key={danceClass._id + "-" + schedule.startTime + "-" + index}>
+                            <time>{schedule.startTime}–{schedule.endTime}</time>
+                            <strong>{danceClass.name}</strong>
+                            <small>{danceClass.professorIds.map((item) => refName(item)).join(", ")}</small>
+                            <div><span>{danceClass.activeEnrollmentCount ?? 0}/{danceClass.capacity}</span><span>{billingLabel(danceClass)}</span></div>
+                            {danceClass.freeTrialEnabled && <em><Gift size={12} /> Prueba</em>}
+                          </Link>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className={styles.monthCalendarWrap}>
+              <div className={styles.monthCalendar}>
+                {calendarWeekdayLabels.map((label) => <strong className={styles.monthWeekday} key={label}>{label}</strong>)}
+                {visibleMonthDays.map(({ date, isCurrentMonth }) => {
+                  const entries = calendarEntriesFor(calendarDayByIndex[date.getDay()]);
+                  const isToday = date.toDateString() === new Date().toDateString();
+
+                  return (
+                    <section className={styles.monthDay} data-outside={!isCurrentMonth} data-today={isToday} key={date.toISOString()}>
+                      <header><time dateTime={date.toISOString().slice(0, 10)}>{date.getDate()}</time></header>
+                      <div>
+                        {entries.map(({ danceClass, schedule }, index) => (
+                          <Link href={"/admin/classes/" + danceClass._id} className={styles.monthEvent} key={danceClass._id + "-" + date.getTime() + "-" + index}>
+                            <time>{schedule.startTime}</time><span>{danceClass.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <LiveModal

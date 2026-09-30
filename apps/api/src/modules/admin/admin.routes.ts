@@ -16,10 +16,11 @@ import { adminReportsRouter } from "./reports.routes";
 import { adminTrialsRouter } from "./trials.routes";
 import { adminNotificationsRouter } from "./notifications.routes";
 import { adminSessionsRouter } from "./sessions.routes";
+import { adminUsersRouter } from "./users.routes";
 
 export const adminRouter = Router();
 
-adminRouter.use(requireAuth, requireRole("ADMIN"));
+adminRouter.use(requireAuth, requireRole("ADMIN", "SUPER_ADMIN"));
 adminRouter.use("/profile", adminProfileRouter);
 adminRouter.use("/summary", adminSummaryRouter);
 adminRouter.use("/branches", adminBranchesRouter);
@@ -36,3 +37,4 @@ adminRouter.use("/notifications", adminNotificationsRouter);
 adminRouter.use("/audit", adminAuditRouter);
 adminRouter.use("/reports", adminReportsRouter);
 adminRouter.use("/settings", adminSettingsRouter);
+adminRouter.use("/users", requireRole("SUPER_ADMIN"), adminUsersRouter);

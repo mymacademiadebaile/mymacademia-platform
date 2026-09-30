@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
-export type Role = "ADMIN" | "PROFESSOR";
+export type Role = "SUPER_ADMIN" | "ADMIN" | "PROFESSOR";
 
 export type AuthUser = {
   id: string;
@@ -65,7 +65,11 @@ export function AuthGate({
         if (!mounted) return;
 
         if (!allowedRoles.includes(currentUser.role)) {
-          router.replace(currentUser.role === "ADMIN" ? "/admin" : "/professor");
+          router.replace(
+            currentUser.role === "SUPER_ADMIN" || currentUser.role === "ADMIN"
+              ? "/admin"
+              : "/professor"
+          );
           return;
         }
 
