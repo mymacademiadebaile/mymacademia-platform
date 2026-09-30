@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "seed:initial": "pnpm --filter @mym/shared build && tsx src/scripts/seed-admin.ts"
+    "seed:initial": "pnpm --filter @mym/shared build && tsx src/scripts/seed-admin.ts",
+    "seed:natalia-catalogs": "pnpm --filter @mym/shared build && tsx src/scripts/seed-natalia-catalogs.ts"
   },
   "dependencies": {
     "@mym/shared": "workspace:*",

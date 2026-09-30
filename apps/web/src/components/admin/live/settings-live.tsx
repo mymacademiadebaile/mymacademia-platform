@@ -7,6 +7,7 @@ import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { Branch } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import { CatalogsLive } from "./catalogs-live";
 import styles from "./live.module.css";
 
 type SettingsData = {
@@ -268,6 +269,21 @@ export function SettingsLive() {
                 </article>
               ))}
             </div>
+          </section>
+
+          <section className={styles.historySection}>
+            <div className={styles.sectionTitleRow}>
+              <div>
+                <span className={styles.cardLabel}>CONFIGURACIÓN ACADÉMICA</span>
+                <h3>Ritmos, público y niveles</h3>
+                <p>
+                  Agregá, editá, ordená, activá o desactivá las opciones que después se usan
+                  en clases y profesores.
+                </p>
+              </div>
+            </div>
+
+            <CatalogsLive embedded />
           </section>
 
           <LiveModal

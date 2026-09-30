@@ -19,8 +19,8 @@ import styles from "./live.module.css";
 const groups = [
   {
     type: "DISCIPLINE" as const,
-    title: "Disciplinas",
-    description: "Reggaetón, Bachata, Salsa..."
+    title: "Ritmos / disciplinas",
+    description: "Bachata, Salsa, Estilo Femenino..."
   },
   {
     type: "SEGMENT" as const,
@@ -34,7 +34,7 @@ const groups = [
   }
 ];
 
-export function CatalogsLive() {
+export function CatalogsLive({ embedded = false }: { embedded?: boolean }) {
   const { toast, confirm } = useAdminFeedback();
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -189,11 +189,13 @@ export function CatalogsLive() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="DATOS MAESTROS"
-        title="Catálogos"
-        description="Administrá las opciones que usan clases y profesores, sin texto libre."
-      />
+      {!embedded && (
+        <PageHeader
+          eyebrow="DATOS MAESTROS"
+          title="Catálogos"
+          description="Administrá las opciones que usan clases y profesores, sin texto libre."
+        />
+      )}
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
