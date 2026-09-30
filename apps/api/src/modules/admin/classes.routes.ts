@@ -29,7 +29,7 @@ const classBodySchema = z.object({
   segmentIds: z.array(objectIdSchema).min(1),
   levelIds: z.array(objectIdSchema).min(1),
   capacity: z.number().int().min(1).max(500),
-  billingMode: z.enum(BILLING_MODES).default("MONTHLY"),
+  billingMode: z.enum(BILLING_MODES).default("PER_CLASS"),
   pricePerClass: z.number().min(0).max(100000000).default(0),
   monthlyPrice: z.number().min(0).max(100000000).default(0),
   freeTrialEnabled: z.boolean().default(false),

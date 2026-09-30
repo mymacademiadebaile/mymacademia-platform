@@ -50,7 +50,7 @@ const danceClassSchema = new Schema<DanceClass>(
     segmentIds: [{ type: Schema.Types.ObjectId, ref: "CatalogItem", required: true }],
     levelIds: [{ type: Schema.Types.ObjectId, ref: "CatalogItem", required: true }],
     capacity: { type: Number, required: true, min: 1 },
-    billingMode: { type: String, enum: BILLING_MODES, default: "MONTHLY", index: true },
+    billingMode: { type: String, enum: BILLING_MODES, default: "PER_CLASS", index: true },
     pricePerClass: { type: Number, default: 0, min: 0 },
     monthlyPrice: { type: Number, default: 0, min: 0 },
     freeTrialEnabled: { type: Boolean, default: false },
