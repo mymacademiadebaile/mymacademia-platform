@@ -14,6 +14,11 @@ import {
   PAYMENT_METHODS,
   PaymentModel
 } from "../payments/payment.model";
+import {
+  assertNoActiveDuplicate,
+  loadChargeContext,
+  resolveChargeDates
+} from "../payments/payment-charge";
 import { nextReceiptNumber } from "../payments/sequence.model";
 import { StudentModel } from "../students/student.model";
 import { DanceClassModel } from "../classes/class.model";
@@ -26,12 +31,22 @@ const createPaymentSchema = z.object({
   studentId: objectIdSchema,
   classId: objectIdSchema,
   paymentType: z.enum(PAYMENT_TYPES).default("MONTHLY"),
-  classDate: z.coerce.date().optional(),
+  classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener formato YYYY-MM-DD").optional(),
   concept: z.string().trim().min(2).max(120),
-  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "El período debe tener formato YYYY-MM"),
-  amount: z.number().positive(),
+  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "El período debe tener formato YYYY-MM").optional(),
+  amount: z.number().positive().max(100_000_000),
   dueDate: z.coerce.date(),
   notes: z.string().trim().max(1000).optional().or(z.literal(""))
+}).superRefine((value, context) => {
+  if (value.paymentType === "PER_CLASS" && !value.classDate) {
+    context.addIssue({ code: "custom", path: ["classDate"], message: "Indicá la fecha de la clase" });
+  }
+  if (value.paymentType === "MONTHLY" && !value.period) {
+    context.addIssue({ code: "custom", path: ["period"], message: "Indicá el período mensual" });
+  }
+  if (value.paymentType === "MONTHLY" && value.classDate) {
+    context.addIssue({ code: "custom", path: ["classDate"], message: "Un pago mensual no lleva fecha de clase" });
+  }
 });
 
 const quickChargeSchema = z.object({
@@ -368,44 +383,17 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
     const input = quickChargeSchema.parse(request.body);
     const organizationId = request.auth!.organizationId;
 
-    const [student, danceClass, enrollment] = await Promise.all([
-      StudentModel.findOne({ _id: input.studentId, organizationId, isActive: true }),
-      DanceClassModel.findOne({ _id: input.classId, organizationId, status: "ACTIVE" }),
-      EnrollmentModel.findOne({
-        organizationId,
-        classId: input.classId,
-        studentId: input.studentId,
-        status: "ACTIVE"
-      })
-    ]);
+    const { student, danceClass } = await loadChargeContext(
+      organizationId,
+      input,
+      input.paymentType
+    );
 
-    if (!student) throw new AppError(404, "Alumno no encontrado o inactivo", "STUDENT_NOT_FOUND");
-    if (!danceClass) throw new AppError(404, "Clase no encontrada o inactiva", "CLASS_NOT_FOUND");
-    if (!enrollment) {
-      throw new AppError(422, "El alumno debe estar inscripto en la clase", "PAYMENT_REQUIRES_ACTIVE_ENROLLMENT");
-    }
-    if (!danceClass.branchId.equals(student.branchId)) {
-      throw new AppError(422, "El alumno y la clase deben pertenecer a la misma sede", "PAYMENT_CLASS_BRANCH_MISMATCH");
-    }
-
-    const billingMode = danceClass.billingMode ?? "MONTHLY";
-    const allowed =
-      billingMode === "BOTH" ||
-      (billingMode === "PER_CLASS" && input.paymentType === "PER_CLASS") ||
-      (billingMode === "MONTHLY" && input.paymentType === "MONTHLY");
-
-    if (!allowed) {
-      throw new AppError(422, "La modalidad de cobro no está habilitada para esta clase", "PAYMENT_TYPE_NOT_ALLOWED");
-    }
-
-    const classDate =
-      input.paymentType === "PER_CLASS" && input.classDate
-        ? new Date(input.classDate + "T12:00:00.000Z")
-        : undefined;
-    const period =
-      input.paymentType === "PER_CLASS"
-        ? input.classDate!.slice(0, 7)
-        : input.period!;
+    const { classDate, classDateKey, period } = resolveChargeDates({
+      paymentType: input.paymentType,
+      classDate: input.classDate,
+      period: input.paymentType === "MONTHLY" ? input.period : undefined
+    });
     const defaultAmount =
       input.paymentType === "PER_CLASS"
         ? danceClass.pricePerClass ?? 0
@@ -416,31 +404,14 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       throw new AppError(422, "Configurá un importe mayor a cero para registrar el cobro", "INVALID_PAYMENT_AMOUNT");
     }
 
-    const duplicateFilter: Record<string, unknown> = {
+    await assertNoActiveDuplicate({
       organizationId,
       studentId: student._id,
       classId: danceClass._id,
       paymentType: input.paymentType,
-      status: { $ne: "CANCELLED" }
-    };
-    if (input.paymentType === "PER_CLASS") {
-      const dayStart = new Date(input.classDate! + "T00:00:00.000Z");
-      const dayEnd = new Date(dayStart);
-      dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
-      duplicateFilter.classDate = { $gte: dayStart, $lt: dayEnd };
-    } else {
-      duplicateFilter.period = period;
-    }
-
-    if (await PaymentModel.exists(duplicateFilter)) {
-      throw new AppError(
-        409,
-        input.paymentType === "PER_CLASS"
-          ? "Ya existe un pago para esa clase y fecha"
-          : "Ya existe un pago mensual para ese período",
-        "PAYMENT_ALREADY_EXISTS"
-      );
-    }
+      classDateKey,
+      period
+    });
 
     const receiptNumber = await nextReceiptNumber(new Types.ObjectId(organizationId));
     const paidAt = input.paidAt ?? new Date();
@@ -491,48 +462,11 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
     const input = createPaymentSchema.parse(request.body);
     const organizationId = request.auth!.organizationId;
 
-    const student = await StudentModel.findOne({
-      _id: input.studentId,
+    const { student, danceClass } = await loadChargeContext(
       organizationId,
-      isActive: true
-    });
-
-    if (!student) {
-      throw new AppError(404, "Alumno no encontrado o inactivo", "STUDENT_NOT_FOUND");
-    }
-
-    const [danceClass, enrollment] = await Promise.all([
-      DanceClassModel.findOne({
-        _id: input.classId,
-        organizationId
-      }),
-      EnrollmentModel.findOne({
-        organizationId,
-        classId: input.classId,
-        studentId: student._id,
-        status: "ACTIVE"
-      })
-    ]);
-
-    if (!danceClass) {
-      throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
-    }
-
-    if (!danceClass.branchId.equals(student.branchId)) {
-      throw new AppError(
-        422,
-        "El alumno y la clase deben pertenecer a la misma sede",
-        "PAYMENT_CLASS_BRANCH_MISMATCH"
-      );
-    }
-
-    if (!enrollment) {
-      throw new AppError(
-        422,
-        "El alumno debe estar inscripto activamente en la clase para generar una cuota",
-        "PAYMENT_REQUIRES_ACTIVE_ENROLLMENT"
-      );
-    }
+      input,
+      input.paymentType
+    );
 
     if (input.branchId && input.branchId !== student.branchId.toString()) {
       throw new AppError(
@@ -542,22 +476,16 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       );
     }
 
-    const duplicate = await PaymentModel.exists({
+    const { classDate, classDateKey, period } = resolveChargeDates(input);
+
+    await assertNoActiveDuplicate({
       organizationId,
       studentId: student._id,
       classId: danceClass._id,
-      period: input.period,
-      concept: input.concept,
-      status: { $ne: "CANCELLED" }
+      paymentType: input.paymentType,
+      classDateKey,
+      period
     });
-
-    if (duplicate) {
-      throw new AppError(
-        409,
-        "Ya existe una cuota con ese concepto y período para el alumno",
-        "PAYMENT_ALREADY_EXISTS"
-      );
-    }
 
     const payment = await PaymentModel.create({
       organizationId,
@@ -565,9 +493,9 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       studentId: student._id,
       classId: danceClass._id,
       paymentType: input.paymentType,
-      classDate: input.classDate,
+      classDate,
       concept: input.concept,
-      period: input.period,
+      period,
       amount: input.amount,
       dueDate: input.dueDate,
       notes: input.notes?.trim() || undefined,
