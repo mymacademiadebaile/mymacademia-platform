@@ -16,11 +16,11 @@
       ]
     },
     "api": {
-      "root": "apps/api",
+      "root": ".",
       "framework": "express",
-      "entrypoint": "src/app.ts",
-      "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-      "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=@mym/api..."
+      "entrypoint": "apps/api/src/app.ts",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "buildCommand": "pnpm exec turbo run build --filter=@mym/api..."
     }
   },
   "rewrites": [
