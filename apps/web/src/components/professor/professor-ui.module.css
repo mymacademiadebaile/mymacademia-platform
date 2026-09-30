@@ -1,0 +1,460 @@
+/* Shared building blocks. Tokens (--pf-*) come from professor-shell.module.css. */
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.pageHeaderText h1 {
+  margin: 0;
+  font-size: clamp(28px, 3.2vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.pageHeaderText p {
+  margin: 6px 0 0;
+  color: var(--pf-muted);
+  font-size: 16px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--pf-violet);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.backLink {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--pf-violet);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.pageHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.refreshing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pf-muted);
+  font-size: 13px;
+}
+
+/* Cards */
+
+.card {
+  background: var(--pf-card);
+  border: 1px solid var(--pf-line);
+  border-radius: var(--pf-radius);
+  box-shadow: var(--pf-shadow);
+  padding: 22px;
+  min-width: 0;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 18px 20px;
+  background: var(--pf-card);
+  border: 1px solid var(--pf-line);
+  border-radius: var(--pf-radius);
+  box-shadow: var(--pf-shadow);
+  min-width: 0;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+a.statCard:hover {
+  border-color: var(--pf-violet-mid);
+  transform: translateY(-1px);
+}
+
+.statIcon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--pf-violet-soft);
+  color: var(--pf-violet);
+  margin-bottom: 8px;
+}
+
+.statCard[data-tone="warn"] .statIcon {
+  background: var(--pf-warn-bg);
+  color: var(--pf-warn);
+}
+
+.statCard[data-tone="success"] .statIcon {
+  background: var(--pf-success-bg);
+  color: var(--pf-success);
+}
+
+.statValue {
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.statLabel {
+  color: var(--pf-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.statHint {
+  color: var(--pf-muted);
+  font-size: 13px;
+}
+
+/* Badges: always icon + text so meaning never depends on color alone. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--pf-info-bg);
+  color: var(--pf-info);
+}
+
+.badge[data-kind="payment-PAID"],
+.badge[data-kind="attendance-PRESENT"] {
+  background: var(--pf-success-bg);
+  color: var(--pf-success);
+}
+
+.badge[data-kind="payment-PENDING"] {
+  background: var(--pf-warn-bg);
+  color: var(--pf-warn);
+}
+
+.badge[data-kind="payment-OVERDUE"],
+.badge[data-kind="attendance-ABSENT"],
+.badge[data-kind="phase-CANCELLED"] {
+  background: var(--pf-danger-bg);
+  color: var(--pf-danger);
+}
+
+.badge[data-kind="payment-FREE"],
+.badge[data-kind="attendance-EXPECTED"],
+.badge[data-kind="phase-FINISHED"] {
+  background: #efeaf3;
+  color: var(--pf-muted);
+}
+
+.badge[data-kind="phase-IN_PROGRESS"] {
+  background: var(--pf-violet);
+  color: #fff;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--pf-violet-soft);
+  color: var(--pf-violet-strong);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.avatar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--pf-violet-mid), var(--pf-violet-strong));
+  color: #fff;
+  font-weight: 800;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* States */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 36px 20px;
+  text-align: center;
+  border: 1px dashed var(--pf-line);
+  border-radius: var(--pf-radius);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.empty strong {
+  font-size: 17px;
+}
+
+.empty p {
+  margin: 0;
+  max-width: 420px;
+  color: var(--pf-muted);
+}
+
+.emptyIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--pf-violet-soft);
+  color: var(--pf-violet);
+  margin-bottom: 6px;
+}
+
+.errorState {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid #f3c6c6;
+  border-radius: var(--pf-radius);
+  background: var(--pf-danger-bg);
+  color: var(--pf-danger);
+}
+
+.errorState p {
+  margin: 2px 0 0;
+}
+
+.errorState > div {
+  flex: 1;
+}
+
+.skeleton {
+  display: block;
+  background: linear-gradient(90deg, #ece6f3 25%, #f6f2fa 50%, #ece6f3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.pageSkeleton {
+  display: grid;
+  gap: 16px;
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* Filters */
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--pf-card);
+  border: 1px solid var(--pf-line);
+  border-radius: var(--pf-radius);
+}
+
+.searchField {
+  flex: 1 1 280px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--pf-line);
+  border-radius: 12px;
+  background: var(--pf-lavender);
+  color: var(--pf-muted);
+}
+
+.searchField:focus-within {
+  border-color: var(--pf-violet-mid);
+  background: #fff;
+}
+
+.searchField input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pf-ink);
+  font-size: 15px;
+}
+
+.selectFilter {
+  display: grid;
+  gap: 4px;
+  flex: 0 1 190px;
+  min-width: 150px;
+}
+
+.selectFilter span {
+  color: var(--pf-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.selectFilter select {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--pf-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--pf-ink);
+  font-size: 15px;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 12px;
+  background: #ece6f3;
+}
+
+.segmented button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--pf-ink-2);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented button[data-active="true"] {
+  background: #fff;
+  color: var(--pf-violet-strong);
+  box-shadow: 0 1px 4px rgba(33, 21, 41, 0.12);
+}
+
+/* Buttons shared by pages */
+
+.primaryButton,
+.secondaryButton,
+.ghostButton {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.primaryButton {
+  background: var(--pf-violet);
+  color: #fff;
+}
+
+.primaryButton:hover {
+  background: var(--pf-violet-strong);
+}
+
+.secondaryButton {
+  background: #fff;
+  color: var(--pf-violet-strong);
+  border-color: var(--pf-line);
+}
+
+.secondaryButton:hover {
+  border-color: var(--pf-violet-mid);
+}
+
+.ghostButton {
+  background: transparent;
+  color: var(--pf-violet);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .filterBar {
+    padding: 12px;
+  }
+
+  .selectFilter {
+    flex: 1 1 calc(50% - 6px);
+  }
+}
