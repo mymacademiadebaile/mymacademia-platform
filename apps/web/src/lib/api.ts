@@ -36,12 +36,13 @@ export async function apiFetch<T>(
   });
 
   if (!response.ok) {
+    const text = await response.text();
     let payload: unknown;
 
     try {
-      payload = await response.json();
+      payload = text ? JSON.parse(text) : undefined;
     } catch {
-      payload = await response.text();
+      payload = text;
     }
 
     throw new ApiError(response.status, payload);

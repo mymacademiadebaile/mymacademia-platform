@@ -18,6 +18,7 @@
     "api": {
       "root": "apps/api",
       "framework": "express",
+      "entrypoint": "src/app.ts",
       "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
       "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=@mym/api..."
     }
