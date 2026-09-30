@@ -1,0 +1,68 @@
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pf-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tableCard {
+  padding: 8px 8px 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pf-muted);
+  border-bottom: 1px solid var(--pf-line);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .tableCard {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .table,
+  .table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}

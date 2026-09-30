@@ -1,0 +1,109 @@
+.row td {
+  padding: 14px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--pf-line);
+  font-size: 14px;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.person:hover strong {
+  color: var(--pf-violet);
+}
+
+.person:focus-visible,
+.action:focus-visible {
+  outline: 3px solid var(--pf-violet-mid);
+  outline-offset: 2px;
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 28px;
+}
+
+.line small {
+  flex-basis: 100%;
+}
+
+.line:has(> span) small {
+  flex-basis: auto;
+}
+
+.muted {
+  color: var(--pf-muted);
+  font-size: 13px;
+}
+
+.wrap {
+  overflow-wrap: anywhere;
+}
+
+.action {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--pf-violet-soft);
+  color: var(--pf-violet-strong);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.action:hover {
+  background: var(--pf-lavender);
+}
+
+@media (max-width: 900px) {
+  .row {
+    display: block;
+    margin: 10px 0;
+    padding: 14px;
+    background: var(--pf-card);
+    border: 1px solid var(--pf-line);
+    border-radius: 14px;
+    box-shadow: var(--pf-shadow);
+  }
+
+  .row td {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 0;
+  }
+
+  .row td[data-label]::before {
+    content: attr(data-label);
+    color: var(--pf-muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .row .nameCell {
+    display: block;
+    padding-top: 0;
+  }
+
+  .row .nameCell::before {
+    display: none;
+  }
+
+  .row .actionCell {
+    display: block;
+    padding-top: 12px;
+  }
+}

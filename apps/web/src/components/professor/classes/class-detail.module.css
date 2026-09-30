@@ -1,0 +1,325 @@
+.page {
+  display: block;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 14px;
+  color: var(--pf-violet);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.linkButton {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--pf-violet);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* Gradient is an accent: only the class header. */
+.hero {
+  padding: 26px 28px;
+  margin-bottom: 20px;
+  border-radius: var(--pf-radius);
+  background: linear-gradient(135deg, var(--pf-violet-strong), var(--pf-violet));
+  color: #fff;
+}
+
+.heroBack {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: #fff;
+  opacity: 0.9;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.heroBack:hover {
+  text-decoration: underline;
+}
+
+.heroRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.heroRow h1 {
+  margin: 0;
+  font-size: clamp(28px, 3.2vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.status {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--pf-warn-bg);
+  color: var(--pf-warn);
+}
+
+.status[data-active="true"] {
+  background: var(--pf-success-bg);
+  color: var(--pf-success);
+}
+
+.heroChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.heroChip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--pf-line);
+  overflow-x: auto;
+}
+
+.tabs button {
+  padding: 12px 18px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--pf-muted);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tabs button[aria-selected="true"] {
+  color: var(--pf-violet-strong);
+  border-bottom-color: var(--pf-violet);
+}
+
+.tabs button:hover {
+  color: var(--pf-ink);
+}
+
+.tabs button:focus-visible {
+  outline: 3px solid var(--pf-violet-mid);
+  outline-offset: -3px;
+  border-radius: 8px;
+}
+
+.panel {
+  min-width: 0;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 20px 28px;
+  margin: 0;
+}
+
+.fact dt {
+  margin-bottom: 4px;
+  color: var(--pf-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.fact dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.block {
+  display: block;
+}
+
+.hint {
+  display: block;
+  margin-top: 2px;
+  color: var(--pf-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.slotList {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  color: var(--pf-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.sub {
+  color: var(--pf-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.sessionRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--pf-card);
+  border: 1px solid var(--pf-line);
+  border-radius: var(--pf-radius);
+  box-shadow: var(--pf-shadow);
+}
+
+.sessionRow strong {
+  display: block;
+  font-size: 16px;
+}
+
+.sessionRow:hover {
+  border-color: var(--pf-violet-mid);
+}
+
+.sessionRow:focus-visible,
+.dateLink:focus-visible,
+.rowLink:focus-visible,
+.person:focus-visible {
+  outline: 3px solid var(--pf-violet-mid);
+  outline-offset: 2px;
+}
+
+.rowLink {
+  color: var(--pf-violet);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dateLink {
+  color: var(--pf-ink);
+  font-weight: 700;
+}
+
+.dateLink:hover {
+  color: var(--pf-violet);
+  text-decoration: underline;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.person:hover strong {
+  color: var(--pf-violet);
+}
+
+.tableCard {
+  padding: 8px 8px 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pf-muted);
+  border-bottom: 1px solid var(--pf-line);
+}
+
+.table td {
+  padding: 14px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--pf-line);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    padding: 20px;
+  }
+
+  .sessionRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .table tr {
+    padding: 14px;
+    margin: 8px 0;
+    border: 1px solid var(--pf-line);
+    border-radius: 14px;
+  }
+
+  .table td {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 0;
+  }
+
+  .table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--pf-muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+}

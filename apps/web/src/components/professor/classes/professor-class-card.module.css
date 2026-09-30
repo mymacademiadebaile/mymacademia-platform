@@ -1,0 +1,133 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  background: var(--pf-card);
+  border: 1px solid var(--pf-line);
+  border-radius: var(--pf-radius);
+  box-shadow: var(--pf-shadow);
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.head h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.status {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--pf-warn-bg);
+  color: var(--pf-warn);
+}
+
+.status[data-active="true"] {
+  background: var(--pf-success-bg);
+  color: var(--pf-success);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  color: var(--pf-ink);
+}
+
+.line svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--pf-violet);
+}
+
+.slots {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  color: var(--pf-muted);
+  font-size: 14px;
+}
+
+.capacity {
+  display: grid;
+  gap: 8px;
+}
+
+.bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--pf-violet-soft);
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pf-violet);
+}
+
+.billing {
+  margin: 0;
+  font-size: 15px;
+  color: var(--pf-muted);
+}
+
+.billing strong {
+  color: var(--pf-ink);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--pf-line);
+}
+
+.next {
+  font-size: 14px;
+  color: var(--pf-muted);
+  font-weight: 600;
+}
+
+.link {
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--pf-violet);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.link:hover {
+  background: var(--pf-violet-strong);
+}
+
+.link:focus-visible {
+  outline: 3px solid var(--pf-violet-mid);
+  outline-offset: 2px;
+}
