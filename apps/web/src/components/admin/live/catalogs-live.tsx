@@ -1,19 +1,29 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
   Edit3,
+  Globe,
+  ImagePlus,
   PauseCircle,
   PlayCircle,
-  Plus
+  Plus,
+  Trash2
 } from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { CatalogItem } from "./live-types";
-import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import {
+  ErrorBlock,
+  Field,
+  LiveModal,
+  LoadingBlock,
+  WebChecklist,
+  WebSwitch
+} from "./live-common";
 import styles from "./live.module.css";
 
 const groups = [
@@ -34,11 +44,27 @@ const groups = [
   }
 ];
 
+const TAGLINE_MAX = 160;
+const DESCRIPTION_MAX = 2000;
+
+function webStatus(item: CatalogItem): "live" | "incomplete" | "" {
+  if (!item.publishOnWeb) return "";
+  return item.isActive && item.image && item.tagline?.trim() ? "live" : "incomplete";
+}
+
 export function CatalogsLive({ embedded = false }: { embedded?: boolean }) {
   const { toast, confirm } = useAdminFeedback();
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<CatalogItem | null>(null);
+  const [webId, setWebId] = useState("");
+  const [webTagline, setWebTagline] = useState("");
+  const [webDescription, setWebDescription] = useState("");
+  const [webSlug, setWebSlug] = useState("");
+  const [webPublish, setWebPublish] = useState(false);
+  const [webError, setWebError] = useState("");
+  const [webSaving, setWebSaving] = useState(false);
+  const [webImageBusy, setWebImageBusy] = useState(false);
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -117,6 +143,107 @@ export function CatalogsLive({ embedded = false }: { embedded?: boolean }) {
     }
   }
 
+  const webItem = useMemo(
+    () => items.find((item) => item._id === webId) ?? null,
+    [items, webId]
+  );
+
+  function openWeb(item: CatalogItem) {
+    setWebId(item._id);
+    setWebTagline(item.tagline ?? "");
+    setWebDescription(item.description ?? "");
+    setWebSlug(item.slug ?? "");
+    setWebPublish(Boolean(item.publishOnWeb));
+    setWebError("");
+  }
+
+  function closeWeb() {
+    if (webSaving || webImageBusy) return;
+    setWebId("");
+  }
+
+  async function uploadWebImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !webItem) return;
+
+    const form = new FormData();
+    form.append("file", file);
+    setWebImageBusy(true);
+    setWebError("");
+
+    try {
+      await apiFetch(`/admin/catalogs/${webItem._id}/image`, {
+        method: "POST",
+        body: form
+      });
+      toast("Imagen actualizada");
+      await load();
+    } catch (requestError) {
+      setWebError(apiMessage(requestError));
+    } finally {
+      setWebImageBusy(false);
+    }
+  }
+
+  async function removeWebImage() {
+    if (!webItem) return;
+
+    const approved = await confirm({
+      title: "Quitar imagen",
+      description: webItem.publishOnWeb
+        ? "Sin imagen el ritmo se despublica y deja de verse en la web."
+        : "La imagen de portada se quitará de este ritmo.",
+      confirmLabel: "Quitar",
+      tone: "danger"
+    });
+    if (!approved) return;
+
+    setWebImageBusy(true);
+    setWebError("");
+
+    try {
+      await apiFetch(`/admin/catalogs/${webItem._id}/image`, { method: "DELETE" });
+      setWebPublish(false);
+      toast("Imagen eliminada");
+      await load();
+    } catch (requestError) {
+      setWebError(apiMessage(requestError));
+    } finally {
+      setWebImageBusy(false);
+    }
+  }
+
+  async function saveWeb(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!webItem) return;
+
+    const payload: Record<string, unknown> = {
+      tagline: webTagline.trim(),
+      description: webDescription.trim()
+    };
+    const slug = webSlug.trim();
+    if (slug !== (webItem.slug ?? "")) payload.slug = slug;
+    if (webPublish !== Boolean(webItem.publishOnWeb)) payload.publishOnWeb = webPublish;
+
+    setWebSaving(true);
+    setWebError("");
+
+    try {
+      await apiFetch<CatalogItem>(`/admin/catalogs/${webItem._id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+      toast("Ficha web guardada");
+      setWebId("");
+      await load();
+    } catch (requestError) {
+      setWebError(apiMessage(requestError));
+    } finally {
+      setWebSaving(false);
+    }
+  }
+
   async function toggle(item: CatalogItem) {
     const usage = item.usage?.total ?? 0;
     let confirmInUse = false;
@@ -127,7 +254,8 @@ export function CatalogsLive({ embedded = false }: { embedded?: boolean }) {
         description:
           '"' + item.name + '" está en uso por ' + (item.usage?.classes ?? 0) + " clase(s)" +
           (item.usage?.professors ? " y " + item.usage.professors + " profesor(es)" : "") +
-          ". Las referencias actuales se conservan, pero ya no estará disponible para nuevas selecciones.",
+          ". Las referencias actuales se conservan, pero ya no estará disponible para nuevas selecciones." +
+          (item.publishOnWeb ? " También dejará de verse en la web." : ""),
         confirmLabel: "Desactivar",
         tone: "danger"
       });
@@ -265,6 +393,12 @@ export function CatalogsLive({ embedded = false }: { embedded?: boolean }) {
                         ? ` · ${item.usage?.professors ?? 0} profesor(es)`
                         : ""}
                     </small>
+                    {group.type === "DISCIPLINE" && webStatus(item) === "live" && (
+                      <span className={styles.webStatusOk}>En la web</span>
+                    )}
+                    {group.type === "DISCIPLINE" && webStatus(item) === "incomplete" && (
+                      <span className={styles.webStatusWarn}>Incompleto</span>
+                    )}
                   </div>
 
                   <span className={item.isActive ? styles.pill : styles.pillOff}>
@@ -272,6 +406,18 @@ export function CatalogsLive({ embedded = false }: { embedded?: boolean }) {
                   </span>
 
                   <div className={styles.catalogActions}>
+                    {group.type === "DISCIPLINE" && (
+                      <button
+                        type="button"
+                        className={styles.inlineAction}
+                        disabled={busyId === item._id}
+                        onClick={() => openWeb(item)}
+                        title="Ficha web"
+                        aria-label={"Ficha web de " + item.name}
+                      >
+                        <Globe size={13} />
+                      </button>
+                    )}
                     <button
                       className={styles.inlineAction}
                       disabled={busyId === item._id}
@@ -299,6 +445,137 @@ export function CatalogsLive({ embedded = false }: { embedded?: boolean }) {
           ))}
         </div>
       )}
+
+      <LiveModal
+        open={Boolean(webItem)}
+        eyebrow="LANDING PÚBLICA"
+        title={"Ficha web" + (webItem ? " · " + webItem.name : "")}
+        description="Lo que se ve de este ritmo en la página pública. Se ve en la web si está activo y publicado (con imagen y descripción corta)."
+        submitting={webSaving}
+        onClose={closeWeb}
+        onSubmit={saveWeb}
+      >
+        {webItem && (
+          <>
+            {webError && (
+              <div className={styles.webFormError} role="alert">{webError}</div>
+            )}
+
+            <div className={styles.webImageRow}>
+              <div className={styles.webImagePreview}>
+                {webItem.image ? (
+                  <img src={webItem.image.url} alt={"Portada de " + webItem.name} />
+                ) : (
+                  <span>Sin imagen</span>
+                )}
+              </div>
+              <div className={styles.webImageSide}>
+                <strong>Imagen de portada</strong>
+                <p className={styles.webHelp}>
+                  Formato vertical recomendado (4:5), mínimo 1000 px de ancho. JPG, PNG o WEBP, máx. 4 MB.
+                </p>
+                <div className={styles.webImageActions}>
+                  <label aria-disabled={webImageBusy}>
+                    <ImagePlus size={14} />
+                    {webImageBusy ? "Subiendo…" : webItem.image ? "Cambiar" : "Cargar imagen"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={webImageBusy}
+                      onChange={(event) => void uploadWebImage(event)}
+                    />
+                  </label>
+                  {webItem.image && (
+                    <button
+                      type="button"
+                      disabled={webImageBusy}
+                      onClick={() => void removeWebImage()}
+                    >
+                      <Trash2 size={14} /> Quitar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Field label="Descripción corta" wide>
+              <input
+                value={webTagline}
+                maxLength={TAGLINE_MAX}
+                onChange={(event) => setWebTagline(event.target.value)}
+                aria-describedby="web-tagline-count"
+              />
+              <span className={styles.webCounter} id="web-tagline-count">
+                {webTagline.length}/{TAGLINE_MAX}
+              </span>
+            </Field>
+
+            <Field label="Descripción larga" wide>
+              <textarea
+                rows={6}
+                value={webDescription}
+                maxLength={DESCRIPTION_MAX}
+                onChange={(event) => setWebDescription(event.target.value)}
+                aria-describedby="web-description-help"
+              />
+              <span className={styles.webCounter} id="web-description-help">
+                Separá los párrafos con una línea en blanco · {webDescription.length}/{DESCRIPTION_MAX}
+              </span>
+            </Field>
+
+            <Field label="URL de la clase" wide>
+              <div className={styles.webSlug}>
+                <span>/clases/</span>
+                <input
+                  value={webSlug}
+                  onChange={(event) => setWebSlug(event.target.value)}
+                  placeholder="se genera al publicar"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  aria-describedby="web-slug-help"
+                />
+                <span>-la-plata</span>
+              </div>
+              <span className={styles.webHelp} id="web-slug-help">
+                Si queda vacía se genera al publicar. Cambiarla rompe los links ya compartidos.
+              </span>
+            </Field>
+
+            <div className={styles.webBox}>
+              {(() => {
+                const requirements = [
+                  { label: "Ritmo activo", ok: webItem.isActive },
+                  { label: "Descripción corta", ok: webTagline.trim().length > 0 },
+                  { label: "Imagen", ok: Boolean(webItem.image) }
+                ];
+                const ready = requirements.every((requirement) => requirement.ok);
+
+                return (
+                  <>
+                    <WebChecklist items={requirements} />
+                    <WebSwitch
+                      label="Publicar en la web"
+                      checked={webPublish}
+                      disabled={!ready && !webPublish}
+                      describedBy="web-publish-help"
+                      onChange={setWebPublish}
+                    />
+                    <p
+                      id="web-publish-help"
+                      className={ready || webPublish ? styles.webHelp : styles.webHelpWarn}
+                    >
+                      {ready || webPublish
+                        ? "El cambio se aplica al tocar Guardar."
+                        : "Completá los requisitos para poder publicar."}
+                    </p>
+                  </>
+                );
+              })()}
+            </div>
+          </>
+        )}
+      </LiveModal>
 
       <LiveModal
         open={Boolean(editing)}

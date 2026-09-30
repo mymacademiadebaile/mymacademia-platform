@@ -13,6 +13,11 @@ export type CatalogItem = {
   name: string;
   isActive: boolean;
   sortOrder: number;
+  slug?: string;
+  tagline?: string;
+  description?: string;
+  image?: { url: string; width?: number; height?: number };
+  publishOnWeb?: boolean;
   usage?: {
     classes: number;
     professors: number;
@@ -25,6 +30,9 @@ export type Professor = {
   displayName: string;
   phone?: string;
   bio?: string;
+  bioShort?: string;
+  slug?: string;
+  publishOnWeb?: boolean;
   instagram?: string;
   avatarUrl?: string;
   introVideoUrl?: string;
@@ -80,6 +88,7 @@ export type DanceClass = {
     endTime: string;
   }>;
   status: "ACTIVE" | "INACTIVE";
+  publishOnWeb?: boolean;
 };
 
 export type PaymentMethod = "CASH" | "TRANSFER" | "CARD" | "OTHER";

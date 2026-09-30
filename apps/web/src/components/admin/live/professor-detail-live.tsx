@@ -19,7 +19,14 @@ import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { Branch, CatalogItem, DanceClass, Professor } from "./live-types";
-import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import {
+  ErrorBlock,
+  Field,
+  LiveModal,
+  LoadingBlock,
+  WebChecklist,
+  WebSwitch
+} from "./live-common";
 import styles from "./professor-detail.module.css";
 
 type ProfessorDetail = {
@@ -33,6 +40,9 @@ type ProfessorDetail = {
     branches: number;
   };
 };
+
+const BIO_SHORT_MAX = 160;
+const BIO_MAX = 2000;
 
 function disciplineName(value: CatalogItem | string) {
   return typeof value === "string" ? value : value.name;
@@ -48,6 +58,9 @@ export function ProfessorDetailLive({ id }: { id: string }) {
   const [passwordModal, setPasswordModal] = useState(false);
   const [mediaBusy, setMediaBusy] = useState<"avatar" | "video" | "">("");
   const [busy, setBusy] = useState(false);
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [bioShortDraft, setBioShortDraft] = useState("");
+  const [bioDraft, setBioDraft] = useState("");
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -93,6 +106,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
           email: form.get("email"),
           phone: form.get("phone"),
           instagram: form.get("instagram"),
+          bioShort: form.get("bioShort"),
           bio: form.get("bio"),
           branchIds: form.getAll("branchIds"),
           disciplineIds: form.getAll("disciplineIds")
@@ -105,6 +119,34 @@ export function ProfessorDetailLive({ id }: { id: string }) {
       setError(apiMessage(requestError));
     } finally {
       setBusy(false);
+    }
+  }
+
+  function openEdit() {
+    setBioShortDraft(data?.professor.bioShort ?? "");
+    setBioDraft(data?.professor.bio ?? "");
+    setEditing(true);
+  }
+
+  async function setPublish(next: boolean) {
+    setPublishBusy(true);
+    setError("");
+
+    try {
+      await apiFetch(`/admin/professors/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ publishOnWeb: next })
+      });
+      toast(next ? "Profesor publicado en la web" : "Profesor quitado de la web");
+      await load();
+    } catch (requestError) {
+      toast({
+        title: "No se pudo cambiar la publicación",
+        description: apiMessage(requestError),
+        tone: "error"
+      });
+    } finally {
+      setPublishBusy(false);
     }
   }
 
@@ -280,7 +322,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
         </div>
         <div className={styles.actions}>
           {user?.email && <a href={`mailto:${user.email}`}><Mail size={15} /> Email</a>}
-          <button onClick={() => setEditing(true)}>Editar</button>
+          <button onClick={openEdit}>Editar</button>
           <button onClick={() => setPasswordModal(true)}><KeyRound size={15} /> Acceso</button>
           <button className={styles.danger} disabled={busy} onClick={() => void toggleActive()}>
             <Power size={15} /> {professor.isActive ? "Inactivar" : "Reactivar"}
@@ -306,7 +348,8 @@ export function ProfessorDetailLive({ id }: { id: string }) {
             <div><dt>Email</dt><dd>{user?.email || "—"}</dd></div>
             <div><dt>Teléfono</dt><dd>{professor.phone || user?.phone || "—"}</dd></div>
             <div><dt>Instagram</dt><dd>{professor.instagram || "—"}</dd></div>
-            <div className={styles.full}><dt>Bio</dt><dd>{professor.bio || "Sin biografía"}</dd></div>
+            <div className={styles.full}><dt>Descripción corta para la web</dt><dd>{professor.bioShort || "Sin descripción corta"}</dd></div>
+            <div className={styles.full}><dt>Biografía completa</dt><dd>{professor.bio || "Sin biografía"}</dd></div>
           </dl>
         </section>
 
@@ -328,6 +371,46 @@ export function ProfessorDetailLive({ id }: { id: string }) {
                 </span>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className={styles.card + " " + styles.webCard}>
+          <div className={styles.cardHeader}><span>LANDING PÚBLICA</span><h3>Publicación en la web</h3></div>
+          <div className={styles.webBlock}>
+            {(() => {
+              const requirements = [
+                { label: "Profesor activo", ok: professor.isActive },
+                { label: "Foto", ok: Boolean(professor.avatarUrl) },
+                { label: "Descripción corta", ok: Boolean(professor.bioShort?.trim()) }
+              ];
+              const ready = requirements.every((requirement) => requirement.ok);
+              const published = Boolean(professor.publishOnWeb);
+
+              return (
+                <>
+                  <WebChecklist items={requirements} />
+                  <WebSwitch
+                    label="Publicar en la web"
+                    checked={published}
+                    disabled={!ready && !published}
+                    busy={publishBusy}
+                    describedBy="professor-publish-help"
+                    onChange={(next) => void setPublish(next)}
+                  />
+                  <p
+                    id="professor-publish-help"
+                    className={ready || published ? styles.webHelp : styles.webHelpWarn}
+                  >
+                    {ready || published
+                      ? "Se ve en la web si está activo y publicado (con foto y descripción corta). Solo se nombran profesores publicados."
+                      : "Completá los requisitos para poder publicar."}
+                  </p>
+                  {professor.slug && (
+                    <span className={styles.webLink}>/profesores/{professor.slug}</span>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </section>
 
@@ -442,7 +525,25 @@ export function ProfessorDetailLive({ id }: { id: string }) {
             {catalogs.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
           </select>
         </Field>
-        <Field label="Bio" wide><textarea name="bio" rows={4} defaultValue={professor.bio ?? ""} /></Field>
+        <Field label="Descripción corta para la web" wide>
+          <input
+            name="bioShort"
+            value={bioShortDraft}
+            maxLength={BIO_SHORT_MAX}
+            onChange={(event) => setBioShortDraft(event.target.value)}
+          />
+          <span className={styles.webCounter}>{bioShortDraft.length}/{BIO_SHORT_MAX}</span>
+        </Field>
+        <Field label="Biografía completa" wide>
+          <textarea
+            name="bio"
+            rows={8}
+            value={bioDraft}
+            maxLength={BIO_MAX}
+            onChange={(event) => setBioDraft(event.target.value)}
+          />
+          <span className={styles.webCounter}>{bioDraft.length}/{BIO_MAX}</span>
+        </Field>
       </LiveModal>
 
       <LiveModal

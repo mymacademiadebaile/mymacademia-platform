@@ -103,3 +103,54 @@ export function Field({
     </label>
   );
 }
+
+export function WebChecklist({
+  items
+}: {
+  items: Array<{ label: string; ok: boolean }>;
+}) {
+  return (
+    <ul className={styles.webChecklist}>
+      {items.map((item) => (
+        <li key={item.label} className={item.ok ? styles.webCheckOk : styles.webCheckMissing}>
+          {item.ok ? <Check size={13} aria-hidden="true" /> : <X size={13} aria-hidden="true" />}
+          <span>{item.label}</span>
+          <span className={styles.srOnly}>{item.ok ? "(cumple)" : "(falta)"}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function WebSwitch({
+  label,
+  checked,
+  disabled,
+  busy,
+  onChange,
+  describedBy
+}: {
+  label: string;
+  checked: boolean;
+  disabled?: boolean;
+  busy?: boolean;
+  onChange: (next: boolean) => void;
+  describedBy?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-describedby={describedBy}
+      className={styles.webSwitch}
+      disabled={disabled || busy}
+      onClick={() => onChange(!checked)}
+    >
+      <span className={styles.webSwitchTrack} aria-hidden="true">
+        <span className={styles.webSwitchThumb} />
+      </span>
+      <span>{label}</span>
+    </button>
+  );
+}

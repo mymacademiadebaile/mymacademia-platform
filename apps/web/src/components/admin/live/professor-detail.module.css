@@ -461,3 +461,10 @@
 .deleteAction:hover {
   background: #ffe4e6 !important;
 }
+
+.webCard { grid-column: 1 / -1; }
+.webBlock { display: grid; gap: 10px; max-width: 520px; }
+.webHelp { margin: 0; color: #7b7281; font-size: 9px; line-height: 1.5; }
+.webHelpWarn { margin: 0; color: #9a3412; font-size: 9px; line-height: 1.5; }
+.webLink { color: #5b21b6; font-size: 10px; font-weight: 800; overflow-wrap: anywhere; }
+.webCounter { justify-self: end; color: #8a818f; font-size: 8px; font-weight: 800; }

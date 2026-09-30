@@ -25,7 +25,7 @@ import type {
   Professor,
   Student
 } from "./live-types";
-import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import { ErrorBlock, Field, LiveModal, LoadingBlock, WebSwitch } from "./live-common";
 import styles from "./class-detail.module.css";
 
 const dayLabels: Record<string, string> = {
@@ -379,6 +379,22 @@ export function ClassDetailLive({ id }: { id: string }) {
     }
   }
 
+  async function setPublishOnWeb(next: boolean) {
+    setBusy(true);
+    try {
+      await apiFetch("/admin/classes/" + id, {
+        method: "PATCH",
+        body: JSON.stringify({ publishOnWeb: next })
+      });
+      toast(next ? "La clase se muestra en la web" : "La clase se oculta de la web");
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo cambiar la visibilidad", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!danceClass || !enrollments) {
     return error ? <ErrorBlock message={error} onRetry={() => void load()} /> : <LoadingBlock />;
   }
@@ -416,6 +432,19 @@ export function ClassDetailLive({ id }: { id: string }) {
           </button>
         </div>
       </section>
+
+      <div className={styles.webToggle}>
+        <WebSwitch
+          label="Mostrar en la web"
+          checked={danceClass.publishOnWeb !== false}
+          busy={busy}
+          describedBy="class-web-help"
+          onChange={(next) => void setPublishOnWeb(next)}
+        />
+        <p id="class-web-help">
+          La clase aparece en el horario público solo si su ritmo está publicado.
+        </p>
+      </div>
 
       <div className={styles.stats}>
         <article><UsersRound size={17} /><span>Inscriptos</span><strong>{enrollments.occupied}</strong></article>
