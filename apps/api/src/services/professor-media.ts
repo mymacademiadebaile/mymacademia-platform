@@ -77,3 +77,31 @@ export async function deleteProfessorMedia(
     invalidate: true
   });
 }
+
+// ---- Rhythm (dance discipline) cover image, shown on the public website ----
+
+// Vercel serverless functions accept at most ~4.5 MB per request body.
+export const rhythmImageUpload = memoryUpload(
+  4 * 1024 * 1024,
+  IMAGE_TYPES,
+  "La imagen debe ser JPG, PNG o WEBP",
+  "UNSUPPORTED_RHYTHM_IMAGE_TYPE"
+);
+
+function rhythmFolder(organizationId: string, rhythmId: string) {
+  return `mym-academia/${organizationId}/rhythms/${rhythmId}`;
+}
+
+export function uploadRhythmImage(buffer: Buffer, organizationId: string, rhythmId: string) {
+  return uploadBuffer(buffer, {
+    folder: rhythmFolder(organizationId, rhythmId),
+    publicId: "cover"
+  });
+}
+
+export async function deleteRhythmImage(organizationId: string, rhythmId: string) {
+  await getCloudinary().uploader.destroy(`${rhythmFolder(organizationId, rhythmId)}/cover`, {
+    resource_type: "image",
+    invalidate: true
+  });
+}

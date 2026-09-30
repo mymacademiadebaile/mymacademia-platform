@@ -26,6 +26,9 @@ const envSchema = z
     MONGODB_URI: z.preprocess(blankAsUndefined, z.string().min(1).optional()),
     JWT_ACCESS_SECRET: z.preprocess(blankAsUndefined, z.string().min(32).optional()),
 
+    // Organization whose published rhythms, professors and classes the public website shows.
+    PUBLIC_ORGANIZATION_SLUG: z.string().trim().min(1).default("mym-academia"),
+
     RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
     RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
 

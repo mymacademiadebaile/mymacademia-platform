@@ -7,6 +7,13 @@ import { CatalogItemModel } from "../catalogs/catalog.model";
 import { DanceClassModel } from "../classes/class.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { objectIdSchema } from "./admin.schemas";
+import { slugify, uniqueSlug } from "../../common/slug";
+import {
+  deleteRhythmImage,
+  rhythmImageUpload,
+  uploadRhythmImage
+} from "../../services/professor-media";
+import { rhythmPublishIssues } from "../public/publish-rules";
 
 const createCatalogSchema = z.object({
   type: z.enum(CATALOG_TYPES),
@@ -18,7 +25,12 @@ const updateCatalogSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
   sortOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
-  confirmInUse: z.boolean().optional().default(false)
+  confirmInUse: z.boolean().optional().default(false),
+  // Public website fields (rhythms only).
+  slug: z.string().trim().min(2).max(80).optional(),
+  tagline: z.string().trim().max(160).optional().or(z.literal("")),
+  description: z.string().trim().max(2000).optional().or(z.literal("")),
+  publishOnWeb: z.boolean().optional()
 });
 
 const reorderCatalogSchema = z.object({
@@ -228,11 +240,29 @@ adminCatalogsRouter.patch("/:id", async (request, response, next) => {
       );
     }
 
+    const touchesWebFields =
+      input.slug !== undefined ||
+      input.tagline !== undefined ||
+      input.description !== undefined ||
+      input.publishOnWeb !== undefined;
+
+    if (touchesWebFields && item.type !== "DISCIPLINE") {
+      throw new AppError(
+        422,
+        "Solo los ritmos tienen ficha en la web",
+        "CATALOG_WEB_FIELDS_NOT_ALLOWED"
+      );
+    }
+
     const before = {
       name: item.name,
       normalizedName: item.normalizedName,
       sortOrder: item.sortOrder,
-      isActive: item.isActive
+      isActive: item.isActive,
+      slug: item.slug ?? "",
+      tagline: item.tagline ?? "",
+      description: item.description ?? "",
+      publishOnWeb: item.publishOnWeb ?? false
     };
 
     if (input.name !== undefined) {
@@ -241,6 +271,55 @@ adminCatalogsRouter.patch("/:id", async (request, response, next) => {
     }
     if (input.sortOrder !== undefined) item.sortOrder = input.sortOrder;
     if (input.isActive !== undefined) item.isActive = input.isActive;
+    if (input.tagline !== undefined) item.tagline = input.tagline.trim() || undefined;
+    if (input.description !== undefined) item.description = input.description.trim() || undefined;
+    if (input.publishOnWeb !== undefined) item.publishOnWeb = input.publishOnWeb;
+
+    if (input.slug !== undefined) {
+      const slug = slugify(input.slug);
+      if (slug.length < 2) {
+        throw new AppError(422, "La URL de la clase no es válida", "INVALID_SLUG");
+      }
+      const taken = await CatalogItemModel.exists({
+        organizationId,
+        type: item.type,
+        slug,
+        _id: { $ne: item._id }
+      });
+      if (taken) {
+        throw new AppError(409, "Ya existe un ritmo con esa URL", "SLUG_ALREADY_EXISTS");
+      }
+      item.slug = slug;
+    }
+
+    if (input.publishOnWeb === true) {
+      const issues = rhythmPublishIssues({
+        isActive: item.isActive,
+        tagline: item.tagline,
+        image: item.image
+      });
+
+      if (issues.length > 0) {
+        throw new AppError(
+          422,
+          `No se puede publicar en la web: ${issues.join(", ").toLocaleLowerCase("es-AR")}`,
+          "RHYTHM_NOT_PUBLISHABLE"
+        );
+      }
+
+      if (!item.slug) {
+        item.slug = await uniqueSlug(item.name, async (candidate) =>
+          Boolean(
+            await CatalogItemModel.exists({
+              organizationId,
+              type: item.type,
+              slug: candidate,
+              _id: { $ne: item._id }
+            })
+          )
+        );
+      }
+    }
 
     await item.save();
 
@@ -257,7 +336,11 @@ adminCatalogsRouter.patch("/:id", async (request, response, next) => {
           name: item.name,
           normalizedName: item.normalizedName,
           sortOrder: item.sortOrder,
-          isActive: item.isActive
+          isActive: item.isActive,
+          slug: item.slug ?? "",
+          tagline: item.tagline ?? "",
+          description: item.description ?? "",
+          publishOnWeb: item.publishOnWeb ?? false
         },
         usage
       }
@@ -267,6 +350,74 @@ adminCatalogsRouter.patch("/:id", async (request, response, next) => {
       ...item.toObject(),
       usage
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminCatalogsRouter.post(
+  "/:id/image",
+  rhythmImageUpload.single("file"),
+  async (request, response, next) => {
+    try {
+      const id = objectIdSchema.parse(request.params.id);
+      const organizationId = request.auth!.organizationId;
+
+      if (!request.file) {
+        throw new AppError(422, "Seleccioná una imagen", "RHYTHM_IMAGE_REQUIRED");
+      }
+
+      const item = await CatalogItemModel.findOne({ _id: id, organizationId, type: "DISCIPLINE" });
+      if (!item) {
+        throw new AppError(404, "Ritmo no encontrado", "CATALOG_NOT_FOUND");
+      }
+
+      const result = await uploadRhythmImage(request.file.buffer, organizationId, item.id);
+      item.image = { url: result.secure_url, width: result.width, height: result.height };
+      await item.save();
+
+      await AuditLogModel.create({
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "CATALOG_IMAGE_UPDATED",
+        entityType: "CatalogItem",
+        entityId: item._id,
+        metadata: { name: item.name }
+      });
+
+      response.json({ image: item.image });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+adminCatalogsRouter.delete("/:id/image", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+
+    const item = await CatalogItemModel.findOne({ _id: id, organizationId, type: "DISCIPLINE" });
+    if (!item) {
+      throw new AppError(404, "Ritmo no encontrado", "CATALOG_NOT_FOUND");
+    }
+
+    await deleteRhythmImage(organizationId, item.id).catch(() => undefined);
+    item.image = undefined;
+    // Without an image the card cannot be shown, so it leaves the website.
+    item.publishOnWeb = false;
+    await item.save();
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "CATALOG_IMAGE_REMOVED",
+      entityType: "CatalogItem",
+      entityId: item._id,
+      metadata: { name: item.name }
+    });
+
+    response.json({ image: null, publishOnWeb: false });
   } catch (error) {
     next(error);
   }

@@ -29,6 +29,12 @@ export interface DanceClass {
   freeTrialEnabled: boolean;
   schedules: ClassSchedule[];
   status: ClassStatus;
+  /**
+   * Lets the admin hide one class from the website. Defaults to true: a class is
+   * only exposed when its rhythm is published too, so this is an opt-out.
+   * Read with `{ $ne: false }` so documents created before the field still match.
+   */
+  publishOnWeb: boolean;
 }
 
 const scheduleSchema = new Schema<ClassSchedule>(
@@ -55,7 +61,8 @@ const danceClassSchema = new Schema<DanceClass>(
     monthlyPrice: { type: Number, default: 0, min: 0 },
     freeTrialEnabled: { type: Boolean, default: false },
     schedules: { type: [scheduleSchema], default: [] },
-    status: { type: String, enum: CLASS_STATUSES, default: "ACTIVE" }
+    status: { type: String, enum: CLASS_STATUSES, default: "ACTIVE" },
+    publishOnWeb: { type: Boolean, default: true }
   },
   { timestamps: true }
 );

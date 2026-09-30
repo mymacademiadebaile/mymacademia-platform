@@ -19,8 +19,11 @@ import { BranchModel } from "../core/branch.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { objectIdSchema } from "./admin.schemas";
+import { uniqueSlug } from "../../common/slug";
+import { professorPublishIssues } from "../public/publish-rules";
 
-const cleanOptionalString = z.string().trim().max(600).optional().or(z.literal(""));
+const cleanOptionalString = z.string().trim().max(2000).optional().or(z.literal(""));
+const cleanShortString = z.string().trim().max(160).optional().or(z.literal(""));
 
 const createProfessorSchema = z.object({
   branchIds: z.array(objectIdSchema).min(1),
@@ -31,6 +34,7 @@ const createProfessorSchema = z.object({
   lastName: z.string().trim().min(2).max(80),
   displayName: z.string().trim().min(2).max(120),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
+  bioShort: cleanShortString,
   bio: cleanOptionalString,
   instagram: z.string().trim().max(120).optional().or(z.literal(""))
 });
@@ -43,8 +47,10 @@ const updateProfessorSchema = z.object({
   lastName: z.string().trim().min(2).max(80).optional(),
   displayName: z.string().trim().min(2).max(120).optional(),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
+  bioShort: cleanShortString,
   bio: cleanOptionalString,
   instagram: z.string().trim().max(120).optional().or(z.literal("")),
+  publishOnWeb: z.boolean().optional(),
   avatarUrl: z.string().url().optional().or(z.literal("")),
   introVideoUrl: z.string().url().optional().or(z.literal("")),
   isActive: z.boolean().optional()
@@ -334,11 +340,13 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
       branchIds: user.branchIds.map((value) => value.toString()),
       displayName: professor.displayName,
       phone: professor.phone ?? "",
+      bioShort: professor.bioShort ?? "",
       bio: professor.bio ?? "",
       instagram: professor.instagram ?? "",
       avatarUrl: professor.avatarUrl ?? "",
       introVideoUrl: professor.introVideoUrl ?? "",
       disciplineIds: professor.disciplineIds.map((value) => value.toString()),
+      publishOnWeb: professor.publishOnWeb ?? false,
       isActive: professor.isActive
     };
 
@@ -353,14 +361,44 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
 
     if (input.displayName !== undefined) professor.displayName = input.displayName;
     if (input.phone !== undefined) professor.phone = input.phone.trim() || undefined;
+    if (input.bioShort !== undefined) professor.bioShort = input.bioShort.trim() || undefined;
     if (input.bio !== undefined) professor.bio = input.bio.trim() || undefined;
     if (input.instagram !== undefined) professor.instagram = input.instagram.trim() || undefined;
+    if (input.publishOnWeb !== undefined) professor.publishOnWeb = input.publishOnWeb;
     if (input.avatarUrl !== undefined) professor.avatarUrl = input.avatarUrl.trim() || undefined;
     if (input.introVideoUrl !== undefined) professor.introVideoUrl = input.introVideoUrl.trim() || undefined;
     if (input.disciplineIds !== undefined) {
       professor.disciplineIds = input.disciplineIds.map((value) => new Types.ObjectId(value));
     }
     if (input.isActive !== undefined) professor.isActive = input.isActive;
+
+    if (input.publishOnWeb === true) {
+      const issues = professorPublishIssues({
+        isActive: professor.isActive,
+        bioShort: professor.bioShort,
+        avatarUrl: professor.avatarUrl
+      });
+
+      if (issues.length > 0) {
+        throw new AppError(
+          422,
+          `No se puede publicar en la web: ${issues.join(", ").toLocaleLowerCase("es-AR")}`,
+          "PROFESSOR_NOT_PUBLISHABLE"
+        );
+      }
+
+      if (!professor.slug) {
+        professor.slug = await uniqueSlug(professor.displayName, async (candidate) =>
+          Boolean(
+            await ProfessorModel.exists({
+              organizationId,
+              slug: candidate,
+              _id: { $ne: professor._id }
+            })
+          )
+        );
+      }
+    }
 
     await Promise.all([user.save(), professor.save()]);
 
@@ -379,11 +417,13 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
           branchIds: user.branchIds.map((value) => value.toString()),
           displayName: professor.displayName,
           phone: professor.phone ?? "",
+          bioShort: professor.bioShort ?? "",
           bio: professor.bio ?? "",
           instagram: professor.instagram ?? "",
           avatarUrl: professor.avatarUrl ?? "",
           introVideoUrl: professor.introVideoUrl ?? "",
           disciplineIds: professor.disciplineIds.map((value) => value.toString()),
+          publishOnWeb: professor.publishOnWeb ?? false,
           isActive: professor.isActive
         }
       }

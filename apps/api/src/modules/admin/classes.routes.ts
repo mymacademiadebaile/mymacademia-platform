@@ -64,7 +64,8 @@ const updateDanceClassSchema = z.object({
   monthlyPrice: z.number().min(0).max(100000000).optional(),
   freeTrialEnabled: z.boolean().optional(),
   schedules: z.array(scheduleSchema).min(1).max(14).optional(),
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional()
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  publishOnWeb: z.boolean().optional()
 }).superRefine((value, context) => {
   if (!value.schedules) return;
 
@@ -392,7 +393,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
       monthlyPrice: item.monthlyPrice ?? 0,
       freeTrialEnabled: item.freeTrialEnabled ?? false,
       schedules: item.schedules,
-      status: item.status
+      status: item.status,
+      publishOnWeb: item.publishOnWeb ?? true
     };
 
     if (input.branchId !== undefined) item.branchId = new Types.ObjectId(input.branchId);
@@ -426,6 +428,7 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
     if (input.freeTrialEnabled !== undefined) item.freeTrialEnabled = input.freeTrialEnabled;
     if (input.schedules !== undefined) item.schedules = input.schedules;
     if (input.status !== undefined) item.status = input.status;
+    if (input.publishOnWeb !== undefined) item.publishOnWeb = input.publishOnWeb;
 
     await item.save();
 
@@ -462,7 +465,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
           monthlyPrice: item.monthlyPrice ?? 0,
           freeTrialEnabled: item.freeTrialEnabled ?? false,
           schedules: item.schedules,
-          status: item.status
+          status: item.status,
+          publishOnWeb: item.publishOnWeb ?? true
         },
         ...(enrollmentsReconciled !== undefined ? { enrollmentsReconciled } : {})
       }
