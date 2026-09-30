@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { DanceClassModel } from "../classes/class.model";
+import { enrollmentActivationUpdate, resolveBillingPreference } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { StudentModel } from "../students/student.model";
 import { TRIAL_STATUSES, TrialBookingModel } from "../trials/trial-booking.model";
@@ -20,6 +21,10 @@ const updateTrialSchema = z.object({
     (value) => value === "COMPLETED" || value === "CANCELLED",
     "Sólo se puede completar o cancelar desde este endpoint"
   )
+});
+
+const convertTrialSchema = z.object({
+  billingPreference: z.enum(["PER_CLASS", "MONTHLY"]).optional()
 });
 
 export const adminTrialsRouter = Router();
@@ -162,6 +167,7 @@ adminTrialsRouter.patch("/:id", async (request, response, next) => {
 adminTrialsRouter.post("/:id/convert", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);
+    const input = convertTrialSchema.parse(request.body ?? {});
     const organizationId = request.auth!.organizationId;
 
     const trial = await TrialBookingModel.findOne({
@@ -211,17 +217,16 @@ adminTrialsRouter.post("/:id/convert", async (request, response, next) => {
       throw new AppError(409, "La clase no tiene cupos disponibles", "CLASS_CAPACITY_REACHED");
     }
 
+    const billingPreference = resolveBillingPreference(
+      danceClass.billingMode,
+      input.billingPreference,
+      existing?.billingPreference
+    );
+
     const enrollment = existing
       ? await EnrollmentModel.findByIdAndUpdate(
           existing._id,
-          {
-            $set: {
-              branchId: danceClass.branchId,
-              status: "ACTIVE",
-              enrolledAt: new Date(),
-              endedAt: undefined
-            }
-          },
+          enrollmentActivationUpdate({ branchId: danceClass.branchId, billingPreference }),
           { new: true }
         )
       : await EnrollmentModel.create({
@@ -230,6 +235,7 @@ adminTrialsRouter.post("/:id/convert", async (request, response, next) => {
           classId: danceClass._id,
           studentId: student._id,
           status: "ACTIVE",
+          billingPreference,
           enrolledAt: new Date()
         });
 
@@ -246,7 +252,8 @@ adminTrialsRouter.post("/:id/convert", async (request, response, next) => {
       metadata: {
         enrollmentId: enrollment!._id,
         classId: danceClass._id,
-        studentId: student._id
+        studentId: student._id,
+        billingPreference: billingPreference ?? null
       }
     });
 

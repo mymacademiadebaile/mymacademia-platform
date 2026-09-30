@@ -2,6 +2,7 @@ import { Router } from "express";
 import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { DanceClassModel } from "../classes/class.model";
+import { enrollmentActivationUpdate, resolveBillingPreference } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema } from "./admin.schemas";
@@ -19,31 +20,9 @@ const updateBillingPreferenceSchema = z.object({
   billingPreference: billingPreferenceSchema
 });
 
-function resolveBillingPreference(
-  danceClass: { billingMode?: string },
-  requested?: "PER_CLASS" | "MONTHLY"
-) {
-  const mode = danceClass.billingMode ?? "MONTHLY";
-
-  if (mode === "FREE") return undefined;
-  if (mode === "PER_CLASS") {
-    if (requested && requested !== "PER_CLASS") {
-      throw new AppError(422, "Esta clase sólo admite pago por clase", "INVALID_BILLING_PREFERENCE");
-    }
-    return "PER_CLASS" as const;
-  }
-  if (mode === "MONTHLY") {
-    if (requested && requested !== "MONTHLY") {
-      throw new AppError(422, "Esta clase sólo admite pago mensual", "INVALID_BILLING_PREFERENCE");
-    }
-    return "MONTHLY" as const;
-  }
-
-  return requested ?? "PER_CLASS";
-}
-
 const moveEnrollmentSchema = z.object({
-  targetClassId: objectIdSchema
+  targetClassId: objectIdSchema,
+  billingPreference: billingPreferenceSchema.optional()
 });
 
 export const adminEnrollmentsRouter = Router();
@@ -136,8 +115,6 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
       );
     }
 
-    const billingPreference = resolveBillingPreference(danceClass, input.billingPreference);
-
     const [activeCount, existing] = await Promise.all([
       EnrollmentModel.countDocuments({
         organizationId,
@@ -159,18 +136,16 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
       throw new AppError(409, "La clase no tiene cupos disponibles", "CLASS_CAPACITY_REACHED");
     }
 
+    const billingPreference = resolveBillingPreference(
+      danceClass.billingMode,
+      input.billingPreference,
+      existing?.billingPreference
+    );
+
     const enrollment = existing
       ? await EnrollmentModel.findByIdAndUpdate(
           existing._id,
-          {
-            $set: {
-              branchId: danceClass.branchId,
-              status: "ACTIVE",
-              billingPreference,
-              enrolledAt: new Date(),
-              endedAt: undefined
-            }
-          },
+          enrollmentActivationUpdate({ branchId: danceClass.branchId, billingPreference }),
           { new: true }
         )
       : await EnrollmentModel.create({
@@ -263,6 +238,12 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
       throw new AppError(409, "La clase de destino no tiene cupo", "CLASS_CAPACITY_REACHED");
     }
 
+    const billingPreference = resolveBillingPreference(
+      targetClass.billingMode,
+      input.billingPreference,
+      enrollment.billingPreference ?? targetExisting?.billingPreference
+    );
+
     const sourceClassId = enrollment.classId;
     enrollment.status = "INACTIVE";
     enrollment.endedAt = new Date();
@@ -271,14 +252,7 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
     const targetEnrollment = targetExisting
       ? await EnrollmentModel.findByIdAndUpdate(
           targetExisting._id,
-          {
-            $set: {
-              branchId: targetClass.branchId,
-              status: "ACTIVE",
-              enrolledAt: new Date(),
-              endedAt: undefined
-            }
-          },
+          enrollmentActivationUpdate({ branchId: targetClass.branchId, billingPreference }),
           { new: true }
         )
       : await EnrollmentModel.create({
@@ -287,6 +261,7 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
           classId: targetClass._id,
           studentId: student._id,
           status: "ACTIVE",
+          billingPreference,
           enrolledAt: new Date()
         });
 
@@ -299,7 +274,8 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
       metadata: {
         studentId: student._id,
         sourceClassId,
-        targetClassId: targetClass._id
+        targetClassId: targetClass._id,
+        billingPreference: billingPreference ?? null
       }
     });
 
@@ -335,7 +311,7 @@ adminEnrollmentsRouter.patch("/:id/billing-preference", async (request, response
       throw new AppError(404, "Clase no encontrada o inactiva", "CLASS_NOT_FOUND");
     }
 
-    const billingPreference = resolveBillingPreference(danceClass, input.billingPreference);
+    const billingPreference = resolveBillingPreference(danceClass.billingMode, input.billingPreference);
     enrollment.billingPreference = billingPreference;
     await enrollment.save();
 
