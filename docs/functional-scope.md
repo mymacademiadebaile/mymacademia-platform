@@ -12,10 +12,11 @@
 - Alumnos.
 - Clases y horarios.
 - Vista de clases por tarjetas y calendario semanal.
-- Precio/cuota mensual configurable por clase.
+- Modalidad de cobro configurable por clase: por clase, mensual, ambas o sin cargo.
 - Clase gratuita de prueba configurable por clase, con agenda, estado y conversión a inscripción regular.
 - Una o varias categorías predefinidas por clase.
 - Cupos e inscripciones.
+- Clase del día con ocurrencias independientes, control operativo de presencia/ausencia y cobro rápido.
 - Gestión de pagos, vencimientos, deuda y comprobantes, vinculados al alumno y a la clase.
 - Recordatorios de deuda por email y WhatsApp con mensaje precargado.
 - Recordatorios de clase.
@@ -26,7 +27,6 @@
 
 ## Fuera de V1
 
-- Asistencia digital.
 - Lista de espera.
 - Mercado Pago.
 - CRM de interesados.
@@ -61,3 +61,17 @@ La modalidad predeterminada para nuevas clases es **por clase**, ya que refleja 
 Cuando una clase admite ambas modalidades, cada inscripción guarda la preferencia actual del alumno (`PER_CLASS` o `MONTHLY`) y puede modificarse posteriormente sin alterar pagos históricos.
 
 El módulo de pagos debe priorizar el cobro rápido: alumno -> clase -> fecha/período -> importe sugerido -> medio de pago -> registrar. También permite generar un pago pendiente para seguimiento posterior.
+
+## Clase del día y asistencia operativa (aprobado 29/09/2026)
+
+La exclusión previa de asistencia digital queda reemplazada por un alcance acotado y operativo:
+
+- cada horario genera una ocurrencia de clase por fecha;
+- la administración ve las clases del día desde el dashboard;
+- cada ocurrencia mantiene estado propio;
+- se puede marcar al alumno como esperado, presente o ausente;
+- las clases de prueba agendadas para esa fecha aparecen en la misma vista;
+- desde la misma fila se consulta la modalidad de cobro y se registra el pago;
+- finalizar una clase no borra ni altera su historial.
+
+Este módulo no implica control biométrico, fichaje automático ni una solución avanzada de asistencia. Es una herramienta simple de operación diaria.

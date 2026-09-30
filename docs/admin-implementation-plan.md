@@ -53,10 +53,8 @@ La primera versión debe cubrir:
 
 No incorporar sin aprobación explícita:
 
-- Asistencia digital.
 - Lista de espera.
 - Mercado Pago.
-- Clases de prueba.
 - CRM de interesados.
 - Portal del alumno.
 - Aplicación nativa.
@@ -726,8 +724,9 @@ Esta fase requiere especial cuidado porque impacta información económica.
 
 ### Definir antes de programar
 
-- unidad financiera V1: cuota individual por alumno;
-- períodos: formato canonical `YYYY-MM`;
+- unidad financiera V1: pago vinculado a alumno y clase, con modalidad `PER_CLASS` o `MONTHLY`;
+- la clase define `PER_CLASS`, `MONTHLY`, `BOTH` o `FREE`;
+- para pago por clase se registra fecha de clase; para mensual se usa período canonical `YYYY-MM`;
 - moneda: ARS inicialmente;
 - concepto;
 - vencimiento;
@@ -746,7 +745,7 @@ Mantener el modelo actual y agregar sólo lo necesario:
 - `paidAt`;
 - `createdByUserId`;
 - `cancelledAt/cancelledBy/reason` si se implementa cancelación;
-- índice único apropiado para evitar duplicar una cuota cuando corresponda.
+- prevención de duplicados por alumno + clase + fecha para `PER_CLASS` y por alumno + clase + período para `MONTHLY`.
 
 ### Tareas
 
@@ -805,7 +804,7 @@ Debe responder preguntas concretas del día/mes:
 - ocupación;
 - ingresos cobrados del mes;
 - monto pendiente;
-- cuotas vencidas;
+- pagos vencidos;
 - próximos vencimientos;
 - últimas acciones importantes.
 
@@ -817,7 +816,7 @@ Debe responder preguntas concretas del día/mes:
 - ocupación por clase;
 - ingresos por período;
 - deuda por período;
-- cuotas pagadas/pendientes/vencidas;
+- pagos por clase y mensuales, pagados/pendientes/vencidos;
 - carga por profesor.
 
 ### Exportaciones
@@ -1144,7 +1143,7 @@ Luego continuar con profesores y clases.
 - No usar Resend.
 - Gmail + Nodemailer.
 - No Mercado Pago en V1.
-- No asistencia en V1.
+- Asistencia operativa acotada aprobada el 29/09/2026 mediante `Clase del día`; no incluye fichaje automático ni biometría.
 - No lista de espera en V1.
 - No CRM de interesados en V1.
 - No portal alumno en V1.
@@ -1181,8 +1180,9 @@ Ingresar
 → asignar profesor
 → inscribir alumno
 → controlar cupo
-→ generar cuota
-→ registrar pago
+→ abrir la clase del día
+→ marcar presencia/ausencia
+→ registrar cobro por clase o mensual
 → emitir/consultar comprobante o recibo
 → identificar deuda
 → enviar recordatorio
@@ -1202,3 +1202,9 @@ Ingresar
 ```
 
 Todo lo anterior debe respetar permisos, scope de organización/sede, responsive design y trazabilidad de acciones sensibles.
+
+### Decisión operativa 29/09/2026
+
+Se reemplaza el supuesto de cuota mensual como unidad principal. La operatoria habitual de M&M Academia es pago por clase, aunque cada clase puede configurarse también como mensual, ambas modalidades o sin cargo.
+
+También se aprueba `Clase del día` como alcance V1: ocurrencia independiente por fecha/horario, presencia/ausencia y cobro desde la misma pantalla. Esta decisión prevalece sobre referencias anteriores que indicaban "sin asistencia en V1".
