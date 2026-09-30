@@ -15,7 +15,10 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: "/profesores" },
     openGraph: { title: "Profesores", description: DESCRIPTION, url: "/profesores" },
     // Keep out of the index while profiles are placeholders.
-    robots: professors.some((professor) => professor.isPlaceholder) ? { index: false, follow: true } : undefined
+    robots:
+      professors.length === 0 || professors.some((professor) => professor.isPlaceholder)
+        ? { index: false, follow: true }
+        : undefined
   };
 }
 

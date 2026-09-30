@@ -81,22 +81,24 @@ export function Hero({ image, branch, styles }: HeroProps) {
         La Plata — Buenos Aires — Argentina
       </p>
 
-      <div className={s.ticker} aria-hidden="true">
-        <div className={s.tickerTrack}>
-          {[0, 1].map((copy) => (
-            <span key={copy} className={s.tickerGroup}>
-              {Array.from({ length: 3 }).flatMap((_, round) =>
-                ticker.map((name) => (
-                  <span key={`${round}-${name}`} className={s.tickerItem}>
-                    {name}
-                    <span className={s.tickerSlash}>/</span>
-                  </span>
-                ))
-              )}
-            </span>
-          ))}
+      {ticker.length ? (
+        <div className={s.ticker} aria-hidden="true">
+          <div className={s.tickerTrack}>
+            {[0, 1].map((copy) => (
+              <span key={copy} className={s.tickerGroup}>
+                {Array.from({ length: 3 }).flatMap((_, round) =>
+                  ticker.map((name) => (
+                    <span key={`${round}-${name}`} className={s.tickerItem}>
+                      {name}
+                      <span className={s.tickerSlash}>/</span>
+                    </span>
+                  ))
+                )}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

@@ -4,19 +4,20 @@ import { PageIntro } from "@/components/public/page-intro";
 import { ScheduleSection } from "@/components/public/schedule-section";
 import { FinalCta } from "@/components/public/whatsapp-cta";
 import { breadcrumbJsonLd, jsonLdGraph } from "@/lib/public-site/json-ld";
-import { fetchPublicSchedule, fetchSiteImages, fetchUpcomingClasses } from "@/lib/public-site/queries";
+import { joinNames } from "@/lib/public-site/faq";
+import { fetchPublicDanceStyles, fetchPublicSchedule, fetchSiteImages, fetchUpcomingClasses } from "@/lib/public-site/queries";
 
-export const revalidate = 600;
+export async function generateMetadata(): Promise<Metadata> {
+  const names = (await fetchPublicDanceStyles()).map((style) => style.name);
+  const description = `Horario semanal de clases de baile en La Plata${names.length ? `: ${joinNames(names)}` : ""}, en M&M Academia de Baile, Calle 3 N.º 164.`;
 
-const DESCRIPTION =
-  "Horario semanal de clases de baile en La Plata: Bachata Sensual, Bachata Zouk y Estilo Femenino en M&M Academia de Baile, Calle 3 N.º 164.";
-
-export const metadata: Metadata = {
-  title: "Horarios de clases de baile en La Plata",
-  description: DESCRIPTION,
-  alternates: { canonical: "/horarios" },
-  openGraph: { title: "Horarios de clases de baile en La Plata", description: DESCRIPTION, url: "/horarios" }
-};
+  return {
+    title: "Horarios de clases de baile en La Plata",
+    description,
+    alternates: { canonical: "/horarios" },
+    openGraph: { title: "Horarios de clases de baile en La Plata", description, url: "/horarios" }
+  };
+}
 
 export default async function SchedulePage() {
   const [schedule, upcoming, images] = await Promise.all([

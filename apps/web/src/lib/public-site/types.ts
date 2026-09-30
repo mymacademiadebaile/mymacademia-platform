@@ -20,8 +20,9 @@ export type WeekDay =
 export interface PublicImage {
   src: string;
   alt: string;
-  width: number;
-  height: number;
+  /** Intrinsic size when known. Components render with `fill`, so it is optional. */
+  width?: number;
+  height?: number;
   /** CSS object-position used to keep the subject inside editorial crops. */
   focus?: string;
   /** True while the image is a temporary stock photo (see docs/public-landing.md). */
@@ -82,8 +83,10 @@ export interface PublicProfessor {
   lastName?: string;
   /** DanceStyle slugs. */
   disciplines: string[];
-  bio: string;
-  quote?: string;
+  /** One-liner for cards. */
+  bioShort: string;
+  /** Full biography, one entry per paragraph. */
+  bio: string[];
   avatar: PublicImage;
   instagram?: string;
   promoVideoUrl?: string;
@@ -119,11 +122,16 @@ export interface PublicSchedule {
 /** Resolved row ready for presentation. */
 export interface ScheduleEntry {
   slotId: string;
+  /** Groups the weekly slots that belong to the same class. */
+  classId: string;
   day: WeekDay;
   startTime: string;
   endTime: string;
   className: string;
+  /** Primary rhythm of the class. */
   style: Pick<DanceStyle, "slug" | "seoSlug" | "name">;
+  /** Every published rhythm the class belongs to (includes the primary one). */
+  styleSlugs: string[];
   professors: Pick<PublicProfessor, "slug" | "displayName">[];
   levels: string[];
 }

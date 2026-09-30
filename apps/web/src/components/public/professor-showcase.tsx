@@ -42,7 +42,7 @@ function ProfessorCard({ professor, index, styles }: ProfessorCardProps) {
         {disciplines.length ? (
           <p className={s.disciplines}>{disciplines.map((style) => style.name).join(" / ")}</p>
         ) : null}
-        {professor.quote ? <blockquote className={s.quote}>“{professor.quote}”</blockquote> : null}
+        <p className={s.quote}>{professor.bioShort}</p>
         <div className={s.links}>
           <Link
             href={`/profesores/${professor.slug}`}

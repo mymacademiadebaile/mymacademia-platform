@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { DetailFacts, DetailHero } from "@/components/public/detail-hero";
 import { ArrowIcon, WhatsAppIcon } from "@/components/public/icons";
 import { JsonLd } from "@/components/public/json-ld";
-import { ScheduleSection } from "@/components/public/schedule-section";
+import { ClassesSection } from "@/components/public/classes-section";
 import detail from "@/components/public/detail-page.module.css";
 import site from "@/components/public/site.module.css";
 import { FinalCta } from "@/components/public/whatsapp-cta";
@@ -13,29 +13,21 @@ import { breadcrumbJsonLd, jsonLdGraph, personJsonLd } from "@/lib/public-site/j
 import {
   fetchPublicDanceStyles,
   fetchPublicProfessor,
-  fetchPublicProfessors,
   fetchPublicSchedule,
   fetchSiteImages,
   fetchUpcomingClasses
 } from "@/lib/public-site/queries";
 import { whatsappHref } from "@/lib/public-site/site";
 
-export const revalidate = 600;
-export const dynamicParams = false;
-
 interface ProfessorPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await fetchPublicProfessors()).map((professor) => ({ slug: professor.slug }));
 }
 
 export async function generateMetadata({ params }: ProfessorPageProps): Promise<Metadata> {
   const professor = await fetchPublicProfessor((await params).slug);
   if (!professor) return {};
   const path = `/profesores/${professor.slug}`;
-  const description = `${professor.displayName}, profesor/a en M&M Academia de Baile, La Plata. ${professor.quote ?? ""}`.trim();
+  const description = `${professor.displayName}, profesor/a en M&M Academia de Baile, La Plata. ${professor.bioShort}`.trim();
   return {
     title: professor.displayName,
     description,
@@ -76,8 +68,10 @@ export default async function ProfessorPage({ params }: ProfessorPageProps) {
           </>
         }
       >
-        {professor.quote ? <p className={detail.lead}>“{professor.quote}”</p> : null}
-        <p>{professor.bio}</p>
+        <p className={detail.lead}>{professor.bioShort}</p>
+        {professor.bio.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
         <DetailFacts
           items={[
             ...(disciplines.length
@@ -122,13 +116,26 @@ export default async function ProfessorPage({ params }: ProfessorPageProps) {
         </div>
       </DetailHero>
 
-      <ScheduleSection
+      {professor.promoVideoUrl ? (
+        <section className={`${site.container} ${detail.video}`} aria-labelledby="video-title">
+          <h2 id="video-title" className={detail.videoTitle}>
+            {professor.firstName} en movimiento
+          </h2>
+          {/* preload="none": the video is fetched only when the visitor presses play. */}
+          <video className={detail.player} src={professor.promoVideoUrl} controls preload="none" playsInline>
+            Tu navegador no puede reproducir este video.
+          </video>
+        </section>
+      ) : null}
+
+      <ClassesSection
         entries={entries}
         upcoming={nextClasses}
         isPlaceholder={schedule.isPlaceholder}
-        count="01"
-        total={null}
+        context="professor"
+        whatsappMessage={message}
         title={`Clases con ${professor.firstName}`}
+        intro={`Los días y horarios de las clases de ${professor.displayName} en el salón de Calle 3. Escribinos para confirmar tu lugar.`}
       />
 
       <FinalCta image={images.finalCta} message={message} />

@@ -33,8 +33,8 @@ apps/web/src
 │  │  ├─ page.tsx               home  /
 │  │  ├─ opengraph-image.tsx    imagen OG 1200×630 generada en build
 │  │  ├─ clases/page.tsx        /clases
-│  │  ├─ clases/[slug]/page.tsx /clases/bachata-sensual-la-plata …
-│  │  ├─ profesores/page.tsx    /profesores           (noindex mientras sean mock)
+│  │  ├─ clases/[slug]/page.tsx /clases/<slug-del-ritmo>-la-plata
+│  │  ├─ profesores/page.tsx    /profesores           (noindex si no hay profesores publicados)
 │  │  ├─ profesores/[slug]/…    /profesores/lucia-ferreyra …
 │  │  ├─ horarios/page.tsx      /horarios
 │  │  └─ contacto/page.tsx      /contacto
@@ -44,7 +44,9 @@ apps/web/src
 └─ lib/public-site/
    ├─ types.ts                  contratos públicos (DanceStyle, PublicProfessor, PublicClass, PublicSchedule, Branch…)
    ├─ site.ts                   datos confirmados: nombre, WhatsApp, URL del sitio, navegación
-   ├─ mock-data.ts              CONTENIDO TEMPORAL (único lugar con mocks)
+   ├─ api-source.ts             cliente de la API pública + mapeo a los tipos de la web
+   ├─ mock-data.ts              contenido ficticio (solo con PUBLIC_DATA_SOURCE=mock) y fotos de marca
+   ├─ faq.ts                    preguntas frecuentes y descripciones derivadas de los ritmos reales
    ├─ queries.ts                capa de datos: fetchPublicDanceStyles(), fetchPublicProfessors()…
    ├─ schedule-utils.ts         lógica pura de horarios y próximas clases (con tests)
    ├─ json-ld.ts                builders de Schema.org
@@ -54,10 +56,10 @@ apps/web/src
 
 Reglas:
 
-- Los componentes reciben datos por props. Ningún componente importa `mock-data.ts`: solo `queries.ts` lo hace.
+- Los componentes reciben datos por props. Ningún componente importa `mock-data.ts` ni `api-source.ts`: solo `queries.ts` los usa.
 - Todo es server component por defecto. Solo tres componentes son client: `PublicHeader` (estado del scroll y menú mobile), `WeeklySchedule` (filtros) y `AnalyticsListener` (un único listener delegado).
 - Los tokens de diseño están en `components/public/site.module.css`, con scope en `.site`, así el tema claro del admin no cambia.
-- La home, `/horarios` y las páginas de detalle usan `revalidate = 600`, porque "Próximas clases" depende de la hora.
+- Las páginas públicas se renderizan bajo demanda porque dependen del catálogo publicado y de la hora ("Próximas clases"). Ver "Comportamiento ante fallas".
 
 ### Componentes
 
@@ -69,6 +71,7 @@ Reglas:
 | `DanceStyles` / `DanceStyleCard` | `dance-styles.tsx` | paneles que se expanden en desktop y carrusel swipeable en mobile; soporta N estilos |
 | `ProfessorShowcase` | `professor-showcase.tsx` | grilla editorial escalonada en desktop y carrusel en mobile; tag "Perfil de ejemplo" si `isPlaceholder` |
 | `ScheduleSection` / `UpcomingClasses` | `schedule-section.tsx` | sección blanca con próximas clases y CTA |
+| `ClassesSection` | `classes-section.tsx` | clases de un ritmo o de un profesor, agrupadas por clase con profesor, nivel, días y horas |
 | `WeeklySchedule` | `weekly-schedule.tsx` | grilla semanal en desktop, agenda por día en mobile, filtros por estilo y nivel |
 | `AcademySpace` | `academy-space.tsx` | collage de 3 fotos con la palabra "LA PLATA" cruzándolo |
 | `LocationSection` | `location-section.tsx` | dirección tipográfica y mapa oscurecido con tinte violeta y marcas de corte |
@@ -85,21 +88,20 @@ Solo CSS, sin librería de animación:
 - Todo lo animado respeta `prefers-reduced-motion: reduce`, que apaga derivas, tickers y entradas.
 - Solo se animan `transform`, `opacity` y `clip-path`. Nada bloquea la interacción.
 
-## Qué es temporal (mock)
+## Qué viene del backoffice y qué sigue siendo estático
 
-Todo lo temporal está en `lib/public-site/mock-data.ts`.
+La landing lee el **catálogo publicado** desde la API pública (ver "Datos reales desde el backoffice"). Lo único que no sale del backoffice todavía:
 
-| Dato | Estado | Efecto en SEO |
-| --- | --- | --- |
-| Nombres de estilos (Bachata Sensual, Bachata Zouk, Estilo Femenino) | **real** | — |
-| Taglines, descripciones y niveles de los estilos | borrador (`isPlaceholderCopy: true`) | se indexan; revisar el copy |
-| Profesores (Lucía Ferreyra, Tomás Acuña, Carla Benítez) | **ficticios** (`isPlaceholder: true`) | `noindex`, fuera del sitemap, sin `Person` JSON-LD, tag visible "Perfil de ejemplo" |
-| Horario semanal | **ficticio** (`isPlaceholder: true`) | tag visible "Horario de ejemplo"; sin `Event`/`Course` JSON-LD |
-| FAQ con `isPlaceholder` | a confirmar | tag "Respuesta a confirmar" y fuera del `FAQPage` JSON-LD |
-| Fotos | stock libre de Unsplash | ver abajo |
-| Dirección, WhatsApp | **reales** | — |
+| Dato | Estado |
+| --- | --- |
+| Ritmos, profesores, clases, horarios, niveles | **reales**, del backoffice (solo lo publicado) |
+| Fotos de ritmos y profesores | las sube el admin a Cloudinary |
+| Fotos del hero, manifiesto, salón y cierre | estáticas en `public/landing/mock/` (Unsplash, temporales). Son imágenes de marca, no salen del backoffice |
+| FAQ | texto en `lib/public-site/faq.ts`. Las respuestas con `isPlaceholder` no están confirmadas, se ven con el tag "Respuesta a confirmar" y quedan fuera del `FAQPage` JSON-LD |
+| Dirección y WhatsApp | reales, en `lib/public-site/site.ts` |
+| Instagram de la academia, código postal, coordenadas, horarios de apertura | no publicados hasta confirmarlos |
 
-No se publican: código postal, coordenadas, horarios de apertura, Instagram, precios, testimonios ni estadísticas.
+`PUBLIC_DATA_SOURCE=mock` (en `apps/web`) fuerza el contenido ficticio de `mock-data.ts` para trabajar sin backend: 3 ritmos, 3 profesores y un horario de ejemplo, marcados como "de ejemplo" y con `noindex`.
 
 ## Imágenes
 
@@ -119,41 +121,73 @@ Las temporales están en `apps/web/public/landing/mock/`. Son fotos libres de Un
 
 ### Cómo reemplazar imágenes
 
-1. Guardá las fotos definitivas en `apps/web/public/landing/` (fuera de `mock/`), en JPG o WebP de 1600–2400 px del lado largo.
-2. Actualizá `src`, `width`, `height`, `alt` y `focus` (el `object-position` que mantiene al sujeto en el recorte) en `mockImages` o en el `image`/`avatar` de cada entidad, y sacá `isPlaceholder`.
-3. Ningún layout depende de una foto concreta: los recortes usan `object-fit: cover` con `focus`. El collage del salón acepta cualquier trío `[vertical, horizontal, detalle]`.
-4. Borrá `public/landing/mock/` cuando no quede ninguna referencia.
+- **Ritmos y profesores:** se cargan desde el admin (Ficha web del ritmo y foto del profesor). No requieren cambios de código. Para los ritmos conviene una imagen vertical 4:5 de al menos 1000 px de ancho; el recorte usa `object-fit: cover`.
+- **Fotos de marca (hero, manifiesto, salón, cierre):** guardá las definitivas en `apps/web/public/landing/` (fuera de `mock/`), en JPG o WebP de 1600–2400 px del lado largo, y actualizá `src`, `alt` y `focus` (el `object-position` que mantiene al sujeto en el recorte) en `mockImages` de `mock-data.ts`, sacando `isPlaceholder`. El collage del salón acepta cualquier trío `[vertical, horizontal, detalle]`.
+- Borrá `public/landing/mock/` cuando no quede ninguna referencia.
 
-## Conectar el backend
+## Datos reales desde el backoffice
 
-Contratos públicos de solo lectura, pensados para `apps/api` (**no implementados todavía**):
+```text
+Admin (catálogos, profesores, clases)
+        │  PATCH /admin/...   (campos web + check "Publicar en la web")
+        ▼
+MongoDB ──► apps/api  GET /api/public/catalog | /styles | /professors | /schedule
+                         │  proyección con lista blanca (public-projection.ts), caché 60 s
+                         ▼
+apps/web  lib/public-site/api-source.ts  (fetch server-side, caché de datos 60 s)
+                         ▼
+               queries.ts ──► páginas y componentes (iguales con mock o con API)
+```
 
-| Endpoint | Fuente interna | Devuelve |
+Un cambio del admin se ve en la web en ~1–2 minutos (60 s de caché en la API + 60 s en Next).
+
+### Qué carga el admin
+
+| Dónde | Qué | Regla de visibilidad |
 | --- | --- | --- |
-| `GET /public/styles` | `CatalogItem` (`type: DISCIPLINE`, `isActive`) + campos editoriales nuevos (slug, tagline, descripción, imagen) | `DanceStyle[]` |
-| `GET /public/professors` | `Professor` (`isActive`) | `PublicProfessor[]` con **solo** `displayName`, `bio`, `avatarUrl`, `introVideoUrl`, `instagram` y disciplinas |
-| `GET /public/schedule` | `DanceClass` (`status` activo) → `schedules[]`, nombres de profesores y niveles ya resueltos | `ScheduleEntry[]` |
-| `GET /public/sessions/upcoming` | `ClassSession` futuras no canceladas | `UpcomingClass[]` |
+| Configuración → Ritmos → **Ficha web** | imagen de portada, descripción corta (160), descripción larga (2000, párrafos separados por línea en blanco), URL (slug), **Publicar en la web** | ritmo **activo + publicado**, con imagen y descripción corta |
+| Profesores → detalle | foto, **descripción corta para la web** (160), **biografía completa** (2000), Instagram, video de presentación, **Publicar en la web** | profesor **activo + publicado**, con foto y descripción corta |
+| Clases → detalle | **Mostrar en la web** (por defecto activo) | clase **activa + no oculta** y de un ritmo publicado |
 
-Privacidad: estos endpoints proyectan campos explícitos, nunca devuelven el documento completo. Nunca exponen `User`, emails, teléfonos de profesores, `phone`, alumnos, pagos, inscripciones, precios, capacidad ni `billingMode`. Deben quedar fuera de los middlewares de auth del admin, con rate limit y filtrados por `organizationId`.
+Reglas de relación:
 
-Pasos:
+- El ritmo es la entrada principal: `/clases` lista los ritmos publicados y `/clases/<slug>-la-plata` muestra su descripción, sus niveles, sus profesores y **sus clases con días y horarios** (una tarjeta por clase: profesor, nivel, días y horas).
+- Un profesor aparece en un ritmo si da una clase de ese ritmo o lo tiene asignado entre sus disciplinas. Su página `/profesores/<slug>` muestra la biografía completa, el video y sus clases.
+- Solo se nombran profesores publicados: en una clase con un profesor sin publicar, ese nombre no aparece.
+- Una clase de varios ritmos figura en cada uno. En el horario general se muestra con el primero (orden del catálogo).
+- Si se desactiva un ritmo, un profesor o una clase, o se quita la foto o la imagen, desaparece de la web. Quitar la imagen de un ritmo además lo despublica.
+- El slug se genera al publicar por primera vez (`bachata-zouk-souk`) y queda fijo; se puede editar, pero rompe los links compartidos. La URL pública es `/clases/<slug>-la-plata`.
+- "Próximas clases" se calcula del horario semanal en hora de Buenos Aires. Las sesiones (`ClassSession`) se crean bajo demanda, así que todavía no reflejan feriados ni clases canceladas.
 
-1. Implementar el endpoint en `apps/api` con un DTO que respete el tipo de `lib/public-site/types.ts`.
-2. Reemplazar el cuerpo de la función correspondiente en `queries.ts`. Por ejemplo:
+### API pública (solo lectura, sin autenticación)
 
-   ```ts
-   export async function fetchPublicDanceStyles(): Promise<DanceStyle[]> {
-     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/styles`, { next: { revalidate: 600 } });
-     if (!res.ok) throw new Error("public styles unavailable");
-     return res.json();
-   }
-   ```
+| Endpoint | Devuelve |
+| --- | --- |
+| `GET /api/public/catalog` | `{ styles, professors, schedule }` (lo consume la web) |
+| `GET /api/public/styles` | ritmos: slug, nombre, descripción corta y larga, imagen, niveles, profesores |
+| `GET /api/public/professors` | nombre, `bioShort`, `bio` (párrafos), foto, Instagram (URL), video (https), disciplinas |
+| `GET /api/public/schedule` | una fila por día y horario: clase, ritmo, profesores publicados, niveles |
 
-3. Cuando los profesores y horarios sean reales, poner `isPlaceholder: false`. Eso habilita solo el indexado, el sitemap y el `Person` JSON-LD.
-4. Borrar lo que ya no se use de `mock-data.ts`.
+Privacidad: cada consulta elige campos explícitos y la respuesta se arma con una lista blanca en `apps/api/src/modules/public/public-projection.ts`. Nunca salen `User`, email, teléfono, `userId`, `organizationId`, precios, capacidad, facturación, alumnos, pagos ni inscripciones. Hay tests que lo verifican (`public-projection.test.ts` y `public.routes.test.ts`). El video y las fotos solo se aceptan por https, y el Instagram se normaliza a una URL de instagram.com o se descarta. Las respuestas llevan `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`.
 
-Ningún componente cambia.
+La organización se elige con `PUBLIC_ORGANIZATION_SLUG` (por defecto `mym-academia`).
+
+### Variables de entorno
+
+| Variable | App | Para qué |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | web | URL de la API (ya existía) |
+| `NEXT_PUBLIC_SITE_URL` | web | origen canónico del sitio |
+| `PUBLIC_DATA_SOURCE` | web | `api` (por defecto) o `mock` |
+| `PUBLIC_ORGANIZATION_SLUG` | api | organización que se publica |
+| `CLOUDINARY_*` | api | fotos de ritmos y profesores (ya existían) |
+
+### Comportamiento ante fallas
+
+- Si la API no responde, el sitio sigue sirviendo: las secciones sin datos se ocultan, el horario muestra un mensaje y el siguiente pedido reintenta (los errores no se cachean).
+- Las páginas públicas se renderizan **bajo demanda** (`force-dynamic`) y solo la respuesta de la API se cachea. Así el build no depende del backend. El costo es más TTFB que una página estática; si hace falta, se puede pasar a ISR con `revalidate` una vez que el build corra con la API disponible.
+- Las fotos remotas solo se aceptan desde `res.cloudinary.com` (`images.remotePatterns` en `next.config.ts`).
+- Las subidas de imagen tienen tope de 4 MB por el límite de 4,5 MB del cuerpo de las funciones serverless de Vercel.
 
 ## SEO
 

@@ -34,3 +34,23 @@
   font-weight: 800;
   letter-spacing: 0;
 }
+
+.video {
+  display: grid;
+  gap: 20px;
+  padding-block: clamp(56px, 7vw, 96px);
+}
+
+.videoTitle {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(36px, 5vw, 72px);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.player {
+  width: 100%;
+  max-height: 80svh;
+  background: var(--background-3);
+}

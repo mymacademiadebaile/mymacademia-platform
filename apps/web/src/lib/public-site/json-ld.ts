@@ -5,7 +5,7 @@
  * - FAQPage only with questions that are visible on the page and confirmed.
  */
 import { mapsSearchUrl } from "./maps";
-import { SITE, absoluteUrl } from "./site";
+import { SITE, absoluteUrl, toAbsoluteUrl } from "./site";
 import type { Branch, DanceStyle, FaqItem, PublicProfessor } from "./types";
 
 type JsonLd = Record<string, unknown>;
@@ -95,7 +95,7 @@ export function personJsonLd(professor: PublicProfessor): JsonLd | undefined {
     name: professor.displayName,
     jobTitle: "Profesor/a de baile",
     worksFor: { "@id": ORG_ID },
-    image: absoluteUrl(professor.avatar.src),
+    image: toAbsoluteUrl(professor.avatar.src),
     ...(professor.instagram ? { sameAs: [professor.instagram] } : {})
   };
 }

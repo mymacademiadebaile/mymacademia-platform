@@ -49,11 +49,13 @@ export function resolveSchedule(
     if (!danceClass || !style) continue;
     entries.push({
       slotId: slot.id,
+      classId: danceClass.id,
       day: slot.day,
       startTime: slot.startTime,
       endTime: slot.endTime,
       className: danceClass.name,
       style: { slug: style.slug, seoSlug: style.seoSlug, name: style.name },
+      styleSlugs: [style.slug],
       professors: danceClass.professorSlugs
         .map((slug) => professorBySlug.get(slug))
         .filter((item): item is PublicProfessor => Boolean(item))
@@ -137,4 +139,37 @@ export function relativeDayLabel(item: UpcomingClass): string {
   if (item.daysFromToday === 0) return "Hoy";
   if (item.daysFromToday === 1) return "Mañana";
   return DAY_LABELS[item.entry.day].long;
+}
+
+export interface ClassGroup {
+  classId: string;
+  className: string;
+  style: ScheduleEntry["style"];
+  professors: ScheduleEntry["professors"];
+  levels: string[];
+  /** Weekly slots of the class, in week order. */
+  slots: { slotId: string; day: WeekDay; startTime: string; endTime: string }[];
+}
+
+/** One group per class, in order of each class's first weekly slot. */
+export function groupByClass(entries: ScheduleEntry[]): ClassGroup[] {
+  const groups = new Map<string, ClassGroup>();
+  for (const entry of sortEntries(entries)) {
+    const group = groups.get(entry.classId) ?? {
+      classId: entry.classId,
+      className: entry.className,
+      style: entry.style,
+      professors: entry.professors,
+      levels: entry.levels,
+      slots: []
+    };
+    group.slots.push({
+      slotId: entry.slotId,
+      day: entry.day,
+      startTime: entry.startTime,
+      endTime: entry.endTime
+    });
+    groups.set(entry.classId, group);
+  }
+  return [...groups.values()];
 }

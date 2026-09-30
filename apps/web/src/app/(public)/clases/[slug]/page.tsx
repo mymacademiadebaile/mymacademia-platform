@@ -6,7 +6,7 @@ import { FaqSection } from "@/components/public/faq-section";
 import { ArrowIcon, WhatsAppIcon } from "@/components/public/icons";
 import { JsonLd } from "@/components/public/json-ld";
 import { ProfessorShowcase } from "@/components/public/professor-showcase";
-import { ScheduleSection } from "@/components/public/schedule-section";
+import { ClassesSection } from "@/components/public/classes-section";
 import detail from "@/components/public/detail-page.module.css";
 import site from "@/components/public/site.module.css";
 import { FinalCta } from "@/components/public/whatsapp-cta";
@@ -24,15 +24,8 @@ import {
 } from "@/lib/public-site/queries";
 import { whatsappHref } from "@/lib/public-site/site";
 
-export const revalidate = 600;
-export const dynamicParams = false;
-
 interface StylePageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await fetchPublicDanceStyles()).map((style) => ({ slug: style.seoSlug }));
 }
 
 export async function generateMetadata({ params }: StylePageProps): Promise<Metadata> {
@@ -64,8 +57,8 @@ export default async function StylePage({ params }: StylePageProps) {
   ]);
 
   const teachers = professors.filter((professor) => style.professorSlugs.includes(professor.slug));
-  const entries = schedule.entries.filter((entry) => entry.style.slug === style.slug);
-  const nextClasses = upcoming.filter((item) => item.entry.style.slug === style.slug).slice(0, 3);
+  const entries = schedule.entries.filter((entry) => entry.styleSlugs.includes(style.slug));
+  const nextClasses = upcoming.filter((item) => item.entry.styleSlugs.includes(style.slug)).slice(0, 3);
   const others = styles.filter((item) => item.slug !== style.slug);
   const message = `Hola, vi la web de M&M Academia y quisiera consultar por las clases de ${style.name}.`;
   const faq = [
@@ -129,14 +122,14 @@ export default async function StylePage({ params }: StylePageProps) {
         </div>
       </DetailHero>
 
-      <ScheduleSection
+      <ClassesSection
         entries={entries}
         upcoming={nextClasses}
         isPlaceholder={schedule.isPlaceholder}
-        count="01"
-        total={null}
-        title={`Horarios de ${style.name}`}
-        showStyleFilter={false}
+        context="style"
+        whatsappMessage={message}
+        title={`Clases de ${style.name}`}
+        intro={`Quién da cada clase de ${style.name}, en qué nivel y qué días y horarios se dicta, en el salón de Calle 3.`}
       />
 
       {teachers.length ? <ProfessorShowcase professors={teachers} styles={styles} count="02" total={null} /> : null}

@@ -9,9 +9,7 @@
  * Consumers must go through `queries.ts`; never import this file from components.
  */
 import type {
-  Branch,
   DanceStyle,
-  FaqItem,
   PublicClass,
   PublicImage,
   PublicProfessor,
@@ -85,20 +83,6 @@ export const mockImages = {
     credit: "Unsplash"
   }
 } satisfies Record<string, PublicImage>;
-
-export const mockBranch: Branch = {
-  id: "sede-calle-3",
-  name: "M&M Academia de Baile",
-  streetAddress: "Calle 3 N.º 164",
-  betweenStreets: "entre 35 y 36",
-  locality: "La Plata",
-  region: "Buenos Aires",
-  country: "Argentina",
-  countryCode: "AR",
-  // "entre 35 y 36" confuses Google geocoding; the bare address lands on the right block.
-  // Verify the pin on site and switch to a Place ID when the business profile exists.
-  mapsQuery: "Calle 3 164, La Plata, Buenos Aires, Argentina"
-};
 
 export const mockDanceStyles: DanceStyle[] = [
   {
@@ -189,8 +173,8 @@ export const mockProfessors: PublicProfessor[] = [
     firstName: "Lucía",
     lastName: "Ferreyra",
     disciplines: ["estilo-femenino", "bachata-sensual"],
-    bio: "Perfil de ejemplo. Acá va una bio corta, escrita por la profesora, sobre su recorrido y su forma de dar clase.",
-    quote: "Técnica para soltarte, no para quedarte quieta.",
+    bioShort: "Técnica para soltarte, no para quedarte quieta.",
+    bio: ["Perfil de ejemplo. Acá va la biografía completa, escrita por la profesora, sobre su recorrido y su forma de dar clase."],
     avatar: {
       src: `${MOCK_DIR}/professor-01.jpg`,
       alt: "Retrato de la profesora (foto temporal)",
@@ -209,8 +193,8 @@ export const mockProfessors: PublicProfessor[] = [
     firstName: "Tomás",
     lastName: "Acuña",
     disciplines: ["bachata-zouk", "bachata-sensual"],
-    bio: "Perfil de ejemplo. Acá va una bio corta sobre su formación y los estilos que enseña.",
-    quote: "Movimiento, técnica y conexión.",
+    bioShort: "Movimiento, técnica y conexión.",
+    bio: ["Perfil de ejemplo. Acá va la biografía completa sobre su formación y los estilos que enseña."],
     avatar: {
       src: `${MOCK_DIR}/professor-02.jpg`,
       alt: "Profesor en pleno salto (foto temporal)",
@@ -229,8 +213,8 @@ export const mockProfessors: PublicProfessor[] = [
     firstName: "Carla",
     lastName: "Benítez",
     disciplines: ["estilo-femenino"],
-    bio: "Perfil de ejemplo. Acá va una bio corta sobre su recorrido como bailarina y docente.",
-    quote: "Cada cuerpo tiene su forma de escuchar la música.",
+    bioShort: "Cada cuerpo tiene su forma de escuchar la música.",
+    bio: ["Perfil de ejemplo. Acá va la biografía completa sobre su recorrido como bailarina y docente."],
     avatar: {
       src: `${MOCK_DIR}/professor-03.jpg`,
       alt: "Profesora elevando una pierna en un salón oscuro (foto temporal)",
@@ -269,33 +253,3 @@ export const mockSchedule: PublicSchedule = {
     { id: "s11", classId: "c-bs-1", day: "SATURDAY", startTime: "17:30", endTime: "19:00" }
   ]
 };
-
-/** General FAQ. Items flagged isPlaceholder are shown but excluded from FAQPage JSON-LD. */
-export const mockFaq: FaqItem[] = [
-  {
-    question: "¿Dónde queda M&M Academia de Baile?",
-    answer: "En Calle 3 N.º 164, entre 35 y 36, en La Plata, provincia de Buenos Aires."
-  },
-  {
-    question: "¿Qué estilos de baile se pueden aprender?",
-    answer: "Bachata Sensual, Bachata Zouk y Estilo Femenino. La academia va a ir sumando nuevos estilos."
-  },
-  {
-    question: "¿Necesito experiencia previa?",
-    answer: "Hay clases de nivel inicial para empezar desde cero. Si ya bailás, consultanos y te recomendamos el nivel.",
-    isPlaceholder: true
-  },
-  {
-    question: "¿Cómo consulto los horarios?",
-    answer: "En el horario semanal de esta página. Para confirmar un día y un horario, escribinos por WhatsApp al +54 9 221 596-8108."
-  },
-  {
-    question: "¿Cómo me inscribo?",
-    answer: "Escribinos por WhatsApp al +54 9 221 596-8108 contándonos qué estilo te interesa y te explicamos cómo sumarte."
-  },
-  {
-    question: "¿Puedo probar una clase antes de anotarme?",
-    answer: "Consultanos por WhatsApp las opciones para tu primera clase.",
-    isPlaceholder: true
-  }
-];

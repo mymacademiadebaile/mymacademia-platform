@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { groupByDay, resolveSchedule, upcomingFromSchedule, zonedNow } from "./schedule-utils.ts";
+import { groupByClass, groupByDay, resolveSchedule, upcomingFromSchedule, zonedNow } from "./schedule-utils.ts";
 import type { DanceStyle, PublicClass, PublicProfessor, PublicScheduleSlot } from "./types.ts";
 
 const TZ = "America/Argentina/Buenos_Aires";
@@ -61,5 +61,27 @@ describe("upcomingFromSchedule", () => {
 
   it("returns nothing for an empty schedule", () => {
     assert.deepEqual(upcomingFromSchedule([], new Date(), TZ), []);
+  });
+});
+
+describe("groupByClass", () => {
+  it("collects the weekly slots of each class in week order", () => {
+    const groups = groupByClass(resolveSchedule(slots, classes, styles, professors));
+
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].classId, "c1");
+    assert.deepEqual(
+      groups[0].slots.map((slot) => [slot.day, slot.startTime]),
+      [
+        ["MONDAY", "18:00"],
+        ["MONDAY", "20:00"],
+        ["WEDNESDAY", "19:00"]
+      ]
+    );
+    assert.deepEqual(groups[0].professors, [{ slug: "ana", displayName: "Ana" }]);
+  });
+
+  it("returns nothing for an empty schedule", () => {
+    assert.deepEqual(groupByClass([]), []);
   });
 });

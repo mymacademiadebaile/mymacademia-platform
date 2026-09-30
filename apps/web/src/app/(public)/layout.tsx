@@ -6,6 +6,7 @@ import { PublicFooter } from "@/components/public/public-footer";
 import { PublicHeader } from "@/components/public/public-header";
 import { WhatsAppFloat } from "@/components/public/whatsapp-cta";
 import site from "@/components/public/site.module.css";
+import { describeAcademy } from "@/lib/public-site/faq";
 import { jsonLdGraph, organizationJsonLd, websiteJsonLd } from "@/lib/public-site/json-ld";
 import { fetchPrimaryBranch, fetchPublicDanceStyles } from "@/lib/public-site/queries";
 import { SITE } from "@/lib/public-site/site";
@@ -27,34 +28,38 @@ const body = Archivo({
   axes: ["wdth"]
 });
 
-const DESCRIPTION =
-  "Academia de baile en La Plata. Clases de Bachata Sensual, Bachata Zouk y Estilo Femenino en Calle 3 N.º 164, entre 35 y 36. Consultá horarios y empezá por WhatsApp.";
+const TITLE = "M&M Academia de Baile | Clases de baile en La Plata";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE.url),
-  title: {
-    default: "M&M Academia de Baile | Clases de baile en La Plata",
-    template: "%s | M&M Academia de Baile"
-  },
-  description: DESCRIPTION,
-  applicationName: SITE.name,
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    locale: SITE.locale,
-    siteName: SITE.name,
-    url: "/",
-    title: "M&M Academia de Baile | Clases de baile en La Plata",
-    description: DESCRIPTION
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "M&M Academia de Baile | Clases de baile en La Plata",
-    description: DESCRIPTION
-  },
-  robots: { index: true, follow: true },
-  formatDetection: { telephone: false, address: false, email: false }
-};
+// Pages read the published catalog from the API, so they are rendered on demand. The
+// API response itself is cached for a minute (see lib/public-site/api-source.ts), which
+// keeps the build independent from the backend and the pages fast.
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const description = describeAcademy((await fetchPublicDanceStyles()).map((style) => style.name));
+
+  return {
+    metadataBase: new URL(SITE.url),
+    title: {
+      default: TITLE,
+      template: "%s | M&M Academia de Baile"
+    },
+    description,
+    applicationName: SITE.name,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      locale: SITE.locale,
+      siteName: SITE.name,
+      url: "/",
+      title: TITLE,
+      description
+    },
+    twitter: { card: "summary_large_image", title: TITLE, description },
+    robots: { index: true, follow: true },
+    formatDetection: { telephone: false, address: false, email: false }
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#09090b",
