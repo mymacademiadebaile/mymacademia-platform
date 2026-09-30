@@ -1,0 +1,105 @@
+.card {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--pf-line);
+  border-left: 4px solid var(--pf-violet-mid);
+  border-radius: 14px;
+  background: var(--pf-card);
+}
+
+.card[data-phase="IN_PROGRESS"] {
+  border-left-color: var(--pf-violet-strong);
+  background: var(--pf-violet-soft);
+}
+
+.card[data-phase="FINISHED"] {
+  border-left-color: var(--pf-line);
+}
+
+.card[data-phase="CANCELLED"] {
+  border-left-color: var(--pf-danger);
+  opacity: 0.85;
+}
+
+.time {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.time strong {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.time span:not(:global(.sr-only)) {
+  color: var(--pf-muted);
+  font-size: 14px;
+}
+
+.time :global(.sr-only) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.body {
+  min-width: 0;
+}
+
+.body h3 {
+  margin: 0;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.body p {
+  margin: 2px 0 0;
+  color: var(--pf-muted);
+  font-size: 14px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.cancelled {
+  text-decoration: line-through;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.link {
+  color: var(--pf-violet);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .card {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .side {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
