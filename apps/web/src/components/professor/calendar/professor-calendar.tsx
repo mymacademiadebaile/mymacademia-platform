@@ -163,8 +163,9 @@ function TimeGrid({
   today: string;
 }) {
   const all = days.flatMap((day) => byDate.get(day) ?? []);
-  const startHour = all.length ? Math.max(0, Math.min(8, Math.floor(Math.min(...all.map((s) => minutes(s.startTime))) / 60))) : 8;
-  const endHour = all.length ? Math.min(24, Math.max(20, Math.ceil(Math.max(...all.map((s) => minutes(s.endTime))) / 60))) : 20;
+  // Fit the visible hours to the classes (one hour of margin) so events are visible without scrolling.
+  const startHour = all.length ? Math.max(0, Math.floor(Math.min(...all.map((s) => minutes(s.startTime))) / 60) - 1) : 8;
+  const endHour = all.length ? Math.min(24, Math.max(startHour + 6, Math.ceil(Math.max(...all.map((s) => minutes(s.endTime))) / 60) + 1)) : 20;
   const hours = Array.from({ length: endHour - startHour }, (_, index) => startHour + index);
 
   return (

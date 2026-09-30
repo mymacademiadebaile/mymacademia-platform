@@ -362,6 +362,7 @@ a.statCard:hover {
 }
 
 .selectFilter select {
+  width: 100%;
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--pf-line);
@@ -456,5 +457,6 @@ a.statCard:hover {
 
   .selectFilter {
     flex: 1 1 calc(50% - 6px);
+    min-width: 0;
   }
 }
