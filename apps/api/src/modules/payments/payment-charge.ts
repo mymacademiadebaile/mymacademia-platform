@@ -5,7 +5,34 @@ import { utcDayRange } from "../../common/dates";
 import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { StudentModel } from "../students/student.model";
+import { ACTIVE_CHARGE_INDEX_NAME } from "./active-charge-key";
 import { PaymentModel } from "./payment.model";
+
+export function duplicateChargeError(paymentType: PaymentType) {
+  return new AppError(
+    409,
+    paymentType === "PER_CLASS"
+      ? "Ya existe un pago para esa clase y fecha"
+      : "Ya existe un pago mensual para ese período",
+    "PAYMENT_ALREADY_EXISTS"
+  );
+}
+
+/** True only for a collision on the active-charge unique index (not on other unique fields). */
+export function isDuplicateActiveChargeError(error: unknown) {
+  const candidate = error as { code?: number; keyPattern?: Record<string, unknown>; message?: string };
+  return (
+    candidate?.code === 11000 &&
+    (candidate.keyPattern?.activeChargeKey !== undefined ||
+      String(candidate.message ?? "").includes(ACTIVE_CHARGE_INDEX_NAME))
+  );
+}
+
+/** Use in .catch() of a Payment create: the unique index lost race becomes the same 409 as the pre-check. */
+export function rethrowDuplicateCharge(error: unknown, paymentType: PaymentType): never {
+  if (isDuplicateActiveChargeError(error)) throw duplicateChargeError(paymentType);
+  throw error;
+}
 
 /**
  * Rules shared by every endpoint that registers a charge (manual payment and quick charge).
@@ -109,13 +136,5 @@ export async function assertNoActiveDuplicate(input: {
     filter.period = input.period;
   }
 
-  if (await PaymentModel.exists(filter)) {
-    throw new AppError(
-      409,
-      input.paymentType === "PER_CLASS"
-        ? "Ya existe un pago para esa clase y fecha"
-        : "Ya existe un pago mensual para ese período",
-      "PAYMENT_ALREADY_EXISTS"
-    );
-  }
+  if (await PaymentModel.exists(filter)) throw duplicateChargeError(input.paymentType);
 }

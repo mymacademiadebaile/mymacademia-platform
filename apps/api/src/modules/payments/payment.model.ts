@@ -5,6 +5,11 @@ import {
   type PaymentType
 } from "@mym/shared";
 import { Schema, Types, model } from "mongoose";
+import {
+  ACTIVE_CHARGE_INDEX_NAME,
+  RECEIPT_INDEX_NAME,
+  activeChargeKeyOf
+} from "./active-charge-key";
 
 export const PAYMENT_METHODS = ["CASH", "TRANSFER", "CARD", "OTHER"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
@@ -30,6 +35,8 @@ export interface Payment {
   cancelledAt?: Date;
   cancelledByUserId?: Types.ObjectId;
   cancellationReason?: string;
+  /** Internal integrity key, present only while the payment is not CANCELLED. Never exposed by the API. */
+  activeChargeKey?: string;
 }
 
 const paymentSchema = new Schema<Payment>(
@@ -53,17 +60,57 @@ const paymentSchema = new Schema<Payment>(
     paidByUserId: { type: Schema.Types.ObjectId, ref: "User" },
     cancelledAt: { type: Date },
     cancelledByUserId: { type: Schema.Types.ObjectId, ref: "User" },
-    cancellationReason: { type: String, trim: true, maxlength: 500 }
+    cancellationReason: { type: String, trim: true, maxlength: 500 },
+    // select: false keeps it out of every query result (lean or not); the backfill uses the raw driver.
+    activeChargeKey: { type: String, select: false }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform: (_document, returned: Record<string, unknown>) => {
+        delete returned.activeChargeKey;
+        return returned;
+      }
+    }
+  }
 );
+
+// Creating or changing the identity of a payment derives the key from the payment itself, so no
+// endpoint can forget it. Updates that bypass documents (findOneAndUpdate) must $unset it explicitly,
+// as cancel does, because the key is not loaded (select: false).
+paymentSchema.pre("validate", function () {
+  const identityChanged = [
+    "status",
+    "paymentType",
+    "classId",
+    "studentId",
+    "classDate",
+    "period"
+  ].some((path) => this.isModified(path));
+
+  if (this.isNew || identityChanged) this.activeChargeKey = activeChargeKeyOf(this);
+});
 
 paymentSchema.index({ organizationId: 1, studentId: 1, classId: 1, paymentType: 1, period: 1 });
 paymentSchema.index({ organizationId: 1, studentId: 1, classId: 1, paymentType: 1, classDate: 1 });
 paymentSchema.index({ organizationId: 1, status: 1, dueDate: 1 });
+// Last line of defence against duplicate active charges. Partial (not sparse) so payments without
+// a key, including any number of CANCELLED ones, never collide.
+paymentSchema.index(
+  { organizationId: 1, activeChargeKey: 1 },
+  {
+    unique: true,
+    name: ACTIVE_CHARGE_INDEX_NAME,
+    partialFilterExpression: { activeChargeKey: { $type: "string" } }
+  }
+);
 paymentSchema.index(
   { organizationId: 1, receiptNumber: 1 },
-  { unique: true, sparse: true }
+  {
+    unique: true,
+    name: RECEIPT_INDEX_NAME,
+    partialFilterExpression: { receiptNumber: { $type: "string" } }
+  }
 );
 
 export const PaymentModel = model<Payment>("Payment", paymentSchema);

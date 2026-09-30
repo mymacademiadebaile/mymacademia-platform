@@ -17,7 +17,8 @@ import {
 import {
   assertNoActiveDuplicate,
   loadChargeContext,
-  resolveChargeDates
+  resolveChargeDates,
+  rethrowDuplicateCharge
 } from "../payments/payment-charge";
 import { nextReceiptNumber } from "../payments/sequence.model";
 import { StudentModel } from "../students/student.model";
@@ -432,7 +433,7 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       receiptNumber,
       notes: input.notes?.trim() || undefined,
       paidByUserId: new Types.ObjectId(request.auth!.userId)
-    });
+    }).catch((error) => rethrowDuplicateCharge(error, input.paymentType));
 
     await AuditLogModel.create({
       organizationId,
@@ -500,7 +501,7 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       dueDate: input.dueDate,
       notes: input.notes?.trim() || undefined,
       status: "PENDING"
-    });
+    }).catch((error) => rethrowDuplicateCharge(error, input.paymentType));
 
     await AuditLogModel.create({
       organizationId,
@@ -548,31 +549,52 @@ adminPaymentsRouter.post("/:id/mark-paid", async (request, response, next) => {
       return;
     }
 
+    // A receipt number is consumed before the conditional update. If another request wins the
+    // transition, that number stays unused (a gap), which is preferable to a duplicate receipt.
     const receiptNumber =
       payment.receiptNumber ??
       await nextReceiptNumber(new Types.ObjectId(organizationId));
 
-    payment.status = "PAID";
-    payment.paidAt = input.paidAt ?? new Date();
-    payment.paymentMethod = input.paymentMethod;
-    payment.receiptNumber = receiptNumber;
-    payment.paidByUserId = new Types.ObjectId(request.auth!.userId);
-    await payment.save();
+    // Atomic transition: only one concurrent request can move the payment to PAID.
+    const paid = await PaymentModel.findOneAndUpdate(
+      { _id: payment._id, organizationId, status: { $in: ["PENDING", "OVERDUE"] } },
+      {
+        $set: {
+          status: "PAID",
+          paidAt: input.paidAt ?? new Date(),
+          paymentMethod: input.paymentMethod,
+          receiptNumber,
+          paidByUserId: new Types.ObjectId(request.auth!.userId)
+        }
+      },
+      { new: true }
+    );
+
+    if (!paid) {
+      // Lost the race (or the payment changed meanwhile): answer from the current state, no side effects.
+      const current = await PaymentModel.findOne({ _id: payment._id, organizationId });
+      if (!current) throw new AppError(404, "Pago no encontrado", "PAYMENT_NOT_FOUND");
+      if (current.status === "CANCELLED") {
+        throw new AppError(409, "No se puede cobrar una cuota cancelada", "PAYMENT_CANCELLED");
+      }
+      response.json(current);
+      return;
+    }
 
     await AuditLogModel.create({
       organizationId,
       actorUserId: request.auth!.userId,
       action: "PAYMENT_MARKED_PAID",
       entityType: "Payment",
-      entityId: payment._id,
+      entityId: paid._id,
       metadata: {
-        amount: payment.amount,
-        paymentMethod: payment.paymentMethod,
-        receiptNumber
+        amount: paid.amount,
+        paymentMethod: paid.paymentMethod,
+        receiptNumber: paid.receiptNumber
       }
     });
 
-    response.json(payment);
+    response.json(paid);
   } catch (error) {
     next(error);
   }
@@ -599,11 +621,28 @@ adminPaymentsRouter.post("/:id/cancel", async (request, response, next) => {
     }
 
     const previousStatus = payment.status;
-    payment.status = "CANCELLED";
-    payment.cancelledAt = new Date();
-    payment.cancelledByUserId = new Types.ObjectId(request.auth!.userId);
-    payment.cancellationReason = input.reason;
-    await payment.save();
+    // Atomic, and it releases the charge identity: $unset removes the active-charge key for real.
+    const cancelled = await PaymentModel.findOneAndUpdate(
+      { _id: payment._id, organizationId, status: { $ne: "CANCELLED" } },
+      {
+        $set: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+          cancelledByUserId: new Types.ObjectId(request.auth!.userId),
+          cancellationReason: input.reason
+        },
+        $unset: { activeChargeKey: 1 }
+      },
+      { new: true }
+    );
+
+    if (!cancelled) {
+      // Another request cancelled it first: idempotent, no second audit event.
+      const current = await PaymentModel.findOne({ _id: payment._id, organizationId });
+      if (!current) throw new AppError(404, "Pago no encontrado", "PAYMENT_NOT_FOUND");
+      response.json(current);
+      return;
+    }
 
     await AuditLogModel.create({
       organizationId,
@@ -618,7 +657,7 @@ adminPaymentsRouter.post("/:id/cancel", async (request, response, next) => {
       }
     });
 
-    response.json(payment);
+    response.json(cancelled);
   } catch (error) {
     next(error);
   }
