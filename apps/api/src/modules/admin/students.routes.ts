@@ -1,7 +1,9 @@
 import { Router } from "express";
+import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
+import { BranchModel } from "../core/branch.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { PaymentModel } from "../payments/payment.model";
 import { StudentModel } from "../students/student.model";
@@ -29,6 +31,19 @@ const listStudentQuerySchema = pageQuerySchema.extend({
   isActive: z.enum(["true", "false"]).optional(),
   debt: z.enum(["true", "false"]).optional()
 });
+
+// Same answer for a missing, foreign or inactive branch so callers cannot probe other organizations.
+async function assertAssignableBranch(organizationId: string, branchId: string) {
+  const branch = await BranchModel.exists({ _id: branchId, organizationId, isActive: true });
+
+  if (!branch) {
+    throw new AppError(
+      422,
+      "La sede seleccionada no es válida o no está activa",
+      "INVALID_BRANCH"
+    );
+  }
+}
 
 export const adminStudentsRouter = Router();
 
@@ -173,6 +188,8 @@ adminStudentsRouter.post("/", async (request, response, next) => {
     const organizationId = request.auth!.organizationId;
     const normalizedEmail = input.email?.trim().toLowerCase() || undefined;
 
+    await assertAssignableBranch(organizationId, input.branchId);
+
     if (normalizedEmail) {
       const duplicate = await StudentModel.exists({
         organizationId,
@@ -234,6 +251,11 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
       throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
     }
 
+    // An unchanged (possibly inactive) branch is a historical reference and stays valid.
+    if (input.branchId !== undefined && input.branchId !== student.branchId.toString()) {
+      await assertAssignableBranch(organizationId, input.branchId);
+    }
+
     const normalizedEmail =
       input.email === undefined ? undefined : input.email.trim().toLowerCase() || undefined;
 
@@ -267,7 +289,7 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
       isActive: student.isActive
     };
 
-    if (input.branchId !== undefined) student.branchId = input.branchId as never;
+    if (input.branchId !== undefined) student.branchId = new Types.ObjectId(input.branchId);
     if (input.firstName !== undefined) student.firstName = input.firstName;
     if (input.lastName !== undefined) student.lastName = input.lastName;
     if (input.email !== undefined) student.email = normalizedEmail;
