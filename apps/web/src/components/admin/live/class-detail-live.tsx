@@ -11,6 +11,7 @@ import {
   UsersRound
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
@@ -99,6 +100,7 @@ function preferenceLabel(preference?: BillingPreference) {
 
 export function ClassDetailLive({ id }: { id: string }) {
   const { toast, confirm } = useAdminFeedback();
+  const router = useRouter();
   const [danceClass, setDanceClass] = useState<DanceClass | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentResponse | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -379,6 +381,33 @@ export function ClassDetailLive({ id }: { id: string }) {
     }
   }
 
+  async function deleteClass() {
+    if (!danceClass) return;
+
+    const approved = await confirm({
+      title: "Eliminar clase definitivamente",
+      description: `Se eliminará ${danceClass.name} de forma permanente. Solo se puede borrar si no tiene inscripciones, pagos, sesiones ni pruebas registradas.`,
+      confirmLabel: "Eliminar definitivamente",
+      tone: "danger"
+    });
+    if (!approved) return;
+
+    setBusy(true);
+    try {
+      await apiFetch<void>("/admin/classes/" + id, { method: "DELETE" });
+      toast("Clase eliminada definitivamente");
+      router.push("/admin/classes");
+    } catch (requestError) {
+      toast({
+        title: "No se pudo eliminar la clase",
+        description: apiMessage(requestError),
+        tone: "error"
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function setPublishOnWeb(next: boolean) {
     setBusy(true);
     try {
@@ -429,6 +458,9 @@ export function ClassDetailLive({ id }: { id: string }) {
           <button onClick={openEdit}>Editar clase</button>
           <button className={styles.dangerAction} disabled={busy} onClick={() => void toggleStatus()}>
             <Power size={15} /> {danceClass.status === "ACTIVE" ? "Inactivar" : "Reactivar"}
+          </button>
+          <button className={styles.dangerAction} disabled={busy} onClick={() => void deleteClass()}>
+            <Trash2 size={15} /> Eliminar
           </button>
         </div>
       </section>

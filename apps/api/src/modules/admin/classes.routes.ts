@@ -10,7 +10,10 @@ import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { enrollmentReconciliation } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
+import { PaymentModel } from "../payments/payment.model";
 import { ProfessorModel } from "../professors/professor.model";
+import { ClassSessionModel } from "../sessions/class-session.model";
+import { TrialBookingModel } from "../trials/trial-booking.model";
 import { objectIdSchema } from "./admin.schemas";
 
 const scheduleSchema = z.object({
@@ -473,6 +476,66 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
     });
 
     response.json(item);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminClassesRouter.delete("/:id", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+
+    const item = await DanceClassModel.findOne({ _id: id, organizationId });
+
+    if (!item) {
+      throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
+    }
+
+    // A class can be safely removed only before it has generated academic or
+    // financial history. Keeping these records prevents broken references and
+    // preserves the academy's audit trail.
+    const [enrollmentCount, paymentCount, sessionCount, trialCount] = await Promise.all([
+      EnrollmentModel.countDocuments({ organizationId, classId: item._id }),
+      PaymentModel.countDocuments({ organizationId, classId: item._id }),
+      ClassSessionModel.countDocuments({ organizationId, classId: item._id }),
+      TrialBookingModel.countDocuments({ organizationId, classId: item._id })
+    ]);
+
+    const dependencies = [
+      [enrollmentCount, "inscripción"],
+      [paymentCount, "pago"],
+      [sessionCount, "sesión"],
+      [trialCount, "prueba"]
+    ] as const;
+    const history = dependencies
+      .filter(([count]) => count > 0)
+      .map(([count, label]) => `${count} ${label}${count === 1 ? "" : "s"}`);
+
+    if (history.length > 0) {
+      throw new AppError(
+        409,
+        `No se puede eliminar la clase porque tiene historial asociado: ${history.join(", ")}. Podés inactivarla para conservar ese historial.`,
+        "CLASS_HAS_HISTORY"
+      );
+    }
+
+    await item.deleteOne();
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "CLASS_DELETED",
+      entityType: "DanceClass",
+      entityId: item._id,
+      metadata: {
+        name: item.name,
+        branchId: item.branchId,
+        status: item.status
+      }
+    });
+
+    response.status(204).send();
   } catch (error) {
     next(error);
   }
