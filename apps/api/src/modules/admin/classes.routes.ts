@@ -8,6 +8,7 @@ import { UserModel } from "../auth/user.model";
 import { CatalogItemModel } from "../catalogs/catalog.model";
 import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
+import { enrollmentReconciliation } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { objectIdSchema } from "./admin.schemas";
@@ -417,6 +418,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
 
       item.capacity = input.capacity;
     }
+    const billingModeChanged =
+      input.billingMode !== undefined && input.billingMode !== item.billingMode;
     if (input.billingMode !== undefined) item.billingMode = input.billingMode;
     if (input.pricePerClass !== undefined) item.pricePerClass = input.pricePerClass;
     if (input.monthlyPrice !== undefined) item.monthlyPrice = input.monthlyPrice;
@@ -425,6 +428,18 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
     if (input.status !== undefined) item.status = input.status;
 
     await item.save();
+
+    // The class is saved first; there are no transactions here, so a failure in the next write
+    // would leave ACTIVE enrollments with the old preferences until the mode is changed again.
+    let enrollmentsReconciled: number | undefined;
+    if (billingModeChanged) {
+      const { filter, update } = enrollmentReconciliation(item.billingMode);
+      const result = await EnrollmentModel.updateMany(
+        { ...filter, organizationId, classId: item._id, status: "ACTIVE" },
+        update
+      );
+      enrollmentsReconciled = result.modifiedCount;
+    }
 
     await AuditLogModel.create({
       organizationId,
@@ -448,7 +463,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
           freeTrialEnabled: item.freeTrialEnabled ?? false,
           schedules: item.schedules,
           status: item.status
-        }
+        },
+        ...(enrollmentsReconciled !== undefined ? { enrollmentsReconciled } : {})
       }
     });
 

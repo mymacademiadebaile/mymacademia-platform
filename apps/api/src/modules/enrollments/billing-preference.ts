@@ -1,4 +1,4 @@
-import type { BillingMode, PaymentType } from "@mym/shared";
+import { PAYMENT_TYPES, type BillingMode, type PaymentType } from "@mym/shared";
 import type { Types } from "mongoose";
 import { AppError } from "../../common/http/app-error";
 
@@ -55,4 +55,32 @@ export function enrollmentActivationUpdate(input: {
   }
 
   return { $set, $unset };
+}
+
+/**
+ * How to bring the ACTIVE enrollments of a class in line with its (new) billingMode.
+ * Built on resolveBillingPreference so the rule lives in one place:
+ * - PER_CLASS / MONTHLY: every enrollment that differs gets that mode.
+ * - FREE: the preference is removed for real with $unset.
+ * - BOTH: valid preferences are kept; missing or legacy values become the BOTH default.
+ * Callers must add organizationId, classId and status: "ACTIVE" to the filter.
+ */
+export function enrollmentReconciliation(billingMode: BillingMode) {
+  const preference = resolveBillingPreference(billingMode);
+
+  if (!preference) {
+    return {
+      filter: { billingPreference: { $exists: true } },
+      update: { $unset: { billingPreference: 1 } }
+    } as const;
+  }
+
+  return {
+    // Only rows that actually need a change, so untouched enrollments keep their updatedAt.
+    filter:
+      billingMode === "BOTH"
+        ? { billingPreference: { $nin: [...PAYMENT_TYPES] } }
+        : { billingPreference: { $ne: preference } },
+    update: { $set: { billingPreference: preference } }
+  } as const;
 }

@@ -1,6 +1,10 @@
 import { Types } from "mongoose";
 import { describe, expect, it } from "vitest";
-import { enrollmentActivationUpdate, resolveBillingPreference } from "./billing-preference";
+import {
+  enrollmentActivationUpdate,
+  enrollmentReconciliation,
+  resolveBillingPreference
+} from "./billing-preference";
 
 describe("resolveBillingPreference", () => {
   describe("PER_CLASS", () => {
@@ -84,5 +88,28 @@ describe("enrollmentActivationUpdate", () => {
 
     expect(update.$set).not.toHaveProperty("billingPreference");
     expect(update.$unset).toEqual({ endedAt: 1, billingPreference: 1 });
+  });
+});
+
+describe("enrollmentReconciliation", () => {
+  it.each(["PER_CLASS", "MONTHLY"] as const)("%s sets enrollments that differ to that mode", (mode) => {
+    expect(enrollmentReconciliation(mode)).toEqual({
+      filter: { billingPreference: { $ne: mode } },
+      update: { $set: { billingPreference: mode } }
+    });
+  });
+
+  it("FREE unsets the preference only where it exists", () => {
+    expect(enrollmentReconciliation("FREE")).toEqual({
+      filter: { billingPreference: { $exists: true } },
+      update: { $unset: { billingPreference: 1 } }
+    });
+  });
+
+  it("BOTH only touches missing or invalid preferences and defaults to PER_CLASS", () => {
+    expect(enrollmentReconciliation("BOTH")).toEqual({
+      filter: { billingPreference: { $nin: ["PER_CLASS", "MONTHLY"] } },
+      update: { $set: { billingPreference: "PER_CLASS" } }
+    });
   });
 });
