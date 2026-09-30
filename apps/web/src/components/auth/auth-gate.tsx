@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch, apiMessage } from "@/lib/api";
 
 export type Role = "SUPER_ADMIN" | "ADMIN" | "PROFESSOR";
 
@@ -49,6 +49,8 @@ export function AuthGate({
   const rolesKey = useMemo(() => roles.join("|"), [roles]);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [ready, setReady] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const refreshUser = useCallback(async () => {
     const response = await apiFetch<{ user: AuthUser }>("/auth/me");
@@ -60,6 +62,7 @@ export function AuthGate({
     let mounted = true;
     const allowedRoles = rolesKey.split("|") as Role[];
 
+    setConnectionError(null);
     apiFetch<{ user: AuthUser }>("/auth/me")
       .then(({ user: currentUser }) => {
         if (!mounted) return;
@@ -76,16 +79,25 @@ export function AuthGate({
         setUser(currentUser);
         setReady(true);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!mounted) return;
-        const next = encodeURIComponent(initialPathname.current);
-        router.replace(`/login?next=${next}`);
+
+        // Only a confirmed authentication failure should end the session. A
+        // temporary API, network, or rate-limit error must not send the user to
+        // the login screen and make them think their account was closed.
+        if (error instanceof ApiError && error.status === 401) {
+          const next = encodeURIComponent(initialPathname.current);
+          router.replace(`/login?next=${next}`);
+          return;
+        }
+
+        setConnectionError(apiMessage(error));
       });
 
     return () => {
       mounted = false;
     };
-  }, [rolesKey, router]);
+  }, [attempt, rolesKey, router]);
 
   if (!ready || !user) {
     return (
@@ -101,7 +113,22 @@ export function AuthGate({
       >
         <div style={{ display: "grid", gap: 8, textAlign: "center" }}>
           <strong>M&M Academia</strong>
-          <span style={{ fontSize: 12, color: "#7c7283" }}>Cargando tu espacio...</span>
+          {connectionError ? (
+            <>
+              <span style={{ fontSize: 12, color: "#7c7283", maxWidth: 300 }}>
+                No pudimos conectar con el servicio. Tu sesión sigue activa; probá nuevamente.
+              </span>
+              <button
+                type="button"
+                onClick={() => setAttempt((value) => value + 1)}
+                style={{ border: 0, background: "transparent", color: "#5b21b6", cursor: "pointer" }}
+              >
+                Reintentar
+              </button>
+            </>
+          ) : (
+            <span style={{ fontSize: 12, color: "#7c7283" }}>Cargando tu espacio...</span>
+          )}
         </div>
       </div>
     );

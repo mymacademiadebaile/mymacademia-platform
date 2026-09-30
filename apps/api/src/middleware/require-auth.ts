@@ -8,6 +8,7 @@ interface AccessTokenPayload extends jwt.JwtPayload {
   sub: string;
   organizationId: string;
   role: UserRole;
+  tokenType?: "access" | "refresh";
 }
 
 export const requireAuth: RequestHandler = (request, _response, next) => {
@@ -29,7 +30,8 @@ export const requireAuth: RequestHandler = (request, _response, next) => {
     if (
       !payload.sub ||
       !payload.organizationId ||
-      !USER_ROLES.includes(payload.role)
+      !USER_ROLES.includes(payload.role) ||
+      payload.tokenType === "refresh"
     ) {
       throw new Error("Invalid token payload");
     }

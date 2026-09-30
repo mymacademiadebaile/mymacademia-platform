@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
 import { Router } from "express";
+import jwt from "jsonwebtoken";
 import { env } from "../../config/env";
 import { requireAuth } from "../../middleware/require-auth";
 import { sendEmail } from "../../services/mailer";
@@ -10,7 +11,7 @@ import {
   loginSchema,
   resetPasswordSchema
 } from "./auth.schemas";
-import { login } from "./auth.service";
+import { createAccessToken, login } from "./auth.service";
 import { PasswordResetTokenModel } from "./password-reset-token.model";
 import { UserModel } from "./user.model";
 
@@ -24,7 +25,22 @@ const cookieOptions = {
   path: "/"
 };
 
+const refreshCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+  path: "/"
+};
+
 const clearCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/"
+};
+
+const clearRefreshCookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
   secure: process.env.NODE_ENV === "production",
@@ -41,8 +57,56 @@ authRouter.post("/login", async (request, response, next) => {
     const result = await login(input);
 
     response.cookie("mym_access", result.accessToken, cookieOptions);
+    response.cookie("mym_refresh", result.refreshToken, refreshCookieOptions);
     response.json({ user: result.user });
   } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.post("/refresh", async (request, response, next) => {
+  try {
+    const refreshToken = request.cookies?.mym_refresh as string | undefined;
+
+    if (!refreshToken) {
+      response.status(401).json({ error: "AUTH_REQUIRED", message: "Authentication required" });
+      return;
+    }
+
+    const payload = jwt.verify(refreshToken, env.JWT_ACCESS_SECRET) as {
+      sub?: string;
+      organizationId?: string;
+      role?: string;
+      tokenType?: string;
+    };
+
+    if (!payload.sub || !payload.organizationId || !payload.role || payload.tokenType !== "refresh") {
+      response.clearCookie("mym_refresh", clearRefreshCookieOptions);
+      response.status(401).json({ error: "INVALID_TOKEN", message: "Invalid or expired token" });
+      return;
+    }
+
+    const user = await UserModel.findOne({
+      _id: payload.sub,
+      organizationId: payload.organizationId,
+      isActive: true
+    }).select("organizationId role");
+
+    if (!user) {
+      response.clearCookie("mym_access", clearCookieOptions);
+      response.clearCookie("mym_refresh", clearRefreshCookieOptions);
+      response.status(401).json({ error: "USER_NOT_FOUND" });
+      return;
+    }
+
+    response.cookie("mym_access", createAccessToken(user), cookieOptions);
+    response.status(204).send();
+  } catch (error) {
+    response.clearCookie("mym_refresh", clearRefreshCookieOptions);
+    if (error instanceof jwt.JsonWebTokenError) {
+      response.status(401).json({ error: "INVALID_TOKEN", message: "Invalid or expired token" });
+      return;
+    }
     next(error);
   }
 });
@@ -136,6 +200,7 @@ authRouter.post("/reset-password", async (request, response, next) => {
     ]);
 
     response.clearCookie("mym_access", clearCookieOptions);
+    response.clearCookie("mym_refresh", clearRefreshCookieOptions);
     response.status(204).send();
   } catch (error) {
     next(error);
@@ -172,5 +237,6 @@ authRouter.get("/me", requireAuth, async (request, response, next) => {
 
 authRouter.post("/logout", (_request, response) => {
   response.clearCookie("mym_access", clearCookieOptions);
+  response.clearCookie("mym_refresh", clearRefreshCookieOptions);
   response.status(204).send();
 });

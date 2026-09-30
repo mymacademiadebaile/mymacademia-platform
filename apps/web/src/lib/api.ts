@@ -18,22 +18,46 @@ export function apiUrl(path: string) {
   return `${API_URL}${path}`;
 }
 
-export async function apiFetch<T>(
-  path: string,
-  init: RequestInit = {}
-): Promise<T> {
+async function request(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
 
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(apiUrl(path), {
+  return fetch(apiUrl(path), {
     ...init,
     headers,
     credentials: "include",
     cache: "no-store"
   });
+}
+
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit = {}
+): Promise<T> {
+  let response = await request(path, init);
+
+  // The access cookie is deliberately short lived. Renew it once and replay the
+  // request so an active user is not interrupted when those 15 minutes elapse.
+  if (
+    response.status === 401 &&
+    typeof window !== "undefined" &&
+    path !== "/auth/refresh" &&
+    path !== "/auth/login" &&
+    path !== "/auth/logout"
+  ) {
+    const refreshResponse = await request("/auth/refresh", { method: "POST" });
+
+    if (refreshResponse.ok) {
+      response = await request(path, init);
+    } else {
+      // Surface a temporary refresh-service failure as such. Treating it as the
+      // original 401 would incorrectly log a valid user out.
+      response = refreshResponse;
+    }
+  }
 
   if (!response.ok) {
     const text = await response.text();
