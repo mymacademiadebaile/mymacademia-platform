@@ -24,13 +24,25 @@ export function DanceStyleCard({ style, index, professors, headingLevel: Heading
         src={style.image.src}
         alt={style.image.alt}
         fill
-        sizes="(max-width: 767px) 82vw, (max-width: 1279px) 45vw, 34vw"
+        sizes="(max-width: 767px) 84vw, (max-width: 1023px) 46vw, 45vw"
         quality={65}
         className={s.image}
         style={{ objectPosition: style.image.focus }}
       />
+      {/* Makes the whole card a link for mouse and touch; keyboard users get the "Ver clase" link below. */}
+      <Link
+        href={`/clases/${style.seoSlug}`}
+        className={s.overlay}
+        tabIndex={-1}
+        aria-hidden="true"
+        {...trackAttrs(PUBLIC_EVENTS.viewStyle, style.slug)}
+      />
       <span className={s.index} aria-hidden="true">
         {String(index + 1).padStart(2, "0")}
+      </span>
+      {/* Name of the collapsed strip (desktop); the open card shows the heading below. */}
+      <span className={s.vertical} aria-hidden="true">
+        {style.name}
       </span>
       <div className={s.body}>
         <Heading id={`style-${style.slug}`} className={s.name}>
@@ -96,13 +108,18 @@ export function DanceStyles({ styles, professors, count = "03", total, headingAs
         </SectionHeading>
       </div>
 
-      <ul className={s.rail} style={{ "--count": styles.length } as React.CSSProperties}>
-        {styles.map((style, index) => (
-          <li key={style.id} className={s.item}>
-            <DanceStyleCard style={style} index={index} professors={professors} />
-          </li>
-        ))}
-      </ul>
+      <div className={s.railWrap}>
+        <ul className={s.rail}>
+          {styles.map((style, index) => (
+            <li key={style.id} className={s.item}>
+              <DanceStyleCard style={style} index={index} professors={professors} />
+            </li>
+          ))}
+        </ul>
+        <div className={s.progress} aria-hidden="true">
+          <span />
+        </div>
+      </div>
     </section>
   );
 }
