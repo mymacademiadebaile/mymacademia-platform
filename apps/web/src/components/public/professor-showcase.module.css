@@ -1,0 +1,199 @@
+.section {
+  position: relative;
+  padding-block: var(--section-y);
+  background: var(--background-3);
+  overflow: hidden;
+}
+
+/* Giant cropped word behind the grid. */
+.backdrop {
+  position: absolute;
+  top: clamp(40px, 6vw, 90px);
+  right: -0.06em;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(160px, 32vw, 560px);
+  line-height: 0.8;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(179, 146, 255, 0.16);
+  pointer-events: none;
+  user-select: none;
+}
+
+.grid {
+  display: flex;
+  gap: 16px;
+  margin-top: clamp(48px, 7vw, 110px);
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+}
+
+.grid::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  flex: 0 0 min(80vw, 380px);
+  scroll-snap-align: start;
+}
+
+.card {
+  position: relative;
+  display: grid;
+}
+
+.figure {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--background-2);
+}
+
+.photo {
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.08) brightness(0.92);
+  transition: filter 700ms var(--ease-out), transform 1100ms var(--ease-out);
+}
+
+.figure::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(23, 19, 29, 0.9), transparent 45%);
+}
+
+.frameNo {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 1;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--foreground);
+}
+
+.tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  color: var(--foreground);
+  background: rgba(9, 9, 11, 0.6);
+}
+
+.text {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  /* Name climbs over the bottom of the photo. */
+  margin-top: -0.9em;
+  padding-inline: 4px;
+  font-size: clamp(56px, 6vw, 104px);
+}
+
+.name {
+  display: grid;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1em;
+  line-height: 0.84;
+  text-transform: uppercase;
+}
+
+.lastName {
+  color: var(--purple-bright);
+}
+
+.disciplines,
+.quote,
+.links {
+  font-size: 16px;
+}
+
+.disciplines {
+  margin-top: 6px;
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 650;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.quote {
+  max-width: 28ch;
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.35;
+  color: var(--foreground);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 24px;
+}
+
+.instagram {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--foreground-dim);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .card:hover .photo,
+  .card:focus-within .photo {
+    filter: grayscale(0) contrast(1.05);
+    transform: scale(1.04);
+  }
+}
+
+@media (min-width: 768px) {
+  .item {
+    flex-basis: min(44vw, 420px);
+  }
+}
+
+/* Desktop: staggered magazine grid, works for any number of profiles. */
+@media (min-width: 1024px) {
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 clamp(24px, 3vw, 56px);
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+  }
+
+  .item:nth-child(3n + 2) {
+    margin-top: clamp(80px, 12vw, 220px);
+  }
+
+  .item:nth-child(3n + 3) {
+    margin-top: clamp(30px, 5vw, 90px);
+  }
+
+  .item:nth-child(n + 4) {
+    margin-top: 80px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo {
+    transition: none;
+  }
+}

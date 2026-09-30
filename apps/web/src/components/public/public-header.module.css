@@ -1,0 +1,328 @@
+.header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  color: var(--foreground);
+}
+
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: var(--header-h);
+  padding-inline: var(--gutter);
+  transition: background-color 280ms var(--ease-out), height 280ms var(--ease-out);
+}
+
+/* Soft top shade so the transparent header stays readable over photos. */
+.bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -40px;
+  z-index: -1;
+  background: linear-gradient(to bottom, rgba(9, 9, 11, 0.7), transparent);
+  pointer-events: none;
+  transition: opacity 280ms var(--ease-out);
+}
+
+.bar::after {
+  content: "";
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: 0;
+  height: 1px;
+  background: var(--line);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 520ms var(--ease-out);
+}
+
+.header[data-scrolled] .bar,
+.header[data-open] .bar {
+  background: rgba(9, 9, 11, 0.94);
+  height: 64px;
+}
+
+.header[data-scrolled] .bar::before {
+  opacity: 0;
+}
+
+.header[data-scrolled] .bar::after {
+  transform: scaleX(1);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: auto;
+  min-height: 44px;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.brandText {
+  display: grid;
+  line-height: 1.05;
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.brandText span:last-child {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.nav {
+  display: none;
+}
+
+.nav ul {
+  display: flex;
+  gap: clamp(16px, 2.2vw, 36px);
+}
+
+.navLink {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-block: 12px;
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 650;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.navIndex {
+  font-size: 10px;
+  color: var(--purple-bright);
+  letter-spacing: 0.08em;
+}
+
+.navLink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  height: 2px;
+  background: var(--purple-bright);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 360ms var(--ease-out);
+}
+
+@media (hover: hover) {
+  .navLink:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+.cta {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--purple-bright);
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 750;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: background-color 220ms var(--ease-out), color 220ms var(--ease-out);
+}
+
+@media (hover: hover) {
+  .cta:hover {
+    background: var(--purple-bright);
+    color: var(--ink);
+  }
+}
+
+/* Mobile menu trigger: a typographic label, not a big generic hamburger. */
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 4px 0 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.menuLabel {
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.menuGlyph {
+  position: relative;
+  width: 26px;
+  height: 12px;
+}
+
+.menuGlyph span {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  background: currentColor;
+  transition: transform 320ms var(--ease-out), width 320ms var(--ease-out), top 320ms var(--ease-out);
+}
+
+.menuGlyph span:first-child {
+  top: 0;
+  width: 26px;
+}
+
+.menuGlyph span:last-child {
+  top: 10px;
+  width: 16px;
+  background: var(--purple-bright);
+}
+
+.header[data-open] .menuGlyph span:first-child {
+  top: 5px;
+  transform: rotate(45deg);
+}
+
+.header[data-open] .menuGlyph span:last-child {
+  top: 5px;
+  width: 26px;
+  transform: rotate(-45deg);
+}
+
+.panel {
+  position: fixed;
+  inset: 64px 0 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 28px var(--gutter) calc(28px + env(safe-area-inset-bottom));
+  background: var(--background);
+  overflow-y: auto;
+  animation: panelIn 420ms var(--ease-out);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.panelList {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.panelList li {
+  border-bottom: 1px solid var(--line);
+  animation: linkIn 520ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 45ms + 80ms);
+}
+
+.panelLink {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 0 10px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(44px, 13vw, 72px);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.panelIndex {
+  width: 2.2ch;
+  font-family: var(--body);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  color: var(--purple-bright);
+}
+
+.panelFoot {
+  display: grid;
+  gap: 20px;
+  color: var(--foreground-dim);
+  font-size: 15px;
+}
+
+.panelCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  background: var(--purple);
+  color: #fff;
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 750;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@keyframes panelIn {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes linkIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .panelList li {
+    animation: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav {
+    display: block;
+  }
+
+  .cta {
+    display: inline-flex;
+  }
+
+  .menuButton,
+  .panel {
+    display: none;
+  }
+}

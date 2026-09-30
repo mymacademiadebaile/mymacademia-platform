@@ -1,0 +1,55 @@
+.intro {
+  padding: calc(var(--header-h) + clamp(40px, 7vw, 110px)) 0 clamp(48px, 7vw, 100px);
+  background: var(--background);
+  border-bottom: 1px solid var(--line);
+}
+
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.crumbs li:not(:last-child)::after {
+  content: "/";
+  margin-left: 8px;
+  color: var(--purple-bright);
+}
+
+.crumbs a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.kicker {
+  margin-top: clamp(32px, 5vw, 64px);
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 650;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--purple-bright);
+}
+
+.title {
+  max-width: 16ch;
+  margin-top: 16px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(52px, 9vw, 150px);
+  line-height: 0.86;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.lead {
+  display: grid;
+  gap: 14px;
+  max-width: 60ch;
+  margin-top: 28px;
+  font-size: clamp(17px, 1.4vw, 20px);
+  color: var(--foreground-dim);
+}

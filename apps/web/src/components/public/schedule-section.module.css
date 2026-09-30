@@ -1,0 +1,169 @@
+/* White section: the rhythm break after the dark opening. */
+.section {
+  position: relative;
+  padding-block: var(--section-y);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.section ::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.section :focus-visible {
+  outline-color: var(--purple);
+}
+
+.placeholderNote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+/* ---------- Upcoming classes ---------- */
+
+.upcoming {
+  display: grid;
+  gap: 16px;
+  margin-block: clamp(48px, 6vw, 88px) clamp(40px, 5vw, 64px);
+  padding: 22px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.upcomingTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--purple-bright);
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--purple-bright);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse {
+    animation: pulse 1.8s var(--ease-in-out) infinite;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.7);
+  }
+}
+
+.upcomingList {
+  display: grid;
+}
+
+.ticket {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 18px;
+  padding-block: 16px;
+  border-top: 1px solid rgba(242, 240, 236, 0.16);
+}
+
+.ticketWhen {
+  display: grid;
+  min-width: 96px;
+}
+
+.ticketDay {
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(242, 240, 236, 0.7);
+}
+
+.ticketTime {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 52px;
+  line-height: 0.86;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticketWhat {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 4px;
+}
+
+.ticketStyle {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.ticketMeta {
+  font-size: 14px;
+  color: rgba(242, 240, 236, 0.7);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: clamp(40px, 5vw, 72px);
+  padding-top: 28px;
+  border-top: 2px solid var(--ink);
+}
+
+.footText {
+  max-width: 32ch;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(26px, 3vw, 40px);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+  .upcoming {
+    grid-template-columns: 160px minmax(0, 1fr);
+    align-items: start;
+    padding: 28px 32px;
+  }
+
+  .upcomingList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ticket {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 24px;
+    border-top: 0;
+    border-left: 1px solid rgba(242, 240, 236, 0.16);
+  }
+}
+
+.empty {
+  padding-block: 32px;
+  font-size: 18px;
+  color: var(--ink-dim);
+}

@@ -1,0 +1,36 @@
+/* Shared bits for inner pages (style and professor detail). */
+.accent {
+  color: var(--purple-bright);
+}
+
+.lead {
+  color: var(--foreground);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+}
+
+.others {
+  padding-block: clamp(56px, 7vw, 96px);
+}
+
+.othersTitle {
+  margin-bottom: 18px;
+  color: var(--purple-bright);
+}
+
+.othersList {
+  display: grid;
+  gap: 4px;
+}
+
+.othersList .othersLink {
+  font-family: var(--display);
+  font-size: clamp(28px, 4vw, 56px);
+  font-weight: 800;
+  letter-spacing: 0;
+}

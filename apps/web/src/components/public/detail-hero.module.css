@@ -1,0 +1,154 @@
+.hero {
+  padding: calc(var(--header-h) + 24px) 0 clamp(64px, 8vw, 120px);
+  background: var(--background);
+}
+
+.grid {
+  display: grid;
+  gap: 40px;
+}
+
+.text {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+  order: 2;
+}
+
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.crumbs li:not(:last-child)::after {
+  content: "/";
+  margin-left: 8px;
+  color: var(--purple-bright);
+}
+
+.crumbs a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.kicker {
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 650;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--purple-bright);
+}
+
+.title {
+  display: grid;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(56px, 13vw, 150px);
+  line-height: 0.84;
+  text-transform: uppercase;
+}
+
+.body {
+  display: grid;
+  gap: 18px;
+  max-width: 58ch;
+  font-size: clamp(17px, 1.4vw, 19px);
+  color: var(--foreground-dim);
+}
+
+.figure {
+  position: relative;
+  order: 1;
+  aspect-ratio: 4 / 5;
+  max-height: 70svh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--background-3);
+}
+
+.figure::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(9, 9, 11, 0.6), transparent 40%);
+}
+
+.image {
+  object-fit: cover;
+  filter: saturate(0.9);
+}
+
+.badge {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 1;
+}
+
+.facts {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+
+.facts div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.facts dt {
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 650;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 2;
+  color: var(--muted);
+}
+
+.facts dd {
+  color: var(--foreground);
+  font-size: 16px;
+}
+
+.facts a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    padding-top: calc(var(--header-h) + 56px);
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: clamp(40px, 5vw, 96px);
+    align-items: start;
+  }
+
+  .text {
+    order: 0;
+    padding-top: 24px;
+  }
+
+  .figure {
+    order: 0;
+    max-height: none;
+    position: sticky;
+    top: 96px;
+  }
+
+  .title {
+    font-size: clamp(72px, 8.4vw, 150px);
+  }
+}
