@@ -19,6 +19,7 @@ type SettingsData = {
     inquiryContactName?: string;
     inquiryWhatsApp?: string;
     timezone?: string;
+    cancellationNoticeHours?: number;
   };
   primaryBranch: Branch | null;
   branches: Branch[];
@@ -66,7 +67,8 @@ export function SettingsLive() {
           phone: form.get("phone"),
           inquiryContactName: form.get("inquiryContactName"),
           inquiryWhatsApp: form.get("inquiryWhatsApp"),
-          timezone: form.get("timezone")
+          timezone: form.get("timezone"),
+          cancellationNoticeHours: Number(form.get("cancellationNoticeHours"))
         })
       });
       toast("Configuración general guardada");
@@ -215,6 +217,18 @@ export function SettingsLive() {
                   defaultValue={data.organization.timezone ?? "America/Argentina/Buenos_Aires"}
                   required
                 />
+              </label>
+              <label className={styles.fieldWide}>
+                <span>Anticipación mínima para cancelar (horas)</span>
+                <input
+                  name="cancellationNoticeHours"
+                  type="number"
+                  min="0"
+                  max="168"
+                  defaultValue={data.organization.cancellationNoticeHours ?? 6}
+                  required
+                />
+                <small>Los cambios entre turnos no tienen costo ni límite.</small>
               </label>
             </div>
 

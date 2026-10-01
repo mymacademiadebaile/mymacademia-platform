@@ -1131,6 +1131,8 @@
 .sessionRowAction {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .sessionRowAction button {
@@ -1146,6 +1148,11 @@
   font-size: 8px;
   font-weight: 850;
   cursor: pointer;
+}
+
+.sessionCancelBooking {
+  color: #be123c !important;
+  border-color: #fecdd3 !important;
 }
 
 .sessionPaidMark {

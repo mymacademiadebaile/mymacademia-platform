@@ -5,6 +5,7 @@ import { DanceClassModel } from "../classes/class.model";
 import { enrollmentActivationUpdate, resolveBillingPreference } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { StudentModel } from "../students/student.model";
+import { assertScheduleCapacity, scheduleKey } from "../sessions/session-booking-service";
 import { objectIdSchema } from "./admin.schemas";
 import { z } from "zod";
 
@@ -13,16 +14,28 @@ const billingPreferenceSchema = z.enum(["PER_CLASS", "MONTHLY"]);
 const createEnrollmentSchema = z.object({
   classId: objectIdSchema,
   studentId: objectIdSchema,
-  billingPreference: billingPreferenceSchema.optional()
+  billingPreference: billingPreferenceSchema.optional(),
+  scheduleKeys: z.array(z.string().min(1).max(64)).min(1).max(14).optional()
 });
 
 const updateBillingPreferenceSchema = z.object({
   billingPreference: billingPreferenceSchema
 });
+const updateScheduleKeysSchema = z.object({
+  scheduleKeys: z.array(z.string().min(1).max(64)).min(1).max(14)
+});
+
+function validateScheduleKeys(danceClass: { schedules: Array<{ day: string; startTime: string; endTime: string }> }, keys: string[]) {
+  const available = new Set(danceClass.schedules.map(scheduleKey));
+  if (new Set(keys).size !== keys.length || keys.some((key) => !available.has(key))) {
+    throw new AppError(422, "Uno o más horarios seleccionados no pertenecen a la clase", "INVALID_SCHEDULE_SELECTION");
+  }
+}
 
 const moveEnrollmentSchema = z.object({
   targetClassId: objectIdSchema,
-  billingPreference: billingPreferenceSchema.optional()
+  billingPreference: billingPreferenceSchema.optional(),
+  scheduleKeys: z.array(z.string().min(1).max(64)).min(1).max(14).optional()
 });
 
 export const adminEnrollmentsRouter = Router();
@@ -115,25 +128,22 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
       );
     }
 
-    const [activeCount, existing] = await Promise.all([
-      EnrollmentModel.countDocuments({
-        organizationId,
-        classId: danceClass._id,
-        status: "ACTIVE"
-      }),
-      EnrollmentModel.findOne({
+    const existing = await EnrollmentModel.findOne({
         organizationId,
         classId: danceClass._id,
         studentId: student._id
-      })
-    ]);
+      });
 
     if (existing?.status === "ACTIVE") {
       throw new AppError(409, "El alumno ya está inscripto", "STUDENT_ALREADY_ENROLLED");
     }
 
-    if (activeCount >= danceClass.capacity) {
-      throw new AppError(409, "La clase no tiene cupos disponibles", "CLASS_CAPACITY_REACHED");
+    // Old API consumers that did not select slots preserve the historical all-slots behaviour.
+    const scheduleKeys = input.scheduleKeys ?? danceClass.schedules.map(scheduleKey);
+    validateScheduleKeys(danceClass, scheduleKeys);
+    for (const key of scheduleKeys) {
+      const schedule = danceClass.schedules.find((item) => scheduleKey(item) === key)!;
+      await assertScheduleCapacity(organizationId, danceClass._id, schedule, danceClass.capacity, existing?._id);
     }
 
     const billingPreference = resolveBillingPreference(
@@ -142,10 +152,11 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
       existing?.billingPreference
     );
 
+    const activation = enrollmentActivationUpdate({ branchId: danceClass.branchId, billingPreference });
     const enrollment = existing
       ? await EnrollmentModel.findByIdAndUpdate(
           existing._id,
-          enrollmentActivationUpdate({ branchId: danceClass.branchId, billingPreference }),
+          { ...activation, $set: { ...activation.$set, scheduleKeys } },
           { new: true }
         )
       : await EnrollmentModel.create({
@@ -155,6 +166,7 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
           studentId: student._id,
           status: "ACTIVE",
           billingPreference,
+          scheduleKeys,
           enrolledAt: new Date()
         });
 
@@ -171,6 +183,39 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
     });
 
     response.status(201).json(enrollment);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminEnrollmentsRouter.patch("/:id/schedule-keys", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const input = updateScheduleKeysSchema.parse(request.body);
+    const organizationId = request.auth!.organizationId;
+    const enrollment = await EnrollmentModel.findOne({ _id: id, organizationId, status: "ACTIVE" });
+    if (!enrollment) throw new AppError(404, "Inscripción no encontrada", "ENROLLMENT_NOT_FOUND");
+
+    const danceClass = await DanceClassModel.findOne({ _id: enrollment.classId, organizationId, status: "ACTIVE" });
+    if (!danceClass) throw new AppError(404, "Clase no encontrada o inactiva", "CLASS_NOT_FOUND");
+    validateScheduleKeys(danceClass, input.scheduleKeys);
+    for (const key of input.scheduleKeys) {
+      const schedule = danceClass.schedules.find((item) => scheduleKey(item) === key)!;
+      await assertScheduleCapacity(organizationId, danceClass._id, schedule, danceClass.capacity, enrollment._id);
+    }
+
+    const before = enrollment.scheduleKeys ?? [];
+    enrollment.scheduleKeys = input.scheduleKeys;
+    await enrollment.save();
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "ENROLLMENT_SCHEDULES_UPDATED",
+      entityType: "Enrollment",
+      entityId: enrollment._id,
+      metadata: { classId: enrollment.classId, studentId: enrollment.studentId, before, after: input.scheduleKeys }
+    });
+    response.json(enrollment);
   } catch (error) {
     next(error);
   }
@@ -217,25 +262,21 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
       throw new AppError(422, "La clase debe pertenecer a la misma sede", "STUDENT_BRANCH_MISMATCH");
     }
 
-    const [occupied, targetExisting] = await Promise.all([
-      EnrollmentModel.countDocuments({
-        organizationId,
-        classId: targetClass._id,
-        status: "ACTIVE"
-      }),
-      EnrollmentModel.findOne({
+    const targetExisting = await EnrollmentModel.findOne({
         organizationId,
         classId: targetClass._id,
         studentId: student._id
-      })
-    ]);
+      });
 
     if (targetExisting?.status === "ACTIVE") {
       throw new AppError(409, "El alumno ya está en la clase de destino", "STUDENT_ALREADY_ENROLLED");
     }
 
-    if (occupied >= targetClass.capacity) {
-      throw new AppError(409, "La clase de destino no tiene cupo", "CLASS_CAPACITY_REACHED");
+    const scheduleKeys = input.scheduleKeys ?? targetClass.schedules.map(scheduleKey);
+    validateScheduleKeys(targetClass, scheduleKeys);
+    for (const key of scheduleKeys) {
+      const schedule = targetClass.schedules.find((item) => scheduleKey(item) === key)!;
+      await assertScheduleCapacity(organizationId, targetClass._id, schedule, targetClass.capacity, targetExisting?._id);
     }
 
     const billingPreference = resolveBillingPreference(
@@ -252,7 +293,13 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
     const targetEnrollment = targetExisting
       ? await EnrollmentModel.findByIdAndUpdate(
           targetExisting._id,
-          enrollmentActivationUpdate({ branchId: targetClass.branchId, billingPreference }),
+          {
+            ...enrollmentActivationUpdate({ branchId: targetClass.branchId, billingPreference }),
+            $set: {
+              ...enrollmentActivationUpdate({ branchId: targetClass.branchId, billingPreference }).$set,
+              scheduleKeys
+            }
+          },
           { new: true }
         )
       : await EnrollmentModel.create({
@@ -262,6 +309,7 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
           studentId: student._id,
           status: "ACTIVE",
           billingPreference,
+          scheduleKeys,
           enrolledAt: new Date()
         });
 

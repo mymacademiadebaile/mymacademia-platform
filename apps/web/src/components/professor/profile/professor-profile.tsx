@@ -2,7 +2,7 @@
 
 import { Camera, LoaderCircle, MapPin, Pencil, Trash2, Upload, Video } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { apiFetch, apiMessage } from "@/lib/api";
+import { apiFetch, apiMessage, uploadProfessorIntroVideo } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { ProfileData } from "../professor-types";
 import {
@@ -118,12 +118,17 @@ export function ProfessorProfile() {
     }
     setBusy(isPhoto ? "photo-up" : "video-up");
     try {
-      const body = new FormData();
-      body.append("file", file);
-      await apiFetch(`/professor/profile/${isPhoto ? "avatar" : "intro-video"}`, {
-        method: "POST",
-        body
-      });
+      if (isPhoto) {
+        const body = new FormData();
+        body.append("file", file);
+        await apiFetch("/professor/profile/avatar", { method: "POST", body });
+      } else {
+        await uploadProfessorIntroVideo(
+          "/professor/profile/intro-video/signature",
+          "/professor/profile/intro-video/complete",
+          file
+        );
+      }
       toast({ title: isPhoto ? "Foto actualizada" : "Video actualizado", tone: "success" });
       await reload();
     } catch (requestError) {

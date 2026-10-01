@@ -75,3 +75,11 @@ La exclusión previa de asistencia digital queda reemplazada por un alcance acot
 - finalizar una clase no borra ni altera su historial.
 
 Este módulo no implica control biométrico, fichaje automático ni una solución avanzada de asistencia. Es una herramienta simple de operación diaria.
+
+## Turnos, reservas y cambios (aprobado 30/09/2026)
+
+- La inscripción guarda uno o más turnos habituales elegidos por el alumno; no lo incorpora automáticamente a todos los horarios de la clase.
+- La lista de cada clase del día se deriva de esas selecciones y de las reservas/cancelaciones específicas de la fecha.
+- Un cambio de turno conserva la inscripción y el historial: libera el turno de origen y reserva otro turno de la misma clase y fecha, si tiene cupo.
+- Los cambios no tienen costo ni límite. La anticipación de cancelación es configurable por academia y comienza en 6 horas.
+- El pago por clase generado desde Clase del día queda vinculado a la sesión concreta, para permitir dos turnos de la misma clase en una fecha sin confundir sus cobros.

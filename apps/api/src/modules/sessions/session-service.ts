@@ -17,6 +17,8 @@ import {
   type AttendanceStatus
 } from "./class-attendance.model";
 import { ClassSessionModel } from "./class-session.model";
+import { SessionBookingModel } from "./session-booking.model";
+import { enrollmentMatchesSession } from "./session-booking-service";
 
 export type BillingType = "PER_CLASS" | "MONTHLY" | "FREE";
 export type SessionPhase = "SCHEDULED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
@@ -216,7 +218,7 @@ export async function loadSessionParticipants(
   const { start, end } = utcDayRange(session.sessionDate);
   const period = session.sessionDate.slice(0, 7);
 
-  const [enrollments, trials, attendance] = await Promise.all([
+  const [enrollments, trials, attendance, overrides] = await Promise.all([
     EnrollmentModel.find({
       organizationId,
       classId: session.classId,
@@ -233,7 +235,13 @@ export async function loadSessionParticipants(
       .populate("studentId", "firstName lastName email phone isActive")
       .lean(),
     ClassAttendanceModel.find({ organizationId, sessionId: session._id }).lean()
+    ,
+    SessionBookingModel.find({ organizationId, sessionId: session._id }).lean()
   ]);
+
+  const overrideByEnrollment = new Map(
+    (overrides as Array<any>).map((item) => [String(item.enrollmentId), item.status])
+  );
 
   const enrolledStudentIds = new Set(
     (enrollments as Array<any>).map((item) => String(item.studentId?._id ?? item.studentId))
@@ -250,6 +258,8 @@ export async function loadSessionParticipants(
 
   for (const enrollment of enrollments as Array<any>) {
     if (!enrollment.studentId?.isActive) continue;
+    const override = overrideByEnrollment.get(String(enrollment._id));
+    if (override !== "BOOKED" && (override === "CANCELLED" || !enrollmentMatchesSession(enrollment, session))) continue;
     participants.push({
       studentId: String(enrollment.studentId._id),
       student: enrollment.studentId,
@@ -280,7 +290,13 @@ export async function loadSessionParticipants(
         studentId: { $in: participantIds },
         status: { $ne: "CANCELLED" },
         $or: [
-          { paymentType: "PER_CLASS", classDate: { $gte: start, $lt: end } },
+          {
+            paymentType: "PER_CLASS",
+            $or: [
+              { sessionId: session._id },
+              { sessionId: { $exists: false }, classDate: { $gte: start, $lt: end } }
+            ]
+          },
           { paymentType: "MONTHLY", period }
         ]
       })
@@ -340,23 +356,26 @@ export async function setSessionAttendance(
   actorUserId: string
 ) {
   const { start, end } = utcDayRange(session.sessionDate);
-  const [enrollment, trial] = await Promise.all([
-    EnrollmentModel.exists({
+  const [enrollment, trial, override] = await Promise.all([
+    EnrollmentModel.findOne({
       organizationId,
       classId: session.classId,
       studentId,
       status: "ACTIVE"
-    }),
+    }).select("_id scheduleKeys").lean(),
     TrialBookingModel.findOne({
       organizationId,
       classId: session.classId,
       studentId,
       status: { $in: ["SCHEDULED", "COMPLETED"] },
       scheduledFor: { $gte: start, $lt: end }
-    })
+    }),
+    SessionBookingModel.findOne({ organizationId, sessionId: session._id, studentId }).lean()
   ]);
 
-  if (!enrollment && !trial) {
+  const isBooked = override?.status === "BOOKED" ||
+    (override?.status !== "CANCELLED" && enrollment && enrollmentMatchesSession(enrollment, session));
+  if (!isBooked && !trial) {
     throw new AppError(
       422,
       "El alumno no pertenece a esta clase del día",

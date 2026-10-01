@@ -2,10 +2,11 @@ import { Router } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
-import { weekDayFor } from "../../common/dates";
+import { academyNow, weekDayFor } from "../../common/dates";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
+import { OrganizationModel } from "../core/organization.model";
 import { ATTENDANCE_STATUSES } from "../sessions/class-attendance.model";
 import {
   CLASS_SESSION_STATUSES,
@@ -16,6 +17,12 @@ import {
   loadSessionParticipants,
   setSessionAttendance
 } from "../sessions/session-service";
+import { SessionBookingModel } from "../sessions/session-booking.model";
+import {
+  assertCancellationWindow,
+  assertSessionCapacity,
+  sessionEnrollmentIds
+} from "../sessions/session-booking-service";
 import { objectIdSchema } from "./admin.schemas";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -30,6 +37,11 @@ const sessionStatusSchema = z.object({
     (value) => value === "COMPLETED" || value === "CANCELLED",
     "Sólo se puede completar o cancelar una clase desde este endpoint"
   )
+});
+const enrollmentIdSchema = z.object({ enrollmentId: objectIdSchema });
+const transferSchema = z.object({
+  enrollmentId: objectIdSchema,
+  targetSessionId: objectIdSchema
 });
 
 export const adminSessionsRouter = Router();
@@ -143,6 +155,16 @@ adminSessionsRouter.get("/:id", async (request, response, next) => {
       session,
       danceClass as any
     );
+    await ensureSessions(organizationId, [danceClass as any], session.sessionDate, session.sessionDate);
+    const alternatives = await ClassSessionModel.find({
+      organizationId,
+      classId: session.classId,
+      sessionDate: session.sessionDate,
+      _id: { $ne: session._id },
+      status: { $ne: "CANCELLED" }
+    })
+      .sort({ startTime: 1 })
+      .lean();
     const billingMode = (danceClass as any).billingMode ?? "MONTHLY";
     const pricePerClass = (danceClass as any).pricePerClass ?? 0;
     const monthlyPrice = (danceClass as any).monthlyPrice ?? 0;
@@ -166,7 +188,10 @@ adminSessionsRouter.get("/:id", async (request, response, next) => {
           avatarUrl: professor.avatarUrl
         }))
       },
-      participants
+      participants,
+      alternatives: alternatives.map((item) => ({
+        id: String(item._id), startTime: item.startTime, endTime: item.endTime
+      }))
     });
   } catch (error) {
     next(error);
@@ -198,6 +223,108 @@ adminSessionsRouter.patch("/:id/attendance/:studentId", async (request, response
     );
 
     response.json(attendance);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Cancel this student's recurring or previously moved booking for one concrete session. */
+adminSessionsRouter.post("/:id/bookings/cancel", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const { enrollmentId } = enrollmentIdSchema.parse(request.body);
+    const organizationId = request.auth!.organizationId;
+    const [session, enrollment, organization] = await Promise.all([
+      ClassSessionModel.findOne({ _id: id, organizationId }),
+      EnrollmentModel.findOne({ _id: enrollmentId, organizationId, status: "ACTIVE" }),
+      OrganizationModel.findById(organizationId).select("cancellationNoticeHours")
+    ]);
+    if (!session) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
+    if (!enrollment || !enrollment.classId.equals(session.classId)) {
+      throw new AppError(422, "La inscripción no corresponde a esta clase", "INVALID_SESSION_ENROLLMENT");
+    }
+    if (session.status !== "SCHEDULED") throw new AppError(422, "El turno ya no está disponible para cancelación", "SESSION_UNAVAILABLE");
+    const enrolled = await sessionEnrollmentIds(organizationId, session);
+    if (!enrolled.some((item) => item._id.equals(enrollment._id))) {
+      throw new AppError(422, "El alumno no tiene turno reservado en esta fecha", "STUDENT_NOT_BOOKED");
+    }
+    assertCancellationWindow(session, organization?.cancellationNoticeHours ?? 6);
+
+    const booking = await SessionBookingModel.findOneAndUpdate(
+      { organizationId, sessionId: session._id, enrollmentId: enrollment._id },
+      {
+        $set: {
+          classId: session.classId,
+          studentId: enrollment.studentId,
+          status: "CANCELLED",
+          changedByUserId: request.auth!.userId,
+          changedAt: new Date()
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    await AuditLogModel.create({
+      organizationId, actorUserId: request.auth!.userId, action: "SESSION_BOOKING_CANCELLED",
+      entityType: "SessionBooking", entityId: booking._id,
+      metadata: { sessionId: session._id, enrollmentId: enrollment._id, studentId: enrollment.studentId }
+    });
+    response.json(booking);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Move a booked student to another time of the same class and date. Changes have no fee or limit. */
+adminSessionsRouter.post("/:id/bookings/transfer", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const input = transferSchema.parse(request.body);
+    const organizationId = request.auth!.organizationId;
+    const [source, target, enrollment] = await Promise.all([
+      ClassSessionModel.findOne({ _id: id, organizationId }),
+      ClassSessionModel.findOne({ _id: input.targetSessionId, organizationId }),
+      EnrollmentModel.findOne({ _id: input.enrollmentId, organizationId, status: "ACTIVE" })
+    ]);
+    if (!source || !target) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
+    if (!enrollment || !enrollment.classId.equals(source.classId) || !target.classId.equals(source.classId) || target.sessionDate !== source.sessionDate) {
+      throw new AppError(422, "El cambio debe ser entre turnos de la misma clase y fecha", "INVALID_SESSION_TRANSFER");
+    }
+    const now = academyNow();
+    if (
+      source._id.equals(target._id) ||
+      source.status !== "SCHEDULED" ||
+      target.status !== "SCHEDULED" ||
+      `${source.sessionDate}T${source.startTime}` <= `${now.date}T${now.time}`
+    ) {
+      throw new AppError(422, "El turno seleccionado no está disponible", "SESSION_UNAVAILABLE");
+    }
+    const current = await sessionEnrollmentIds(organizationId, source);
+    if (!current.some((item) => item._id.equals(enrollment._id))) {
+      throw new AppError(422, "El alumno no tiene turno reservado en el horario de origen", "STUDENT_NOT_BOOKED");
+    }
+    const actualClass = await DanceClassModel.findOne({ _id: source.classId, organizationId, status: "ACTIVE" });
+    if (!actualClass) throw new AppError(404, "Clase no encontrada o inactiva", "CLASS_NOT_FOUND");
+    await assertSessionCapacity(organizationId, target, actualClass.capacity, enrollment._id);
+
+    const changedAt = new Date();
+    await Promise.all([
+      SessionBookingModel.findOneAndUpdate(
+        { organizationId, sessionId: source._id, enrollmentId: enrollment._id },
+        { $set: { classId: source.classId, studentId: enrollment.studentId, status: "CANCELLED", changedByUserId: request.auth!.userId, changedAt } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      ),
+      SessionBookingModel.findOneAndUpdate(
+        { organizationId, sessionId: target._id, enrollmentId: enrollment._id },
+        { $set: { classId: target.classId, studentId: enrollment.studentId, status: "BOOKED", sourceSessionId: source._id, changedByUserId: request.auth!.userId, changedAt } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      )
+    ]);
+    await AuditLogModel.create({
+      organizationId, actorUserId: request.auth!.userId, action: "SESSION_BOOKING_TRANSFERRED",
+      entityType: "Enrollment", entityId: enrollment._id,
+      metadata: { enrollmentId: enrollment._id, studentId: enrollment.studentId, sourceSessionId: source._id, targetSessionId: target._id }
+    });
+    response.status(201).json({ sourceSessionId: String(source._id), targetSessionId: String(target._id), enrollmentId: String(enrollment._id) });
   } catch (error) {
     next(error);
   }

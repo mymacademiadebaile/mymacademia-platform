@@ -118,6 +118,7 @@ export async function assertNoActiveDuplicate(input: {
   studentId: Types.ObjectId;
   classId: Types.ObjectId;
   paymentType: PaymentType;
+  sessionId?: Types.ObjectId;
   classDateKey?: string;
   period: string;
 }) {
@@ -130,8 +131,12 @@ export async function assertNoActiveDuplicate(input: {
   };
 
   if (input.paymentType === "PER_CLASS") {
-    const { start, end } = utcDayRange(input.classDateKey!);
-    filter.classDate = { $gte: start, $lt: end };
+    if (input.sessionId) {
+      filter.sessionId = input.sessionId;
+    } else {
+      const { start, end } = utcDayRange(input.classDateKey!);
+      filter.classDate = { $gte: start, $lt: end };
+    }
   } else {
     filter.period = input.period;
   }

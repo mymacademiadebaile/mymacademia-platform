@@ -79,6 +79,59 @@ export async function apiFetch<T>(
   return (await response.json()) as T;
 }
 
+type ProfessorVideoUploadSignature = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  publicId: string;
+  uploadPublicId: string;
+  allowedFormats: string;
+};
+
+type CloudinaryUploadResponse = {
+  public_id?: string;
+  error?: { message?: string };
+};
+
+/** Uploads the file browser → Cloudinary, so the video never crosses Vercel. */
+export async function uploadProfessorIntroVideo(
+  signaturePath: string,
+  completionPath: string,
+  file: File
+): Promise<{ introVideoUrl: string }> {
+  const ticket = await apiFetch<ProfessorVideoUploadSignature>(signaturePath, { method: "POST" });
+  const form = new FormData();
+  form.append("file", file);
+  form.append("api_key", ticket.apiKey);
+  form.append("timestamp", String(ticket.timestamp));
+  form.append("signature", ticket.signature);
+  form.append("folder", ticket.folder);
+  form.append("public_id", ticket.uploadPublicId);
+  form.append("overwrite", "true");
+  form.append("allowed_formats", ticket.allowedFormats);
+
+  const uploadResponse = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(ticket.cloudName)}/video/upload`,
+    { method: "POST", body: form }
+  );
+  const upload = (await uploadResponse.json().catch(() => ({}))) as CloudinaryUploadResponse;
+
+  if (!uploadResponse.ok) {
+    throw new Error(upload.error?.message ?? "No pudimos cargar el video");
+  }
+
+  if (upload.public_id !== ticket.publicId) {
+    throw new Error("Cloudinary devolvió un video no esperado");
+  }
+
+  return apiFetch<{ introVideoUrl: string }>(completionPath, {
+    method: "POST",
+    body: JSON.stringify({ publicId: ticket.publicId })
+  });
+}
+
 export function apiMessage(error: unknown): string {
   if (error instanceof ApiError && error.payload && typeof error.payload === "object") {
     const payload = error.payload as { message?: string; error?: string };

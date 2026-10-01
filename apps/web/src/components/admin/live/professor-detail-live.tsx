@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
-import { apiFetch, apiMessage } from "@/lib/api";
+import { apiFetch, apiMessage, uploadProfessorIntroVideo } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { Branch, CatalogItem, DanceClass, Professor } from "./live-types";
 import {
@@ -43,6 +43,8 @@ type ProfessorDetail = {
 
 const BIO_SHORT_MAX = 160;
 const BIO_MAX = 2000;
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const VIDEO_MAX = 60 * 1024 * 1024;
 
 function disciplineName(value: CatalogItem | string) {
   return typeof value === "string" ? value : value.name;
@@ -183,16 +185,34 @@ export function ProfessorDetailLive({ id }: { id: string }) {
   async function uploadMedia(kind: "avatar" | "intro-video", file?: File) {
     if (!file) return;
 
-    const form = new FormData();
-    form.append("file", file);
+    if (kind === "intro-video" && !VIDEO_TYPES.includes(file.type)) {
+      toast({
+        title: "El video debe ser MP4, WEBM o MOV",
+        tone: "error"
+      });
+      return;
+    }
+
+    if (kind === "intro-video" && file.size > VIDEO_MAX) {
+      toast({ title: "El video supera el máximo de 60 MB", tone: "error" });
+      return;
+    }
+
     setMediaBusy(kind === "avatar" ? "avatar" : "video");
     setError("");
 
     try {
-      await apiFetch(`/admin/professors/${id}/${kind}`, {
-        method: "POST",
-        body: form
-      });
+      if (kind === "intro-video") {
+        await uploadProfessorIntroVideo(
+          `/admin/professors/${id}/intro-video/signature`,
+          `/admin/professors/${id}/intro-video/complete`,
+          file
+        );
+      } else {
+        const form = new FormData();
+        form.append("file", file);
+        await apiFetch(`/admin/professors/${id}/${kind}`, { method: "POST", body: form });
+      }
       toast(kind === "avatar" ? "Foto actualizada" : "Video de presentación actualizado");
       await load();
     } catch (requestError) {

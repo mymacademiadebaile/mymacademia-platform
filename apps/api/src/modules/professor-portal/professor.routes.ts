@@ -2,6 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import {
+  confirmProfessorIntroVideoUpload,
+  createProfessorIntroVideoUploadSignature,
   deleteProfessorMedia,
   professorAvatarUpload,
   professorVideoUpload,
@@ -21,6 +23,10 @@ const updateOwnProfileSchema = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   bio: z.string().trim().max(600).optional().or(z.literal("")),
   instagram: z.string().trim().max(120).optional().or(z.literal(""))
+});
+
+const completeProfessorVideoUploadSchema = z.object({
+  publicId: z.string().trim().min(1).max(500)
 });
 
 export const professorPortalRouter = Router();
@@ -227,6 +233,66 @@ professorPortalRouter.delete("/profile/avatar", async (request, response, next) 
     next(error);
   }
 });
+
+professorPortalRouter.post(
+  "/profile/intro-video/signature",
+  async (request, response, next) => {
+    try {
+      const organizationId = request.auth!.organizationId;
+      const professor = await ProfessorModel.findOne({
+        organizationId,
+        userId: request.auth!.userId,
+        isActive: true
+      });
+
+      if (!professor) {
+        throw new AppError(404, "Perfil de profesor no encontrado", "PROFESSOR_PROFILE_NOT_FOUND");
+      }
+
+      response.json(createProfessorIntroVideoUploadSignature(organizationId, professor.id));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+professorPortalRouter.post(
+  "/profile/intro-video/complete",
+  async (request, response, next) => {
+    try {
+      const input = completeProfessorVideoUploadSchema.parse(request.body);
+      const organizationId = request.auth!.organizationId;
+      const professor = await ProfessorModel.findOne({
+        organizationId,
+        userId: request.auth!.userId,
+        isActive: true
+      });
+
+      if (!professor) {
+        throw new AppError(404, "Perfil de profesor no encontrado", "PROFESSOR_PROFILE_NOT_FOUND");
+      }
+
+      professor.introVideoUrl = await confirmProfessorIntroVideoUpload(
+        organizationId,
+        professor.id,
+        input.publicId
+      );
+      await professor.save();
+
+      await AuditLogModel.create({
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "PROFESSOR_SELF_INTRO_VIDEO_UPDATED",
+        entityType: "Professor",
+        entityId: professor._id
+      });
+
+      response.json({ introVideoUrl: professor.introVideoUrl });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 professorPortalRouter.post(
   "/profile/intro-video",

@@ -25,6 +25,8 @@ import { StudentModel } from "../students/student.model";
 import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { OrganizationModel } from "../core/organization.model";
+import { ClassSessionModel } from "../sessions/class-session.model";
+import { sessionEnrollmentIds } from "../sessions/session-booking-service";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 
 const createPaymentSchema = z.object({
@@ -32,6 +34,7 @@ const createPaymentSchema = z.object({
   studentId: objectIdSchema,
   classId: objectIdSchema,
   paymentType: z.enum(PAYMENT_TYPES).default("MONTHLY"),
+  sessionId: objectIdSchema.optional(),
   classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener formato YYYY-MM-DD").optional(),
   concept: z.string().trim().min(2).max(120),
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "El período debe tener formato YYYY-MM").optional(),
@@ -54,6 +57,7 @@ const quickChargeSchema = z.object({
   studentId: objectIdSchema,
   classId: objectIdSchema,
   paymentType: z.enum(PAYMENT_TYPES),
+  sessionId: objectIdSchema.optional(),
   classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
   amount: z.number().positive().optional(),
@@ -106,6 +110,35 @@ function effectiveStatus(payment: {
     return "OVERDUE";
   }
   return payment.status;
+}
+
+/** A per-class charge issued from a session must belong to that exact booked occurrence. */
+async function resolveChargeSession(input: {
+  organizationId: string;
+  classId: string;
+  enrollmentId: Types.ObjectId;
+  paymentType: "PER_CLASS" | "MONTHLY";
+  sessionId?: string;
+  classDate?: string;
+}) {
+  if (!input.sessionId) return undefined;
+  if (input.paymentType !== "PER_CLASS") {
+    throw new AppError(422, "Sólo un pago por clase puede vincularse a un turno", "INVALID_PAYMENT_SESSION");
+  }
+  const session = await ClassSessionModel.findOne({
+    _id: input.sessionId,
+    organizationId: input.organizationId,
+    classId: input.classId,
+    status: { $ne: "CANCELLED" }
+  });
+  if (!session || (input.classDate && session.sessionDate !== input.classDate)) {
+    throw new AppError(422, "El turno no coincide con la clase y fecha cobradas", "INVALID_PAYMENT_SESSION");
+  }
+  const enrolled = await sessionEnrollmentIds(input.organizationId, session);
+  if (!enrolled.some((item) => item._id.equals(input.enrollmentId))) {
+    throw new AppError(422, "El alumno no tiene una reserva en ese turno", "STUDENT_NOT_BOOKED");
+  }
+  return session;
 }
 
 async function buildPaymentFilter(
@@ -384,7 +417,7 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
     const input = quickChargeSchema.parse(request.body);
     const organizationId = request.auth!.organizationId;
 
-    const { student, danceClass } = await loadChargeContext(
+    const { student, danceClass, enrollment } = await loadChargeContext(
       organizationId,
       input,
       input.paymentType
@@ -394,6 +427,10 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       paymentType: input.paymentType,
       classDate: input.classDate,
       period: input.paymentType === "MONTHLY" ? input.period : undefined
+    });
+    const session = await resolveChargeSession({
+      organizationId, classId: input.classId, enrollmentId: enrollment._id,
+      paymentType: input.paymentType, sessionId: input.sessionId, classDate: classDateKey
     });
     const defaultAmount =
       input.paymentType === "PER_CLASS"
@@ -410,6 +447,7 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       studentId: student._id,
       classId: danceClass._id,
       paymentType: input.paymentType,
+      sessionId: session?._id,
       classDateKey,
       period
     });
@@ -422,6 +460,7 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       studentId: student._id,
       classId: danceClass._id,
       paymentType: input.paymentType,
+      sessionId: session?._id,
       classDate,
       concept: input.paymentType === "PER_CLASS" ? "Clase · " + danceClass.name : "Mensualidad · " + danceClass.name,
       period,
@@ -445,6 +484,7 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
         studentId: student._id,
         classId: danceClass._id,
         paymentType: input.paymentType,
+        sessionId: session?._id,
         classDate,
         period,
         amount,
@@ -463,7 +503,7 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
     const input = createPaymentSchema.parse(request.body);
     const organizationId = request.auth!.organizationId;
 
-    const { student, danceClass } = await loadChargeContext(
+    const { student, danceClass, enrollment } = await loadChargeContext(
       organizationId,
       input,
       input.paymentType
@@ -478,12 +518,17 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
     }
 
     const { classDate, classDateKey, period } = resolveChargeDates(input);
+    const session = await resolveChargeSession({
+      organizationId, classId: input.classId, enrollmentId: enrollment._id,
+      paymentType: input.paymentType, sessionId: input.sessionId, classDate: classDateKey
+    });
 
     await assertNoActiveDuplicate({
       organizationId,
       studentId: student._id,
       classId: danceClass._id,
       paymentType: input.paymentType,
+      sessionId: session?._id,
       classDateKey,
       period
     });
@@ -494,6 +539,7 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       studentId: student._id,
       classId: danceClass._id,
       paymentType: input.paymentType,
+      sessionId: session?._id,
       classDate,
       concept: input.concept,
       period,
@@ -513,6 +559,7 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
         studentId: student._id,
         classId: danceClass._id,
         paymentType: payment.paymentType,
+        sessionId: payment.sessionId,
         period: payment.period,
         classDate: payment.classDate,
         amount: payment.amount

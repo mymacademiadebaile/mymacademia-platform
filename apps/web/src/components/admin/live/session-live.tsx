@@ -67,6 +67,7 @@ type SessionDetail = {
     }>;
   };
   participants: SessionParticipant[];
+  alternatives: Array<{ id: string; startTime: string; endTime: string }>;
 };
 
 function attendanceLabel(status: AttendanceStatus) {
@@ -107,6 +108,7 @@ export function SessionLive({ id }: { id: string }) {
   const [data, setData] = useState<SessionDetail | null>(null);
   const [paying, setPaying] = useState<SessionParticipant | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
+  const [moving, setMoving] = useState<SessionParticipant | null>(null);
   const [busyStudentId, setBusyStudentId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -216,6 +218,7 @@ export function SessionLive({ id }: { id: string }) {
             studentId: paying.studentId,
             classId: data.class.id,
             paymentType: paying.billingType,
+            sessionId: paying.billingType === "PER_CLASS" ? data.id : undefined,
             classDate:
               paying.billingType === "PER_CLASS"
                 ? data.sessionDate
@@ -272,6 +275,49 @@ export function SessionLive({ id }: { id: string }) {
         description: apiMessage(requestError),
         tone: "error"
       });
+    }
+  }
+
+  async function cancelBooking(participant: SessionParticipant) {
+    if (!participant.enrollmentId) return;
+    const approved = await confirm({
+      title: "Cancelar turno",
+      description: "Se libera el cupo de esta fecha. Se aplicará la anticipación configurada por la academia.",
+      confirmLabel: "Cancelar turno",
+      tone: "danger"
+    });
+    if (!approved) return;
+    setBusyStudentId(participant.studentId);
+    try {
+      await apiFetch(`/admin/sessions/${id}/bookings/cancel`, {
+        method: "POST", body: JSON.stringify({ enrollmentId: participant.enrollmentId })
+      });
+      toast("Turno cancelado y cupo liberado");
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo cancelar el turno", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusyStudentId("");
+    }
+  }
+
+  async function transferBooking(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!moving?.enrollmentId) return;
+    const form = new FormData(event.currentTarget);
+    setSubmitting(true);
+    try {
+      await apiFetch(`/admin/sessions/${id}/bookings/transfer`, {
+        method: "POST",
+        body: JSON.stringify({ enrollmentId: moving.enrollmentId, targetSessionId: form.get("targetSessionId") })
+      });
+      setMoving(null);
+      toast("Turno cambiado sin costo");
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo cambiar el turno", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -434,11 +480,45 @@ export function SessionLive({ id }: { id: string }) {
                     <CheckCircle2 size={15} /> OK
                   </span>
                 )}
+                {participant.enrollmentId && data.status === "SCHEDULED" && (
+                  <>
+                    {data.alternatives.length > 0 && (
+                      <button onClick={() => setMoving(participant)}>Cambiar turno</button>
+                    )}
+                    <button
+                      className={styles.sessionCancelBooking}
+                      disabled={busyStudentId === participant.studentId}
+                      onClick={() => void cancelBooking(participant)}
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                )}
               </span>
             </div>
           );
         })}
       </section>
+
+      <LiveModal
+        open={Boolean(moving)}
+        title="Cambiar turno"
+        description={moving ? `${moving.student.firstName} ${moving.student.lastName} · ${data.sessionDate}` : ""}
+        submitting={submitting}
+        onClose={() => setMoving(null)}
+        onSubmit={transferBooking}
+        submitLabel="Confirmar cambio"
+      >
+        <Field label="Nuevo horario" wide>
+          <select name="targetSessionId" required defaultValue="">
+            <option value="" disabled>Seleccionar turno disponible</option>
+            {data.alternatives.map((alternative) => (
+              <option key={alternative.id} value={alternative.id}>{alternative.startTime}–{alternative.endTime}</option>
+            ))}
+          </select>
+        </Field>
+        <div className={styles.modalHint}>El cambio no tiene costo ni límite; se confirma sólo si el turno conserva cupo.</div>
+      </LiveModal>
 
       <LiveModal
         open={Boolean(paying)}

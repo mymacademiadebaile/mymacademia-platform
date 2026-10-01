@@ -24,6 +24,13 @@ describe("buildActiveChargeKey", () => {
     expect(key("2026-09-29")).not.toBe(key("2026-09-30"));
   });
 
+  it("uses the concrete session when a per-class charge identifies one", () => {
+    const firstSession = "64b000000000000000000003";
+    const secondSession = "64b000000000000000000004";
+    expect(buildActiveChargeKey({ paymentType: "PER_CLASS", studentId: student, classId: danceClass, sessionId: firstSession }))
+      .not.toBe(buildActiveChargeKey({ paymentType: "PER_CLASS", studentId: student, classId: danceClass, sessionId: secondSession }));
+  });
+
   it("different periods give different keys", () => {
     const key = (period: string) =>
       buildActiveChargeKey({ paymentType: "MONTHLY", studentId: student, classId: danceClass, period });

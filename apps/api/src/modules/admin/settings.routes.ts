@@ -11,7 +11,8 @@ const updateSettingsSchema = z.object({
   phone: z.string().trim().max(50).optional().or(z.literal("")),
   inquiryContactName: z.string().trim().max(120).optional().or(z.literal("")),
   inquiryWhatsApp: z.string().trim().max(50).optional().or(z.literal("")),
-  timezone: z.string().trim().min(3).max(80).default("America/Argentina/Buenos_Aires")
+  timezone: z.string().trim().min(3).max(80).default("America/Argentina/Buenos_Aires"),
+  cancellationNoticeHours: z.number().int().min(0).max(168).default(6)
 });
 
 export const adminSettingsRouter = Router();
@@ -53,7 +54,8 @@ adminSettingsRouter.put("/", async (request, response, next) => {
       phone: organization.phone ?? "",
       inquiryContactName: organization.inquiryContactName ?? "",
       inquiryWhatsApp: organization.inquiryWhatsApp ?? "",
-      timezone: organization.timezone ?? "America/Argentina/Buenos_Aires"
+      timezone: organization.timezone ?? "America/Argentina/Buenos_Aires",
+      cancellationNoticeHours: organization.cancellationNoticeHours ?? 6
     };
 
     organization.name = input.name;
@@ -62,6 +64,7 @@ adminSettingsRouter.put("/", async (request, response, next) => {
     organization.inquiryContactName = input.inquiryContactName?.trim() || undefined;
     organization.inquiryWhatsApp = input.inquiryWhatsApp?.trim() || undefined;
     organization.timezone = input.timezone;
+    organization.cancellationNoticeHours = input.cancellationNoticeHours;
     await organization.save();
 
     await AuditLogModel.create({
@@ -78,7 +81,8 @@ adminSettingsRouter.put("/", async (request, response, next) => {
           phone: organization.phone ?? "",
           inquiryContactName: organization.inquiryContactName ?? "",
           inquiryWhatsApp: organization.inquiryWhatsApp ?? "",
-          timezone: organization.timezone ?? "America/Argentina/Buenos_Aires"
+          timezone: organization.timezone ?? "America/Argentina/Buenos_Aires",
+          cancellationNoticeHours: organization.cancellationNoticeHours
         }
       }
     });

@@ -19,6 +19,8 @@ export interface Payment {
   branchId: Types.ObjectId;
   studentId: Types.ObjectId;
   classId?: Types.ObjectId;
+  /** Concrete occurrence for a per-class payment. Optional for legacy/manual charges. */
+  sessionId?: Types.ObjectId;
   paymentType: PaymentType;
   classDate?: Date;
   concept: string;
@@ -45,6 +47,7 @@ const paymentSchema = new Schema<Payment>(
     branchId: { type: Schema.Types.ObjectId, ref: "Branch", required: true, index: true },
     studentId: { type: Schema.Types.ObjectId, ref: "Student", required: true, index: true },
     classId: { type: Schema.Types.ObjectId, ref: "DanceClass", index: true },
+    sessionId: { type: Schema.Types.ObjectId, ref: "ClassSession", index: true },
     paymentType: { type: String, enum: PAYMENT_TYPES, default: "MONTHLY", index: true },
     classDate: { type: Date, index: true },
     concept: { type: String, required: true, trim: true },
@@ -83,6 +86,7 @@ paymentSchema.pre("validate", function () {
     "status",
     "paymentType",
     "classId",
+    "sessionId",
     "studentId",
     "classDate",
     "period"

@@ -26,7 +26,7 @@ export function occupiesChargeIdentity(status?: string) {
 /**
  * Canonical identity of an active charge, used only as a database uniqueness guard
  * (the organization is part of the unique index, not of the key):
- *   PER_CLASS -> PER_CLASS:<student>:<class>:<YYYY-MM-DD>
+ *   PER_CLASS -> PER_CLASS:<student>:<class>:<session> (or legacy class day)
  *   MONTHLY   -> MONTHLY:<student>:<class>:<YYYY-MM>
  * The free-text concept is never part of it. Returns undefined when the identity cannot be built.
  */
@@ -34,6 +34,7 @@ export function buildActiveChargeKey(input: {
   paymentType: PaymentType;
   studentId?: unknown;
   classId?: unknown;
+  sessionId?: unknown;
   classDay?: string;
   period?: string;
 }): string | undefined {
@@ -41,6 +42,7 @@ export function buildActiveChargeKey(input: {
   const base = `${input.paymentType}:${String(input.studentId)}:${String(input.classId)}`;
 
   if (input.paymentType === "PER_CLASS") {
+    if (input.sessionId) return `${base}:session:${String(input.sessionId)}`;
     return input.classDay && DAY_PATTERN.test(input.classDay) ? `${base}:${input.classDay}` : undefined;
   }
 
@@ -52,6 +54,7 @@ export function activeChargeKeyOf(payment: {
   paymentType: PaymentType;
   studentId?: unknown;
   classId?: unknown;
+  sessionId?: unknown;
   classDate?: Date | null;
   period?: string | null;
   status?: string;
@@ -66,6 +69,7 @@ export function activeChargeKeyOf(payment: {
     paymentType: payment.paymentType,
     studentId: payment.studentId,
     classId: payment.classId,
+    sessionId: payment.sessionId,
     classDay,
     period: payment.period ?? undefined
   });

@@ -10,6 +10,8 @@ export interface Enrollment {
   classId: Types.ObjectId;
   studentId: Types.ObjectId;
   billingPreference?: PaymentType;
+  /** Recurring slots selected by the student. Empty on legacy enrollments means every slot. */
+  scheduleKeys: string[];
   status: EnrollmentStatus;
   enrolledAt: Date;
   endedAt?: Date;
@@ -22,6 +24,7 @@ const enrollmentSchema = new Schema<Enrollment>(
     classId: { type: Schema.Types.ObjectId, ref: "DanceClass", required: true, index: true },
     studentId: { type: Schema.Types.ObjectId, ref: "Student", required: true, index: true },
     billingPreference: { type: String, enum: PAYMENT_TYPES },
+    scheduleKeys: { type: [String], default: [] },
     status: { type: String, enum: ENROLLMENT_STATUSES, default: "ACTIVE" },
     enrolledAt: { type: Date, default: Date.now },
     endedAt: { type: Date }

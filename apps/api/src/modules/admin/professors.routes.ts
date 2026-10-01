@@ -4,6 +4,8 @@ import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import {
+  confirmProfessorIntroVideoUpload,
+  createProfessorIntroVideoUploadSignature,
   deleteProfessorMedia,
   professorAvatarUpload,
   professorVideoUpload,
@@ -70,6 +72,10 @@ const listQuerySchema = z.object({
   branchId: objectIdSchema.optional(),
   disciplineId: objectIdSchema.optional(),
   isActive: z.enum(["true", "false"]).optional()
+});
+
+const completeProfessorVideoUploadSchema = z.object({
+  publicId: z.string().trim().min(1).max(500)
 });
 
 async function validateRelations(
@@ -505,6 +511,60 @@ adminProfessorsRouter.delete("/:id/avatar", async (request, response, next) => {
     next(error);
   }
 });
+
+adminProfessorsRouter.post(
+  "/:id/intro-video/signature",
+  async (request, response, next) => {
+    try {
+      const id = objectIdSchema.parse(request.params.id);
+      const organizationId = request.auth!.organizationId;
+      const professor = await ProfessorModel.findOne({ _id: id, organizationId });
+
+      if (!professor) {
+        throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+      }
+
+      response.json(createProfessorIntroVideoUploadSignature(organizationId, professor.id));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+adminProfessorsRouter.post(
+  "/:id/intro-video/complete",
+  async (request, response, next) => {
+    try {
+      const id = objectIdSchema.parse(request.params.id);
+      const input = completeProfessorVideoUploadSchema.parse(request.body);
+      const organizationId = request.auth!.organizationId;
+      const professor = await ProfessorModel.findOne({ _id: id, organizationId });
+
+      if (!professor) {
+        throw new AppError(404, "Profesor no encontrado", "PROFESSOR_NOT_FOUND");
+      }
+
+      professor.introVideoUrl = await confirmProfessorIntroVideoUpload(
+        organizationId,
+        professor.id,
+        input.publicId
+      );
+      await professor.save();
+
+      await AuditLogModel.create({
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "PROFESSOR_INTRO_VIDEO_UPDATED",
+        entityType: "Professor",
+        entityId: professor._id
+      });
+
+      response.json({ introVideoUrl: professor.introVideoUrl });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 adminProfessorsRouter.post(
   "/:id/intro-video",

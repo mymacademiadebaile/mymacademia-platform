@@ -31,6 +31,7 @@ type Enrollment = {
   enrolledAt: string;
   endedAt?: string;
   billingPreference?: BillingPreference;
+  scheduleKeys?: string[];
   classId: DanceClass;
 };
 
@@ -97,6 +98,19 @@ function localDateValue() {
   return local.toISOString().slice(0, 10);
 }
 
+const dayLabels: Record<string, string> = {
+  MONDAY: "Lunes", TUESDAY: "Martes", WEDNESDAY: "Miércoles", THURSDAY: "Jueves",
+  FRIDAY: "Viernes", SATURDAY: "Sábado", SUNDAY: "Domingo"
+};
+
+function scheduleKey(schedule: { day: string; startTime: string; endTime: string }) {
+  return `${schedule.day}:${schedule.startTime}:${schedule.endTime}`;
+}
+
+function scheduleLabel(schedule: { day: string; startTime: string; endTime: string }) {
+  return `${dayLabels[schedule.day] ?? schedule.day} · ${schedule.startTime}–${schedule.endTime}`;
+}
+
 export function StudentDetailLive({ id }: { id: string }) {
   const { toast, confirm } = useAdminFeedback();
   const [data, setData] = useState<StudentDetail | null>(null);
@@ -108,6 +122,7 @@ export function StudentDetailLive({ id }: { id: string }) {
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedBillingPreference, setSelectedBillingPreference] =
     useState<BillingPreference>("PER_CLASS");
+  const [selectedScheduleKeys, setSelectedScheduleKeys] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -157,6 +172,7 @@ export function StudentDetailLive({ id }: { id: string }) {
   function openEnrollmentModal() {
     setSelectedClassId("");
     setSelectedBillingPreference("PER_CLASS");
+    setSelectedScheduleKeys([]);
     setEnrollModal(true);
   }
 
@@ -164,6 +180,7 @@ export function StudentDetailLive({ id }: { id: string }) {
     const danceClass = availableClasses.find((item) => item._id === classId);
     setSelectedClassId(classId);
     setSelectedBillingPreference(defaultBillingPreference(danceClass));
+    setSelectedScheduleKeys(danceClass?.schedules[0] ? [scheduleKey(danceClass.schedules[0])] : []);
   }
 
   async function saveStudent(event: FormEvent<HTMLFormElement>) {
@@ -247,10 +264,12 @@ export function StudentDetailLive({ id }: { id: string }) {
           billingPreference:
             classBillingMode(selectedClass) === "FREE"
               ? undefined
-              : selectedBillingPreference
+              : selectedBillingPreference,
+          scheduleKeys: selectedScheduleKeys
         })
       });
       setSelectedClassId("");
+      setSelectedScheduleKeys([]);
       setEnrollModal(false);
       toast({
         title: "Alumno inscripto",
@@ -427,9 +446,10 @@ export function StudentDetailLive({ id }: { id: string }) {
                   <small>
                     {billingPreferenceLabel(enrollment.classId, enrollment.billingPreference)}
                     {" · "}
-                    {enrollment.classId.schedules?.[0]
-                      ? `${enrollment.classId.schedules[0].day} · ${enrollment.classId.schedules[0].startTime}`
-                      : "Sin horario"}
+                    {(enrollment.scheduleKeys?.length
+                      ? enrollment.classId.schedules.filter((schedule) => enrollment.scheduleKeys?.includes(scheduleKey(schedule)))
+                      : enrollment.classId.schedules
+                    ).map(scheduleLabel).join(" · ") || "Sin horario"}
                   </small>
                 </span>
                 <button
@@ -551,6 +571,29 @@ export function StudentDetailLive({ id }: { id: string }) {
           <div className={styles.modalHint}>
             Modalidad de esta clase: {billingPreferenceLabel(selectedClass, selectedBillingPreference)}.
           </div>
+        )}
+
+        {selectedClass && (
+          <Field label="Turnos habituales" wide>
+            <div className={styles.scheduleChoices}>
+              {selectedClass.schedules.map((schedule) => {
+                const key = scheduleKey(schedule);
+                return (
+                  <label key={key} className={styles.scheduleChoice}>
+                    <input
+                      type="checkbox"
+                      checked={selectedScheduleKeys.includes(key)}
+                      onChange={(event) => setSelectedScheduleKeys((current) =>
+                        event.target.checked ? [...current, key] : current.filter((item) => item !== key)
+                      )}
+                    />
+                    {scheduleLabel(schedule)}
+                  </label>
+                );
+              })}
+            </div>
+            <small>Elegí uno o más turnos. Los cambios puntuales de fecha no modifican esta selección.</small>
+          </Field>
         )}
       </LiveModal>
 
