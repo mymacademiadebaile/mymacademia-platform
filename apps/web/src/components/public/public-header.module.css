@@ -148,6 +148,35 @@
   transition: background-color 220ms var(--ease-out), color 220ms var(--ease-out);
 }
 
+.actions {
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
+.loginLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  color: var(--foreground);
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 750;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: border-color 220ms var(--ease-out), color 220ms var(--ease-out);
+}
+
+@media (hover: hover) {
+  .loginLink:hover {
+    border-color: var(--purple-bright);
+    color: var(--purple-bright);
+  }
+}
+
 @media (hover: hover) {
   .cta:hover {
     background: var(--purple-bright);
@@ -285,6 +314,21 @@
   text-transform: uppercase;
 }
 
+.panelLogin {
+  display: inline-flex;
+  justify-content: center;
+  min-height: 44px;
+  align-items: center;
+  border: 1px solid var(--line);
+  color: var(--foreground);
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  font-weight: 750;
+  font-size: 13px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
 @keyframes panelIn {
   from {
     clip-path: inset(0 0 100% 0);
@@ -317,6 +361,7 @@
     display: block;
   }
 
+  .actions,
   .cta {
     display: inline-flex;
   }

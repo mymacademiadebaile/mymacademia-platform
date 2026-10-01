@@ -69,16 +69,21 @@ export function PublicHeader() {
           </ul>
         </nav>
 
-        <a
-          className={s.cta}
-          href={whatsappHref()}
-          target="_blank"
-          rel="noopener noreferrer"
-          {...trackAttrs(PUBLIC_EVENTS.whatsappClick, "header")}
-        >
-          <WhatsAppIcon size={16} />
-          Quiero bailar
-        </a>
+        <div className={s.actions}>
+          <Link href="/login" className={s.loginLink}>
+            Ingresar
+          </Link>
+          <a
+            className={s.cta}
+            href={whatsappHref()}
+            target="_blank"
+            rel="noopener noreferrer"
+            {...trackAttrs(PUBLIC_EVENTS.whatsappClick, "header")}
+          >
+            <WhatsAppIcon size={16} />
+            Quiero bailar
+          </a>
+        </div>
 
         <button
           ref={buttonRef}
@@ -127,6 +132,9 @@ export function PublicHeader() {
             <WhatsAppIcon size={18} />
             Quiero bailar
           </a>
+          <Link className={s.panelLogin} href="/login" onClick={() => setOpen(false)}>
+            Ingresar al sistema
+          </Link>
         </div>
       </div>
     </header>
