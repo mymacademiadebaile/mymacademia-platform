@@ -1,5 +1,23 @@
 import type { Metadata, Viewport } from "next";
+import { Archivo, Big_Shoulders } from "next/font/google";
+import { SearchableSelects } from "@/components/ui/searchable-selects";
 import "./globals.css";
+
+const display = Big_Shoulders({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  axes: ["opsz"],
+  adjustFontFallback: false,
+  fallback: ["Impact", "Arial Narrow", "sans-serif"]
+});
+
+const body = Archivo({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+  axes: ["wdth"]
+});
 
 export const metadata: Metadata = {
   title: "M&M Academia",
@@ -21,7 +39,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className={`${display.variable} ${body.variable}`}>
+        {children}
+        <SearchableSelects />
+      </body>
     </html>
   );
 }

@@ -55,6 +55,7 @@ export default function LoginPage() {
   return (
     <main className={styles.page}>
       <section className={styles.visual}>
+        <div className={styles.visualPhoto} aria-hidden="true" />
         <Image
           src="/mym-academia-logo.png"
           alt="M&M Academia de Baile"
@@ -63,15 +64,20 @@ export default function LoginPage() {
           priority
           className={styles.brandLogo}
         />
-        <span className={styles.kicker}>ACADEMIA DE BAILE</span>
-        <h1>Todo lo que pasa en la academia, en un solo lugar.</h1>
+        <span className={styles.kicker}>M&amp;M / EQUIPO</span>
+        <h1>
+          Donde el ritmo
+          <br />
+          también se organiza.
+        </h1>
         <p>
-          Clases, alumnos, profesores y cobranzas con una experiencia simple para el equipo.
+          El espacio de trabajo para acompañar cada clase, cada alumno y cada movimiento de la academia.
         </p>
         <div className={styles.visualCard}>
-          <strong>Administración clara</strong>
-          <span>Menos planillas. Más tiempo para la academia.</span>
+          <strong>01 — TODO EN SU LUGAR</strong>
+          <span>Menos planillas. Más tiempo para la pista.</span>
         </div>
+        <span className={styles.city}>La Plata — Buenos Aires</span>
       </section>
 
       <section className={styles.loginPanel}>
@@ -84,9 +90,9 @@ export default function LoginPage() {
               height={54}
               className={styles.mobileLogo}
             />
-            <strong>Academia de Baile</strong>
+            <strong>M&amp;M Academia de Baile</strong>
           </div>
-          <span className={styles.kicker}>BIENVENIDO</span>
+          <span className={styles.kicker}>ACCESO DEL EQUIPO</span>
           <h2>Ingresá a tu cuenta</h2>
           <p>Usá el acceso asignado por M&M Academia.</p>
 

@@ -296,7 +296,13 @@
   font-size: 8px;
 }
 
-.studentList > div > button {
+.studentActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.studentActions > button {
   width: 32px;
   height: 32px;
   display: grid;
@@ -306,6 +312,23 @@
   background: #fff7f7;
   color: #be123c;
   cursor: pointer;
+}
+
+.studentActions > .chargeAction {
+  width: auto;
+  padding: 0 9px;
+  display: inline-flex;
+  gap: 5px;
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+  color: #5b21b6;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.studentActions > button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
 }
 
 .scheduleEditor {
@@ -391,6 +414,14 @@
 
   .enrollBox {
     flex-direction: column;
+  }
+
+  .studentList > div {
+    flex-wrap: wrap;
+  }
+
+  .studentActions {
+    margin-left: auto;
   }
 
   .scheduleEditorRow {

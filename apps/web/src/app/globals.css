@@ -43,6 +43,90 @@ a {
   text-decoration: none;
 }
 
+/* Shared searchable menu used by every native select in the app. */
+select[data-search-open="true"] {
+  border-color: var(--primary, #5b21b6) !important;
+  box-shadow: 0 0 0 3px rgb(91 33 182 / 12%);
+}
+
+.searchableSelectPopover {
+  position: fixed;
+  z-index: 1000;
+  overflow: hidden;
+  border: 1px solid #ddd3e7;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 16px 36px rgb(31 16 46 / 18%);
+}
+
+.searchableSelectSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 11px;
+  border-bottom: 1px solid #eee9f2;
+  color: #725a90;
+}
+
+.searchableSelectSearch input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text, #211a2b);
+  font: inherit;
+  font-size: 13px;
+}
+
+.searchableSelectOptions {
+  max-height: min(280px, 45dvh);
+  overflow: auto;
+  padding: 5px;
+}
+
+.searchableSelectOption {
+  width: 100%;
+  min-height: 35px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: transparent;
+  color: #30263a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+
+.searchableSelectOption[data-active="true"],
+.searchableSelectOption:hover {
+  background: #f4effa;
+}
+
+.searchableSelectOption[data-selected="true"] {
+  color: #5b21b6;
+  font-weight: 750;
+}
+
+.searchableSelectOption:disabled {
+  color: #a39aa9;
+  cursor: not-allowed;
+}
+
+.searchableSelectEmpty {
+  margin: 0;
+  padding: 14px 9px;
+  color: #746a7d;
+  font-size: 12px;
+  text-align: center;
+}
+
 /* Public site: dark canvas behind overscroll so the light admin background never flashes. */
 html:has([data-public-site]) {
   background: #09090b;

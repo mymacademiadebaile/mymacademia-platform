@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   CalendarDays,
+  CircleDollarSign,
   Clock3,
   Gift,
   Plus,
@@ -98,6 +99,12 @@ function preferenceLabel(preference?: BillingPreference) {
   return "Sin cargo";
 }
 
+function localDateValue() {
+  const date = new Date();
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
 export function ClassDetailLive({ id }: { id: string }) {
   const { toast, confirm } = useAdminFeedback();
   const router = useRouter();
@@ -113,6 +120,10 @@ export function ClassDetailLive({ id }: { id: string }) {
   const [studentId, setStudentId] = useState("");
   const [billingPreference, setBillingPreference] = useState<BillingPreference>("PER_CLASS");
   const [editing, setEditing] = useState(false);
+  const [chargingEnrollment, setChargingEnrollment] = useState<Enrollment | null>(null);
+  const [chargePaymentType, setChargePaymentType] = useState<BillingPreference>("PER_CLASS");
+  const [chargeAmount, setChargeAmount] = useState(0);
+  const [chargeSubmitting, setChargeSubmitting] = useState(false);
   const [editBillingMode, setEditBillingMode] = useState<BillingMode>("PER_CLASS");
   const [editSchedules, setEditSchedules] = useState<ScheduleDraft[]>([]);
   const [error, setError] = useState("");
@@ -251,6 +262,55 @@ export function ClassDetailLive({ id }: { id: string }) {
       toast({ title: "No se pudo actualizar", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusy(false);
+    }
+  }
+
+  function openCharge(enrollment: Enrollment) {
+    if (!danceClass || normalizedMode(danceClass) === "FREE") return;
+
+    const paymentType = enrollment.billingPreference ?? preferenceForClass(danceClass) ?? "PER_CLASS";
+    setChargingEnrollment(enrollment);
+    setChargePaymentType(paymentType);
+    setChargeAmount(paymentType === "MONTHLY" ? danceClass.monthlyPrice ?? 0 : danceClass.pricePerClass ?? 0);
+  }
+
+  function changeChargePaymentType(paymentType: BillingPreference) {
+    if (!danceClass) return;
+    setChargePaymentType(paymentType);
+    setChargeAmount(paymentType === "MONTHLY" ? danceClass.monthlyPrice ?? 0 : danceClass.pricePerClass ?? 0);
+  }
+
+  async function registerCharge(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!chargingEnrollment || !danceClass) return;
+
+    const form = new FormData(event.currentTarget);
+    setChargeSubmitting(true);
+
+    try {
+      await apiFetch("/admin/payments/quick-charge", {
+        method: "POST",
+        body: JSON.stringify({
+          studentId: chargingEnrollment.studentId._id,
+          classId: danceClass._id,
+          paymentType: chargePaymentType,
+          classDate: chargePaymentType === "PER_CLASS" ? form.get("classDate") : undefined,
+          period: chargePaymentType === "MONTHLY" ? form.get("period") : undefined,
+          amount: chargeAmount,
+          paymentMethod: form.get("paymentMethod"),
+          paidAt: form.get("paidAt") || undefined,
+          notes: form.get("notes")
+        })
+      });
+      setChargingEnrollment(null);
+      toast({
+        title: "Cobro registrado",
+        description: chargingEnrollment.studentId.firstName + " " + chargingEnrollment.studentId.lastName + " · " + danceClass.name
+      });
+    } catch (requestError) {
+      toast({ title: "No se pudo registrar el cobro", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setChargeSubmitting(false);
     }
   }
 
@@ -595,14 +655,58 @@ export function ClassDetailLive({ id }: { id: string }) {
                     <option value="MONTHLY">Mensual</option>
                   </select>
                 )}
-                <button title="Dar de baja" disabled={busy} onClick={() => void remove(enrollment)}>
-                  <Trash2 size={14} />
-                </button>
+                <div className={styles.studentActions}>
+                  {mode !== "FREE" && (
+                    <button className={styles.chargeAction} title="Registrar cobro" disabled={busy} onClick={() => openCharge(enrollment)}>
+                      <CircleDollarSign size={14} /> Cobrar
+                    </button>
+                  )}
+                  <button title="Dar de baja" disabled={busy} onClick={() => void remove(enrollment)}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </section>
       </div>
+
+      <LiveModal
+        open={Boolean(chargingEnrollment)}
+        title="Registrar cobro"
+        description={chargingEnrollment ? chargingEnrollment.studentId.firstName + " " + chargingEnrollment.studentId.lastName + " · " + danceClass.name : ""}
+        submitting={chargeSubmitting}
+        onClose={() => setChargingEnrollment(null)}
+        onSubmit={registerCharge}
+        submitLabel="Registrar cobro"
+      >
+        {mode === "BOTH" && (
+          <Field label="Modalidad">
+            <select value={chargePaymentType} onChange={(event) => changeChargePaymentType(event.target.value as BillingPreference)}>
+              <option value="PER_CLASS">Por clase</option>
+              <option value="MONTHLY">Mensual</option>
+            </select>
+          </Field>
+        )}
+        {chargePaymentType === "PER_CLASS" ? (
+          <Field label="Fecha de la clase"><input name="classDate" type="date" defaultValue={localDateValue()} required /></Field>
+        ) : (
+          <Field label="Período"><input name="period" type="month" defaultValue={localDateValue().slice(0, 7)} required /></Field>
+        )}
+        <Field label="Importe">
+          <input value={chargeAmount || ""} onChange={(event) => setChargeAmount(Number(event.target.value))} type="number" min="1" step="0.01" required />
+        </Field>
+        <Field label="Medio de pago">
+          <select name="paymentMethod" defaultValue="CASH" required>
+            <option value="CASH">Efectivo</option>
+            <option value="TRANSFER">Transferencia</option>
+            <option value="CARD">Tarjeta</option>
+            <option value="OTHER">Otro</option>
+          </select>
+        </Field>
+        <Field label="Fecha de pago"><input name="paidAt" type="date" defaultValue={localDateValue()} /></Field>
+        <Field label="Notas" wide><textarea name="notes" rows={3} /></Field>
+      </LiveModal>
 
       <LiveModal
         open={editing}
