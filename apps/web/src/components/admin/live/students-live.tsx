@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import type { Branch, Paginated, Student } from "./live-types";
-import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import { ErrorBlock, Field, LiveModal, LoadingBlock, PaginationControls } from "./live-common";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import styles from "./live.module.css";
 
@@ -20,6 +20,9 @@ export function StudentsLive() {
   const [branchId, setBranchId] = useState("");
   const [status, setStatus] = useState("active");
   const [debtOnly, setDebtOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
   const [modal, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -31,7 +34,8 @@ export function StudentsLive() {
 
     try {
       const params = new URLSearchParams({
-        limit: "100",
+        page: String(page),
+        limit: String(limit),
         q: search,
         isActive: status === "all" ? "" : String(status === "active"),
         debt: debtOnly ? "true" : "false"
@@ -45,14 +49,30 @@ export function StudentsLive() {
         apiFetch<Branch[]>("/admin/branches")
       ]);
 
+      const lastPage = Math.max(1, Math.ceil(students.total / students.limit));
+      if (page > lastPage) {
+        const correctedParams = new URLSearchParams(params);
+        correctedParams.set("page", String(lastPage));
+        const correctedStudents = await apiFetch<Paginated<Student>>(
+          `/admin/students?${correctedParams.toString()}`
+        );
+
+        setItems(correctedStudents.items);
+        setTotal(correctedStudents.total);
+        setBranches(branchList.filter((branch) => branch.isActive));
+        setPage(lastPage);
+        return;
+      }
+
       setItems(students.items);
+      setTotal(students.total);
       setBranches(branchList.filter((branch) => branch.isActive));
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
       setLoading(false);
     }
-  }, [search, branchId, status, debtOnly]);
+  }, [search, branchId, status, debtOnly, page, limit]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 180);
@@ -106,15 +126,24 @@ export function StudentsLive() {
           <Search size={17} />
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
             placeholder="Nombre, email o teléfono..."
           />
         </div>
-        <select value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+        <select value={branchId} onChange={(event) => {
+          setBranchId(event.target.value);
+          setPage(1);
+        }}>
           <option value="">Todas las sedes</option>
           {branches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}</option>)}
         </select>
-        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select value={status} onChange={(event) => {
+          setStatus(event.target.value);
+          setPage(1);
+        }}>
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
           <option value="all">Todos</option>
@@ -123,7 +152,10 @@ export function StudentsLive() {
           <input
             type="checkbox"
             checked={debtOnly}
-            onChange={(event) => setDebtOnly(event.target.checked)}
+            onChange={(event) => {
+              setDebtOnly(event.target.checked);
+              setPage(1);
+            }}
           />
           Con deuda vencida
         </label>
@@ -133,28 +165,41 @@ export function StudentsLive() {
       {loading && !items.length && <LoadingBlock />}
 
       {(items.length > 0 || !loading) && (
-        <div className={styles.listCard}>
-          {items.length === 0 && (
-            <div className={styles.stateBlock}>
-              <span>No hay alumnos para estos filtros.</span>
-            </div>
-          )}
-          {items.map((student) => (
-            <Link className={styles.listRowLink} href={`/admin/students/${student._id}`} key={student._id}>
-              <span className={styles.avatar}>
-                {student.firstName.slice(0, 1)}{student.lastName.slice(0, 1)}
-              </span>
-              <span className={styles.rowBody}>
-                <strong>{student.firstName} {student.lastName}</strong>
-                <small>{student.phone || student.email || "Sin contacto cargado"}</small>
-              </span>
-              <span className={student.isActive ? styles.pill : styles.pillOff}>
-                {student.isActive ? "Activo" : "Inactivo"}
-              </span>
-              <ChevronRight size={17} />
-            </Link>
-          ))}
-        </div>
+        <>
+          <div className={styles.listCard}>
+            {items.length === 0 && (
+              <div className={styles.stateBlock}>
+                <span>No hay alumnos para estos filtros.</span>
+              </div>
+            )}
+            {items.map((student) => (
+              <Link className={styles.listRowLink} href={`/admin/students/${student._id}`} key={student._id}>
+                <span className={styles.avatar}>
+                  {student.firstName.slice(0, 1)}{student.lastName.slice(0, 1)}
+                </span>
+                <span className={styles.rowBody}>
+                  <strong>{student.firstName} {student.lastName}</strong>
+                  <small>{student.phone || student.email || "Sin contacto cargado"}</small>
+                </span>
+                <span className={student.isActive ? styles.pill : styles.pillOff}>
+                  {student.isActive ? "Activo" : "Inactivo"}
+                </span>
+                <ChevronRight size={17} />
+              </Link>
+            ))}
+          </div>
+          <PaginationControls
+            page={page}
+            limit={limit}
+            total={total}
+            loading={loading}
+            onPageChange={setPage}
+            onLimitChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
+        </>
       )}
 
       <LiveModal

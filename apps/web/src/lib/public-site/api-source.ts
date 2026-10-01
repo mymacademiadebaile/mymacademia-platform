@@ -4,7 +4,7 @@
  * server and the response is kept in the Next data cache for `REVALIDATE_SECONDS`,
  * so an admin change shows up within about a minute.
  */
-import type { DanceStyle, PublicProfessor, ScheduleEntry, WeekDay } from "./types";
+import type { DanceStyle, PublicProfessor, PublicSocialLinks, ScheduleEntry, WeekDay } from "./types";
 
 export const REVALIDATE_SECONDS = 60;
 
@@ -137,4 +137,15 @@ export async function fetchCatalogFromApi(): Promise<PublicCatalog> {
     throw new Error(`Public API responded ${response.status}`);
   }
   return mapCatalog((await response.json()) as ApiCatalog);
+}
+
+/** Links shown in the public footer; the API only returns configured, safe social URLs. */
+export async function fetchPublicSocialLinksFromApi(): Promise<PublicSocialLinks> {
+  const response = await fetch(`${API_URL}/public/social-links`, {
+    next: { revalidate: REVALIDATE_SECONDS, tags: ["public-social-links"] }
+  });
+  if (!response.ok) {
+    throw new Error(`Public social links API responded ${response.status}`);
+  }
+  return (await response.json()) as PublicSocialLinks;
 }

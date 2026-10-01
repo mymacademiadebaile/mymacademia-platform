@@ -4,11 +4,11 @@ import { AnalyticsListener } from "@/components/public/analytics-listener";
 import { JsonLd } from "@/components/public/json-ld";
 import { PublicFooter } from "@/components/public/public-footer";
 import { PublicHeader } from "@/components/public/public-header";
-import { WhatsAppFloat } from "@/components/public/whatsapp-cta";
+import { WhatsAppFloat } from "@/components/public/whatsapp-float";
 import site from "@/components/public/site.module.css";
 import { describeAcademy } from "@/lib/public-site/faq";
 import { jsonLdGraph, organizationJsonLd, websiteJsonLd } from "@/lib/public-site/json-ld";
-import { fetchPrimaryBranch, fetchPublicDanceStyles } from "@/lib/public-site/queries";
+import { fetchPrimaryBranch, fetchPublicDanceStyles, fetchPublicSocialLinks } from "@/lib/public-site/queries";
 import { SITE } from "@/lib/public-site/site";
 
 const display = Big_Shoulders({
@@ -67,7 +67,11 @@ export const viewport: Viewport = {
 };
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
-  const [branch, styles] = await Promise.all([fetchPrimaryBranch(), fetchPublicDanceStyles()]);
+  const [branch, styles, socialLinks] = await Promise.all([
+    fetchPrimaryBranch(),
+    fetchPublicDanceStyles(),
+    fetchPublicSocialLinks()
+  ]);
 
   return (
     <div className={`${site.site} ${display.variable} ${body.variable}`} data-public-site="">
@@ -76,10 +80,10 @@ export default async function PublicLayout({ children }: { children: React.React
       </a>
       <PublicHeader />
       <main id="contenido">{children}</main>
-      <PublicFooter branch={branch} />
+      <PublicFooter branch={branch} socialLinks={socialLinks} />
       <WhatsAppFloat />
       <AnalyticsListener />
-      <JsonLd data={jsonLdGraph([organizationJsonLd(branch, styles), websiteJsonLd()])} />
+      <JsonLd data={jsonLdGraph([organizationJsonLd(branch, styles, socialLinks), websiteJsonLd()])} />
     </div>
   );
 }

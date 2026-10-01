@@ -1,5 +1,5 @@
-import { CatalogsLive } from "@/components/admin/live/catalogs-live";
+import { redirect } from "next/navigation";
 
 export default function CatalogsPage() {
-  return <CatalogsLive />;
+  redirect("/admin/settings");
 }

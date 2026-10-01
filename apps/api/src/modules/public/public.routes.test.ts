@@ -153,6 +153,38 @@ describe("GET /api/public/*", () => {
     expect(schedule.body).toHaveLength(1);
   });
 
+  it("only exposes configured social profile URLs", async () => {
+    await OrganizationModel.updateOne(
+      { _id: ids.org },
+      {
+        $set: {
+          instagramUrl: "https://www.instagram.com/mym.academia",
+          tiktokUrl: "https://www.tiktok.com/@mym.academia",
+          facebookUrl: "https://www.facebook.com/mymacademia",
+          youtubeUrl: "https://www.youtube.com/@mymacademia"
+        }
+      }
+    );
+    resetPublicCatalogCache();
+
+    const response = await request(app).get("/api/public/social-links");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      instagram: "https://www.instagram.com/mym.academia",
+      tiktok: "https://www.tiktok.com/@mym.academia",
+      facebook: "https://www.facebook.com/mymacademia",
+      youtube: "https://www.youtube.com/@mymacademia"
+    });
+  });
+
+  it("omits social links that have not been configured", async () => {
+    const response = await request(app).get("/api/public/social-links");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({});
+  });
+
   it("drops a rhythm as soon as it is deactivated", async () => {
     await CatalogItemModel.updateOne({ _id: ids.sensual }, { isActive: false });
     resetPublicCatalogCache();

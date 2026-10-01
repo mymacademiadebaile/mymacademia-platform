@@ -14,6 +14,49 @@ export function WhatsAppIcon({ size = 18, className }: IconProps) {
   );
 }
 
+export function InstagramIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="17.4" cy="6.8" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function TikTokIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M16.72 3c.36 2.73 1.88 4.35 4.28 4.52v3.06a8.08 8.08 0 0 1-4.23-1.2v6.18a6.4 6.4 0 1 1-5.48-6.33v3.15a3.35 3.35 0 1 0 2.27 3.18V3h3.16Z"
+      />
+    </svg>
+  );
+}
+
+export function FacebookIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M13.8 21v-8h2.7l.4-3.1h-3.1V7.92c0-.9.25-1.52 1.55-1.52H17V3.63A22.9 22.9 0 0 0 14.53 3C12.1 3 10.43 4.48 10.43 7.2v2.7H7.7V13h2.73v8h3.37Z"
+      />
+    </svg>
+  );
+}
+
+export function YouTubeIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M21.58 7.19a2.98 2.98 0 0 0-2.1-2.1C17.63 4.6 12 4.6 12 4.6s-5.63 0-7.48.49a2.98 2.98 0 0 0-2.1 2.1C1.93 9.04 1.93 12 1.93 12s0 2.96.49 4.81a2.98 2.98 0 0 0 2.1 2.1c1.85.49 7.48.49 7.48.49s5.63 0 7.48-.49a2.98 2.98 0 0 0 2.1-2.1c.49-1.85.49-4.81.49-4.81s0-2.96-.49-4.81ZM10.2 15.01V8.99L15.42 12l-5.22 3.01Z"
+      />
+    </svg>
+  );
+}
+
 export function ArrowIcon({ size = 18, className }: IconProps) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">

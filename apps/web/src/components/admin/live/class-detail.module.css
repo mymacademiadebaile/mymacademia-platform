@@ -4,7 +4,7 @@
   gap: 5px;
   margin-bottom: 14px;
   color: #5b21b6;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
 }
 
@@ -18,7 +18,7 @@
   border-radius: 13px;
   background: #f0fdf4;
   color: #166534;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -42,14 +42,14 @@
 .hero p {
   margin: 0;
   color: #ddd2e8;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .active,
 .inactive {
   padding: 5px 8px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
 }
 
@@ -77,7 +77,7 @@
   border-radius: 11px;
   background: rgba(255,255,255,.1);
   color: white;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -118,13 +118,13 @@
   place-items: center;
   border-radius: 7px;
   background: #f3edf9;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
 }
 
 .stats span {
   color: #817787;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .stats strong {
@@ -150,14 +150,14 @@
 
 .cardHeader > span {
   color: #6d28d9;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
   letter-spacing: .13em;
 }
 
 .cardHeader h3 {
   margin: 4px 0 13px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .scheduleList {
@@ -182,7 +182,7 @@
 
 .scheduleList strong,
 .scheduleList span {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .tags {
@@ -197,7 +197,7 @@
   border-radius: 999px;
   background: #f3edf9;
   color: #5b21b6;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 850;
 }
 
@@ -226,7 +226,7 @@
   gap: 5px;
   background: #5b21b6;
   color: white;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -239,7 +239,7 @@
 .helper {
   margin: 10px 0 0;
   color: #857b8b;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .studentList {
@@ -277,7 +277,7 @@
   border-radius: 11px;
   background: #f3edf9;
   color: #5b21b6;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -288,12 +288,12 @@
 }
 
 .studentIdentity strong {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .studentIdentity small {
   color: #817787;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .studentActions {
@@ -322,7 +322,7 @@
   border-color: #ddd6fe;
   background: #f5f3ff;
   color: #5b21b6;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
 }
 
@@ -344,7 +344,7 @@
 }
 
 .scheduleEditorHeader strong {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .scheduleEditorHeader button {
@@ -357,7 +357,7 @@
   border-radius: 9px;
   background: white;
   color: #5b21b6;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 850;
 }
 
@@ -444,7 +444,7 @@
   cursor: pointer;
 }
 .switchRow input { width: 17px; }
-.switchRow span { color: #5f5566; font-size: 11px; font-weight: 750; }
+.switchRow span { color: #5f5566; font-size: 12px; font-weight: 750; }
 
 
 .trialCard {
@@ -464,7 +464,7 @@
   border-radius: 11px;
   padding: 0 9px;
   background: white;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .trialComposer button {
@@ -478,7 +478,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -506,8 +506,8 @@
   gap: 3px;
 }
 
-.trialList strong { font-size: 11px; }
-.trialList small { color: #817787; font-size: 10px; }
+.trialList strong { font-size: 12px; }
+.trialList small { color: #817787; font-size: 11px; }
 
 .trialList > div > div {
   display: flex;
@@ -522,7 +522,7 @@
   border-radius: 9px;
   background: white;
   color: #5b21b6;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -552,6 +552,6 @@
 .webToggle p {
   margin: 0;
   color: #7b7281;
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.5;
 }

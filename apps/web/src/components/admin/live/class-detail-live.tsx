@@ -27,7 +27,7 @@ import type {
   Professor,
   Student
 } from "./live-types";
-import { ErrorBlock, Field, LiveModal, LoadingBlock, WebSwitch } from "./live-common";
+import { ErrorBlock, fetchAllPaginated, Field, LiveModal, LoadingBlock, WebSwitch } from "./live-common";
 import styles from "./class-detail.module.css";
 
 const dayLabels: Record<string, string> = {
@@ -139,7 +139,7 @@ export function ClassDetailLive({ id }: { id: string }) {
         apiFetch<TrialResponse>("/admin/trials?classId=" + id),
         apiFetch<Paginated<Student>>("/admin/students?limit=100&isActive=true"),
         apiFetch<Branch[]>("/admin/branches"),
-        apiFetch<Professor[]>("/admin/professors?isActive=true"),
+        fetchAllPaginated<Professor>("/admin/professors?isActive=true"),
         apiFetch<CatalogItem[]>("/admin/catalogs")
       ]);
       setDanceClass(classData);

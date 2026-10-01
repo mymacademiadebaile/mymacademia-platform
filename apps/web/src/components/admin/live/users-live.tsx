@@ -4,8 +4,8 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Pencil, Search, Trash2, UserPlus } from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
-import type { Branch } from "./live-types";
-import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import type { Branch, Paginated } from "./live-types";
+import { ErrorBlock, Field, LiveModal, LoadingBlock, PaginationControls } from "./live-common";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import styles from "./live.module.css";
 
@@ -37,6 +37,9 @@ export function UsersLive() {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<"" | ManagedRole>("");
   const [status, setStatus] = useState("active");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
   const [modal, setModal] = useState<ModalState>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -47,21 +50,39 @@ export function UsersLive() {
     setError("");
     try {
       const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", String(limit));
       if (search) params.set("q", search);
       if (role) params.set("role", role);
       if (status !== "all") params.set("isActive", String(status === "active"));
       const [users, branchList] = await Promise.all([
-        apiFetch<ManagedUser[]>(`/admin/users?${params.toString()}`),
+        apiFetch<Paginated<ManagedUser>>(`/admin/users?${params.toString()}`),
         apiFetch<Branch[]>("/admin/branches")
       ]);
-      setItems(users);
+      const lastPage = Math.max(1, Math.ceil(users.total / users.limit));
+      if (page > lastPage) {
+        const correctedParams = new URLSearchParams(params);
+        correctedParams.set("page", String(lastPage));
+        const correctedUsers = await apiFetch<Paginated<ManagedUser>>(
+          `/admin/users?${correctedParams.toString()}`
+        );
+
+        setItems(correctedUsers.items);
+        setTotal(correctedUsers.total);
+        setBranches(branchList.filter((branch) => branch.isActive));
+        setPage(lastPage);
+        return;
+      }
+
+      setItems(users.items);
+      setTotal(users.total);
       setBranches(branchList.filter((branch) => branch.isActive));
     } catch (requestError) {
       setError(apiMessage(requestError));
     } finally {
       setLoading(false);
     }
-  }, [role, search, status]);
+  }, [role, search, status, page, limit]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 180);
@@ -141,14 +162,27 @@ export function UsersLive() {
       <div className={styles.filterBar}>
         <div className={styles.searchInline}>
           <Search size={17} />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o email..." />
+          <input
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Nombre o email..."
+          />
         </div>
-        <select value={role} onChange={(event) => setRole(event.target.value as "" | ManagedRole)}>
+        <select value={role} onChange={(event) => {
+          setRole(event.target.value as "" | ManagedRole);
+          setPage(1);
+        }}>
           <option value="">Todos los roles</option>
           <option value="ADMIN">Administradores</option>
           <option value="PROFESSOR">Profesores</option>
         </select>
-        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select value={status} onChange={(event) => {
+          setStatus(event.target.value);
+          setPage(1);
+        }}>
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
           <option value="all">Todos</option>
@@ -159,27 +193,40 @@ export function UsersLive() {
       {loading && !items.length && <LoadingBlock />}
 
       {(items.length > 0 || !loading) && (
-        <div className={styles.userList}>
-          {items.length === 0 && <div className={styles.stateBlock}>No hay usuarios para estos filtros.</div>}
-          {items.map((user) => (
-            <article className={styles.userRow} key={user.id}>
-              <span className={styles.avatar}>{`${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()}</span>
-              <div className={styles.userIdentity}>
-                <strong>{user.firstName} {user.lastName}</strong>
-                <small>{user.email}{user.phone ? ` · ${user.phone}` : ""}</small>
-              </div>
-              <span className={styles.userRole}>{roleLabel[user.role]}</span>
-              <span className={user.isActive ? styles.pill : styles.pillOff}>{user.isActive ? "Activo" : "Inactivo"}</span>
-              <div className={styles.userActions}>
-                <button type="button" className={styles.inlineAction} onClick={() => setModal(user)}><Pencil size={14} /> Editar</button>
-                <button type="button" className={styles.inlineAction} onClick={() => void toggleStatus(user)}>
-                  {user.isActive ? "Desactivar" : "Activar"}
-                </button>
-                <button type="button" className={styles.dangerAction} onClick={() => void remove(user)} aria-label={`Eliminar a ${user.firstName} ${user.lastName}`}><Trash2 size={15} /></button>
-              </div>
-            </article>
-          ))}
-        </div>
+        <>
+          <div className={styles.userList}>
+            {items.length === 0 && <div className={styles.stateBlock}>No hay usuarios para estos filtros.</div>}
+            {items.map((user) => (
+              <article className={styles.userRow} key={user.id}>
+                <span className={styles.avatar}>{`${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()}</span>
+                <div className={styles.userIdentity}>
+                  <strong>{user.firstName} {user.lastName}</strong>
+                  <small>{user.email}{user.phone ? ` · ${user.phone}` : ""}</small>
+                </div>
+                <span className={styles.userRole}>{roleLabel[user.role]}</span>
+                <span className={user.isActive ? styles.pill : styles.pillOff}>{user.isActive ? "Activo" : "Inactivo"}</span>
+                <div className={styles.userActions}>
+                  <button type="button" className={styles.inlineAction} onClick={() => setModal(user)}><Pencil size={14} /> Editar</button>
+                  <button type="button" className={styles.inlineAction} onClick={() => void toggleStatus(user)}>
+                    {user.isActive ? "Desactivar" : "Activar"}
+                  </button>
+                  <button type="button" className={styles.dangerAction} onClick={() => void remove(user)} aria-label={`Eliminar a ${user.firstName} ${user.lastName}`}><Trash2 size={15} /></button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <PaginationControls
+            page={page}
+            limit={limit}
+            total={total}
+            loading={loading}
+            onPageChange={setPage}
+            onLimitChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
+        </>
       )}
 
       <LiveModal

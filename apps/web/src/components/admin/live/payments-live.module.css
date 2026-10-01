@@ -14,7 +14,7 @@
   background: white;
 }
 
-.summaryGrid span,.summaryGrid small { color: #807687; font-size: 9px; }
+.summaryGrid span,.summaryGrid small { color: #807687; font-size: 10px; }
 .summaryGrid strong { font-size: 21px; }
 .summaryGrid article[data-tone="danger"] strong { color: #be123c; }
 
@@ -59,7 +59,7 @@
   border-radius: 11px;
   background: #5b21b6;
   color: white;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -74,7 +74,7 @@
   border-radius: 13px;
   background: #f0fdf4;
   color: #166534;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -98,7 +98,7 @@
   padding: 0 12px;
   color: #817787;
   background: #faf8fb;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 850;
 }
 
@@ -106,18 +106,18 @@
   min-height: 65px;
   padding: 8px 12px;
   border-top: 1px solid #f0ebf3;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .mainCell { display: grid; gap: 3px; }
-.mainCell strong { font-size: 10px; }
-.mainCell small { color: #817787; font-size: 8px; }
+.mainCell strong { font-size: 11px; }
+.mainCell small { color: #817787; font-size: 9px; }
 
 .status {
   width: max-content;
   padding: 5px 7px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
 }
 .status[data-status="PAID"] { color: #166534; background: #dcfce7; }
@@ -136,7 +136,7 @@
   border-radius: 9px;
   background: white;
   color: #5b21b6;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -147,7 +147,7 @@
   padding: 30px;
   text-align: center;
   color: #857b8b;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 @media (max-width: 1050px) {
@@ -169,7 +169,7 @@
   border-radius: 10px;
   background: #f7f3fa;
   color: #746b7a;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.45;
 }
 

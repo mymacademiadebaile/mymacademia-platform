@@ -17,13 +17,13 @@
   margin: 0;
   max-width: 680px;
   color: #756d7d;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
 .eyebrow {
   color: #6d28d9;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: .16em;
 }
@@ -61,7 +61,7 @@
 .ghostButton {
   background: transparent;
   color: #6d28d9;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .statGrid {
@@ -88,7 +88,7 @@
 
 .statCard > span {
   color: #786f80;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -112,7 +112,7 @@
 
 .statCard small {
   color: #817887;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .dashboardGrid {
@@ -168,7 +168,7 @@
   background: #f3edf9;
   color: #5b21b6;
   font-weight: 900;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .rowText {
@@ -178,15 +178,15 @@
   min-width: 0;
 }
 
-.rowText strong { font-size: 12px; }
-.rowText small { color: #837989; font-size: 10px; }
+.rowText strong { font-size: 13px; }
+.rowText small { color: #837989; font-size: 11px; }
 
 .studentsBadge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   color: #756d7d;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .moneyHero {
@@ -197,7 +197,7 @@
 .moneyHero small {
   display: block;
   color: #756d7d;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .moneyHero strong {
@@ -240,7 +240,7 @@
   align-items: center;
   gap: 5px;
   color: #756d7d;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .moneySplit strong {
@@ -269,7 +269,7 @@
 }
 
 .quickGrid svg { color: #6d28d9; }
-.quickGrid span { font-size: 10px; font-weight: 800; }
+.quickGrid span { font-size: 11px; font-weight: 800; }
 
 .activityList > div,
 .automationList > div {
@@ -301,10 +301,10 @@
 }
 
 .activityList strong,
-.automationList strong { font-size: 11px; }
+.automationList strong { font-size: 12px; }
 .activityList small,
-.automationList small { color: #817887; font-size: 9px; }
-.activityList time { color: #948a9a; font-size: 9px; }
+.automationList small { color: #817887; font-size: 10px; }
+.activityList time { color: #948a9a; font-size: 10px; }
 
 .toolbar {
   display: flex;
@@ -372,7 +372,7 @@
   place-items: center;
   color: #5b21b6;
   background: #f0e9fb;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -386,7 +386,7 @@
 .classAdminCard p {
   margin: 0;
   color: #7c7283;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .personStats {
@@ -408,7 +408,7 @@
 }
 
 .personStats strong { font-size: 16px; }
-.personStats small { color: #8a818f; font-size: 9px; }
+.personStats small { color: #8a818f; font-size: 10px; }
 
 .cardAction {
   width: 100%;
@@ -421,7 +421,7 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -434,7 +434,7 @@
   display: inline-flex;
   padding: 5px 8px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -475,7 +475,7 @@
   min-height: 40px;
   color: #8a818f;
   background: #faf8fb;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: .08em;
@@ -485,7 +485,7 @@
 .tableRowPayments {
   min-height: 62px;
   border-top: 1px solid #f0ebf3;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .personCell {
@@ -513,7 +513,7 @@
   min-width: 0;
 }
 
-.personCell small { color: #8a818f; font-size: 9px; }
+.personCell small { color: #8a818f; font-size: 10px; }
 
 .iconOnly {
   width: 31px;
@@ -558,7 +558,7 @@
   border-radius: 9px;
   background: #f8f5fa;
   color: #655b6c;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 750;
 }
 
@@ -567,7 +567,7 @@
   align-items: center;
   justify-content: space-between;
   margin: 11px 0 7px;
-  font-size: 9px;
+  font-size: 10px;
   color: #776d7e;
 }
 
@@ -614,7 +614,7 @@
   display: grid;
   place-items: center;
   background: rgba(91,33,182,.08);
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .addCatalog {
@@ -642,13 +642,13 @@
 
 .catalogList .order {
   color: #a199a6;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
 }
 
 .catalogList strong {
   flex: 1;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .communicationGrid,
@@ -679,7 +679,7 @@
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -706,7 +706,7 @@
 .formGridTwo label > span,
 .formGrid label > span {
   color: #665c6d;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
 }
 
@@ -764,7 +764,7 @@
 .reportHero p {
   max-width: 390px;
   color: #776d7e;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
@@ -791,7 +791,7 @@
 
 .reportCard span {
   color: #776d7e;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -803,7 +803,7 @@
 
 .reportCard small {
   color: #15803d;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .reportWide {
@@ -832,8 +832,8 @@
 .exportGrid span { text-align: left; }
 .exportGrid strong,
 .exportGrid small { display: block; }
-.exportGrid strong { color: #3c3244; font-size: 10px; }
-.exportGrid small { margin-top: 3px; color: #837a89; font-size: 8px; }
+.exportGrid strong { color: #3c3244; font-size: 11px; }
+.exportGrid small { margin-top: 3px; color: #837a89; font-size: 9px; }
 
 .formGridTwo {
   grid-template-columns: 1fr 1fr;
@@ -857,12 +857,12 @@
   gap: 3px;
 }
 
-.integrationBox strong { font-size: 10px; }
-.integrationBox small { color: #817887; font-size: 8px; }
+.integrationBox strong { font-size: 11px; }
+.integrationBox small { color: #817887; font-size: 9px; }
 
 .helperText {
   color: #7c7283;
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.5;
 }
 
@@ -876,7 +876,7 @@
 }
 
 .emptyState strong { color: #4a404f; }
-.emptyState span { font-size: 10px; }
+.emptyState span { font-size: 11px; }
 
 .modalBackdrop {
   position: fixed;
@@ -907,7 +907,7 @@
 .modalTop p {
   margin: 0 0 18px;
   color: #7b7182;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .formGrid {
@@ -1002,11 +1002,11 @@
 }
 
 .pageHeader p { font-size: 14px; }
-.eyebrow { font-size: 10px; }
-.primaryButton,.secondaryButton { font-size: 12px; }
-.statCard > span { font-size: 12px; }
-.statCard small { font-size: 11px; }
-.rowText strong { font-size: 13px; }
-.rowText small { font-size: 11px; }
-.personCard p,.classAdminCard p { font-size: 11px; }
-.cardAction { font-size: 11px; }
+.eyebrow { font-size: 11px; }
+.primaryButton,.secondaryButton { font-size: 13px; }
+.statCard > span { font-size: 13px; }
+.statCard small { font-size: 12px; }
+.rowText strong { font-size: 14px; }
+.rowText small { font-size: 12px; }
+.personCard p,.classAdminCard p { font-size: 12px; }
+.cardAction { font-size: 12px; }

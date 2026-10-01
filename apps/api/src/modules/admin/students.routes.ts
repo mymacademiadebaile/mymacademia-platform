@@ -26,6 +26,7 @@ const updateStudentSchema = studentSchema.partial().extend({
 });
 
 const listStudentQuerySchema = pageQuerySchema.extend({
+  limit: z.coerce.number().int().min(1).max(100).default(10),
   branchId: objectIdSchema.optional(),
   classId: objectIdSchema.optional(),
   isActive: z.enum(["true", "false"]).optional(),
@@ -94,7 +95,7 @@ adminStudentsRouter.get("/", async (request, response, next) => {
 
     const [items, total] = await Promise.all([
       StudentModel.find(filter)
-        .sort({ lastName: 1, firstName: 1 })
+        .sort({ lastName: 1, firstName: 1, _id: 1 })
         .skip((query.page - 1) * query.limit)
         .limit(query.limit),
       StudentModel.countDocuments(filter)

@@ -29,6 +29,10 @@ type ReportOverview = {
     pendingCount: number;
     overdueCount: number;
   };
+  cash: {
+    collectedAmount: number;
+    paidCount: number;
+  };
   occupancy: Array<{
     id: string;
     name: string;
@@ -65,10 +69,15 @@ type TodayResponse = {
   items: TodaySession[];
 };
 
-function localDateValue() {
-  const date = new Date();
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
+function academyDateValue() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function billingSummary(session: TodaySession) {
@@ -92,7 +101,7 @@ export function DashboardLive() {
     setError("");
 
     try {
-      const date = localDateValue();
+      const date = academyDateValue();
       const [summary, overview, todayResponse] = await Promise.all([
         apiFetch<Summary>("/admin/summary"),
         apiFetch<ReportOverview>("/admin/reports/overview"),
@@ -141,8 +150,8 @@ export function DashboardLive() {
             </article>
             <article className={styles.card}>
               <span className={styles.cardLabel}>Cobrado este mes</span>
-              <strong className={styles.cardValue}>$ {report.financial.collectedAmount.toLocaleString("es-AR")}</strong>
-              <span className={styles.cardDetail}>{report.financial.paidCount} pagos registrados</span>
+              <strong className={styles.cardValue}>$ {report.cash.collectedAmount.toLocaleString("es-AR")}</strong>
+              <span className={styles.cardDetail}>{report.cash.paidCount} pagos cobrados este mes</span>
             </article>
           </div>
 

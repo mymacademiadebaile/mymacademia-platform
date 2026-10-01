@@ -21,6 +21,8 @@ const post = (body: object) =>
   request(app).post("/api/admin/students").set("Authorization", `Bearer ${token}`).send(body);
 const patch = (id: Types.ObjectId, body: object) =>
   request(app).patch(`/api/admin/students/${id}`).set("Authorization", `Bearer ${token}`).send(body);
+const get = (query = "") =>
+  request(app).get(`/api/admin/students${query}`).set("Authorization", `Bearer ${token}`);
 
 const newStudent = (branchId: Types.ObjectId, extra: object = {}) => ({
   branchId: String(branchId),
@@ -77,6 +79,47 @@ beforeAll(async () => {
 afterAll(async () => {
   await mongoose.disconnect();
   await mongod.stop();
+});
+
+describe("GET /admin/students: pagination", () => {
+  it("defaults to ten results and keeps pages stable for each requested size", async () => {
+    const names = Array.from(
+      { length: 12 },
+      (_, index) => `Página ${String(index + 1).padStart(2, "0")}`
+    );
+
+    await Promise.all(
+      names.map((firstName) => StudentModel.create({
+        organizationId: ids.org,
+        branchId: ids.branch,
+        firstName,
+        lastName: "Paginación"
+      }))
+    );
+
+    const [firstPage, secondPage, fiftyPerPage, hundredPerPage] = await Promise.all([
+      get("?q=P%C3%A1gina"),
+      get("?q=P%C3%A1gina&page=2&limit=10"),
+      get("?q=P%C3%A1gina&page=1&limit=50"),
+      get("?q=P%C3%A1gina&page=1&limit=100")
+    ]);
+
+    expect(firstPage.status).toBe(200);
+    expect(firstPage.body).toMatchObject({ total: 12, page: 1, limit: 10 });
+    expect(firstPage.body.items).toHaveLength(10);
+    expect(secondPage.body).toMatchObject({ total: 12, page: 2, limit: 10 });
+    expect(secondPage.body.items).toHaveLength(2);
+    expect(fiftyPerPage.body).toMatchObject({ total: 12, page: 1, limit: 50 });
+    expect(fiftyPerPage.body.items).toHaveLength(12);
+    expect(hundredPerPage.body).toMatchObject({ total: 12, page: 1, limit: 100 });
+    expect(hundredPerPage.body.items).toHaveLength(12);
+
+    const firstNames = firstPage.body.items.map((item: { firstName: string }) => item.firstName);
+    const secondNames = secondPage.body.items.map((item: { firstName: string }) => item.firstName);
+    expect(firstNames).toEqual(names.slice(0, 10));
+    expect(secondNames).toEqual(names.slice(10));
+    expect(new Set([...firstNames, ...secondNames])).toHaveLength(12);
+  });
 });
 
 describe("POST /admin/students: branch validation", () => {

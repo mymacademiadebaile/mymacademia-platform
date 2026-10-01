@@ -17,6 +17,14 @@ export const publicRouter = Router();
 const CACHE_TTL_MS = 60_000;
 let organizationCache: { id: string; expiresAt: number } | undefined;
 let catalogCache: { value: PublicCatalogDto; expiresAt: number } | undefined;
+let socialLinksCache: { value: PublicSocialLinksDto; expiresAt: number } | undefined;
+
+export interface PublicSocialLinksDto {
+  instagram?: string;
+  tiktok?: string;
+  facebook?: string;
+  youtube?: string;
+}
 
 async function resolveOrganizationId(): Promise<string> {
   if (organizationCache && organizationCache.expiresAt > Date.now()) return organizationCache.id;
@@ -36,6 +44,47 @@ async function resolveOrganizationId(): Promise<string> {
 export function resetPublicCatalogCache() {
   organizationCache = undefined;
   catalogCache = undefined;
+  resetPublicSocialLinksCache();
+}
+
+export function resetPublicSocialLinksCache() {
+  socialLinksCache = undefined;
+}
+
+function safeSocialUrl(value: string | undefined, hosts: string[]): string | undefined {
+  if (!value) return undefined;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && hosts.includes(url.hostname.toLowerCase()) ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Safe, explicitly allow-listed social profiles for the public footer. */
+export async function loadPublicSocialLinks(): Promise<PublicSocialLinksDto> {
+  if (socialLinksCache && socialLinksCache.expiresAt > Date.now()) return socialLinksCache.value;
+
+  const organizationId = await resolveOrganizationId();
+  const organization = await OrganizationModel.findById(organizationId)
+    .select("instagramUrl tiktokUrl facebookUrl youtubeUrl")
+    .lean();
+
+  const instagram = safeSocialUrl(organization?.instagramUrl, ["instagram.com", "www.instagram.com"]);
+  const tiktok = safeSocialUrl(organization?.tiktokUrl, ["tiktok.com", "www.tiktok.com", "m.tiktok.com", "vm.tiktok.com"]);
+  const facebook = safeSocialUrl(organization?.facebookUrl, ["facebook.com", "www.facebook.com", "m.facebook.com"]);
+  const youtube = safeSocialUrl(organization?.youtubeUrl, ["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"]);
+
+  const value: PublicSocialLinksDto = {
+    ...(instagram ? { instagram } : {}),
+    ...(tiktok ? { tiktok } : {}),
+    ...(facebook ? { facebook } : {}),
+    ...(youtube ? { youtube } : {})
+  };
+
+  socialLinksCache = { value, expiresAt: Date.now() + CACHE_TTL_MS };
+  return value;
 }
 
 export async function loadPublicCatalog(): Promise<PublicCatalogDto> {
@@ -72,6 +121,14 @@ publicRouter.use((_request, response, next) => {
 publicRouter.get("/catalog", async (_request, response, next) => {
   try {
     response.json(await loadPublicCatalog());
+  } catch (error) {
+    next(error);
+  }
+});
+
+publicRouter.get("/social-links", async (_request, response, next) => {
+  try {
+    response.json(await loadPublicSocialLinks());
   } catch (error) {
     next(error);
   }

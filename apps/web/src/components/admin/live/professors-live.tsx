@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
-import type { Branch, CatalogItem, Professor } from "./live-types";
-import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import type { Branch, CatalogItem, Paginated, Professor } from "./live-types";
+import { ErrorBlock, Field, LiveModal, LoadingBlock, PaginationControls } from "./live-common";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import styles from "./live.module.css";
 
@@ -25,6 +25,9 @@ export function ProfessorsLive() {
   const [branchId, setBranchId] = useState("");
   const [disciplineId, setDisciplineId] = useState("");
   const [status, setStatus] = useState("active");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
   const [modal, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -36,17 +39,36 @@ export function ProfessorsLive() {
 
     try {
       const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", String(limit));
       if (search) params.set("q", search);
       if (branchId) params.set("branchId", branchId);
       if (disciplineId) params.set("disciplineId", disciplineId);
       if (status !== "all") params.set("isActive", String(status === "active"));
 
       const [professorList, branchList, catalogList] = await Promise.all([
-        apiFetch<Professor[]>(`/admin/professors?${params.toString()}`),
+        apiFetch<Paginated<Professor>>(`/admin/professors?${params.toString()}`),
         apiFetch<Branch[]>("/admin/branches"),
         apiFetch<CatalogItem[]>("/admin/catalogs")
       ]);
-      setItems(professorList);
+      const lastPage = Math.max(1, Math.ceil(professorList.total / professorList.limit));
+      if (page > lastPage) {
+        const correctedParams = new URLSearchParams(params);
+        correctedParams.set("page", String(lastPage));
+        const correctedProfessorList = await apiFetch<Paginated<Professor>>(
+          `/admin/professors?${correctedParams.toString()}`
+        );
+
+        setItems(correctedProfessorList.items);
+        setTotal(correctedProfessorList.total);
+        setBranches(branchList.filter((branch) => branch.isActive));
+        setCatalogs(catalogList.filter((item) => item.isActive && item.type === "DISCIPLINE"));
+        setPage(lastPage);
+        return;
+      }
+
+      setItems(professorList.items);
+      setTotal(professorList.total);
       setBranches(branchList.filter((branch) => branch.isActive));
       setCatalogs(catalogList.filter((item) => item.isActive && item.type === "DISCIPLINE"));
     } catch (requestError) {
@@ -54,7 +76,7 @@ export function ProfessorsLive() {
     } finally {
       setLoading(false);
     }
-  }, [search, branchId, disciplineId, status]);
+  }, [search, branchId, disciplineId, status, page, limit]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 180);
@@ -112,17 +134,33 @@ export function ProfessorsLive() {
       <div className={styles.filterBar}>
         <div className={styles.searchInline}>
           <Search size={17} />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o email..." />
+          <input
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Nombre o email..."
+          />
         </div>
-        <select value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+        <select value={branchId} onChange={(event) => {
+          setBranchId(event.target.value);
+          setPage(1);
+        }}>
           <option value="">Todas las sedes</option>
           {branches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}</option>)}
         </select>
-        <select value={disciplineId} onChange={(event) => setDisciplineId(event.target.value)}>
+        <select value={disciplineId} onChange={(event) => {
+          setDisciplineId(event.target.value);
+          setPage(1);
+        }}>
           <option value="">Todas las disciplinas</option>
           {catalogs.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
         </select>
-        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select value={status} onChange={(event) => {
+          setStatus(event.target.value);
+          setPage(1);
+        }}>
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
           <option value="all">Todos</option>
@@ -133,31 +171,44 @@ export function ProfessorsLive() {
       {loading && !items.length && <LoadingBlock />}
 
       {(items.length > 0 || !loading) && (
-        <div className={styles.liveGrid3}>
-          {items.length === 0 && <div className={styles.stateBlock}>No hay profesores para estos filtros.</div>}
-          {items.map((professor) => (
-            <Link className={styles.cardLink} href={`/admin/professors/${professor._id}`} key={professor._id}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span className={styles.avatar}>{professor.displayName.slice(0, 2).toUpperCase()}</span>
-                <span className={professor.isActive ? styles.pill : styles.pillOff}>
-                  {professor.isActive ? "Activo" : "Inactivo"}
-                </span>
-              </div>
-              <strong className={styles.cardTitle}>{professor.displayName}</strong>
-              <span className={styles.cardDetail}>
-                {professor.userId?.email || professor.phone || "Sin contacto"}
-              </span>
-              <div className={styles.tagRow}>
-                {professor.disciplineIds?.slice(0, 4).map((discipline) => (
-                  <span key={typeof discipline === "string" ? discipline : discipline._id}>
-                    {disciplineName(discipline)}
+        <>
+          <div className={styles.liveGrid3}>
+            {items.length === 0 && <div className={styles.stateBlock}>No hay profesores para estos filtros.</div>}
+            {items.map((professor) => (
+              <Link className={styles.cardLink} href={`/admin/professors/${professor._id}`} key={professor._id}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span className={styles.avatar}>{professor.displayName.slice(0, 2).toUpperCase()}</span>
+                  <span className={professor.isActive ? styles.pill : styles.pillOff}>
+                    {professor.isActive ? "Activo" : "Inactivo"}
                   </span>
-                ))}
-              </div>
-              <div className={styles.cardFooterLink}>Ver perfil <ChevronRight size={15} /></div>
-            </Link>
-          ))}
-        </div>
+                </div>
+                <strong className={styles.cardTitle}>{professor.displayName}</strong>
+                <span className={styles.cardDetail}>
+                  {professor.userId?.email || professor.phone || "Sin contacto"}
+                </span>
+                <div className={styles.tagRow}>
+                  {professor.disciplineIds?.slice(0, 4).map((discipline) => (
+                    <span key={typeof discipline === "string" ? discipline : discipline._id}>
+                      {disciplineName(discipline)}
+                    </span>
+                  ))}
+                </div>
+                <div className={styles.cardFooterLink}>Ver perfil <ChevronRight size={15} /></div>
+              </Link>
+            ))}
+          </div>
+          <PaginationControls
+            page={page}
+            limit={limit}
+            total={total}
+            loading={loading}
+            onPageChange={setPage}
+            onLimitChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
+        </>
       )}
 
       <LiveModal

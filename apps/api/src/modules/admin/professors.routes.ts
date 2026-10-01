@@ -20,7 +20,7 @@ import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { ProfessorModel } from "../professors/professor.model";
-import { objectIdSchema } from "./admin.schemas";
+import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 import { uniqueSlug } from "../../common/slug";
 import { professorPublishIssues } from "../public/publish-rules";
 
@@ -67,7 +67,8 @@ const resetPasswordSchema = z.object({
     .regex(/[0-9]/, "La contraseña debe incluir un número")
 });
 
-const listQuerySchema = z.object({
+const listQuerySchema = pageQuerySchema.extend({
+  limit: z.coerce.number().int().min(1).max(100).default(10),
   q: z.string().trim().max(120).optional(),
   branchId: objectIdSchema.optional(),
   disciplineId: objectIdSchema.optional(),
@@ -124,48 +125,46 @@ adminProfessorsRouter.get("/", async (request, response, next) => {
       filter.disciplineIds = query.disciplineId;
     }
 
-    const userFilter: Record<string, unknown> = {
-      organizationId,
-      role: "PROFESSOR"
-    };
-
     if (query.branchId) {
-      userFilter.branchIds = query.branchId;
+      const branchUserIds = await UserModel.find({
+        organizationId,
+        role: "PROFESSOR",
+        branchIds: query.branchId
+      }).distinct("_id");
+      filter.userId = { $in: branchUserIds };
     }
 
     if (query.q) {
-      userFilter.$or = [
-        { firstName: { $regex: query.q, $options: "i" } },
-        { lastName: { $regex: query.q, $options: "i" } },
-        { email: { $regex: query.q, $options: "i" } }
-      ];
+      const userFilter: Record<string, unknown> = {
+        organizationId,
+        role: "PROFESSOR",
+        $or: [
+          { firstName: { $regex: query.q, $options: "i" } },
+          { lastName: { $regex: query.q, $options: "i" } },
+          { email: { $regex: query.q, $options: "i" } }
+        ]
+      };
+
+      if (query.branchId) userFilter.branchIds = query.branchId;
+
+      const matchingUserIds = await UserModel.find(userFilter).distinct("_id");
+      const displayNameMatch = { displayName: { $regex: query.q, $options: "i" } };
+      filter.$or = matchingUserIds.length
+        ? [{ userId: { $in: matchingUserIds } }, displayNameMatch]
+        : [displayNameMatch];
     }
 
-    let userIds: Types.ObjectId[] | undefined;
-    if (query.branchId || query.q) {
-      userIds = await UserModel.find(userFilter).distinct("_id");
-      filter.userId = { $in: userIds };
-    } else if (query.q) {
-      filter.displayName = { $regex: query.q, $options: "i" };
-    }
-
-    let items = await ProfessorModel.find(filter)
-      .populate("userId", "firstName lastName email phone branchIds role isActive")
-      .populate("disciplineIds", "name type isActive sortOrder")
-      .sort({ displayName: 1 });
-
-    if (query.q && userIds?.length === 0) {
-      items = await ProfessorModel.find({
-        ...filter,
-        userId: { $exists: true },
-        displayName: { $regex: query.q, $options: "i" }
-      })
+    const [items, total] = await Promise.all([
+      ProfessorModel.find(filter)
         .populate("userId", "firstName lastName email phone branchIds role isActive")
         .populate("disciplineIds", "name type isActive sortOrder")
-        .sort({ displayName: 1 });
-    }
+        .sort({ displayName: 1, _id: 1 })
+        .skip((query.page - 1) * query.limit)
+        .limit(query.limit),
+      ProfessorModel.countDocuments(filter)
+    ]);
 
-    response.json(items);
+    response.json({ items, total, page: query.page, limit: query.limit });
   } catch (error) {
     next(error);
   }

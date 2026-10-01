@@ -7,6 +7,10 @@ export interface Organization {
   phone?: string;
   inquiryContactName?: string;
   inquiryWhatsApp?: string;
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  facebookUrl?: string;
+  youtubeUrl?: string;
   timezone?: string;
   /** Minimum notice required to cancel a booked class session. */
   cancellationNoticeHours: number;
@@ -21,6 +25,10 @@ const organizationSchema = new Schema<Organization>(
     phone: { type: String, trim: true },
     inquiryContactName: { type: String, trim: true, maxlength: 120 },
     inquiryWhatsApp: { type: String, trim: true, maxlength: 50 },
+    instagramUrl: { type: String, trim: true, maxlength: 500 },
+    tiktokUrl: { type: String, trim: true, maxlength: 500 },
+    facebookUrl: { type: String, trim: true, maxlength: 500 },
+    youtubeUrl: { type: String, trim: true, maxlength: 500 },
     timezone: { type: String, trim: true, default: "America/Argentina/Buenos_Aires" },
     cancellationNoticeHours: { type: Number, min: 0, max: 168, default: 6 },
     isActive: { type: Boolean, default: true }

@@ -6,24 +6,140 @@ import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { PaymentModel } from "../payments/payment.model";
 import { ProfessorModel } from "../professors/professor.model";
+import { ClassAttendanceModel } from "../sessions/class-attendance.model";
+import { ClassSessionModel } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema } from "./admin.schemas";
 
+const calendarDateSchema = z.string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/)
+  .refine((value) => new Date(`${value}T12:00:00.000Z`).toISOString().slice(0, 10) === value, {
+    message: "La fecha no es válida"
+  });
+const periodSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
+
 const reportQuerySchema = z.object({
-  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
+  /** Kept for dashboard and old links. New report screens use a calendar range. */
+  period: periodSchema.optional(),
+  from: calendarDateSchema.optional(),
+  to: calendarDateSchema.optional(),
   branchId: objectIdSchema.optional()
+}).superRefine((value, context) => {
+  const hasRange = Boolean(value.from || value.to);
+
+  if (hasRange && (!value.from || !value.to)) {
+    context.addIssue({
+      code: "custom",
+      path: value.from ? ["to"] : ["from"],
+      message: "Indicá la fecha de inicio y la fecha de fin"
+    });
+  }
+
+  if (hasRange && value.period) {
+    context.addIssue({
+      code: "custom",
+      path: ["period"],
+      message: "Elegí un período mensual o un rango de fechas, no ambos"
+    });
+  }
+
+  if (value.from && value.to && value.from > value.to) {
+    context.addIssue({
+      code: "custom",
+      path: ["to"],
+      message: "La fecha de fin debe ser posterior a la de inicio"
+    });
+  }
+
+  if (value.from && value.to && calendarDaysBetween(value.from, value.to) > 366) {
+    context.addIssue({
+      code: "custom",
+      path: ["to"],
+      message: "El rango máximo para un reporte es de 366 días"
+    });
+  }
 });
 
+type DateRange = {
+  from: string;
+  to: string;
+  start: Date;
+  endExclusive: Date;
+  periods: string[];
+};
+
+type FinancialBucket = {
+  amount: number;
+  count: number;
+};
+
+type FinancialSummary = {
+  totalAmount: number;
+  count: number;
+  collectedAmount: number;
+  paidCount: number;
+  pendingAmount: number;
+  pendingCount: number;
+  overdueAmount: number;
+  overdueCount: number;
+  cancelledAmount: number;
+  cancelledCount: number;
+};
+
+const PAYMENT_TYPES = ["PER_CLASS", "MONTHLY"] as const;
+
 function currentPeriod() {
-  const argentinaNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
-  return argentinaNow.toISOString().slice(0, 7);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit"
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}`;
 }
 
-function periodBounds(period: string) {
+function calendarDaysBetween(from: string, to: string) {
+  const start = new Date(`${from}T12:00:00.000Z`).getTime();
+  const end = new Date(`${to}T12:00:00.000Z`).getTime();
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+function daysInMonth(period: string) {
   const [year, month] = period.split("-").map(Number);
-  const start = new Date(Date.UTC(year, month - 1, 1, 3, 0, 0));
-  const end = new Date(Date.UTC(month === 12 ? year + 1 : year, month === 12 ? 0 : month, 1, 3, 0, 0));
-  return { start, end };
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function monthPeriodsBetween(from: string, to: string) {
+  const periods: string[] = [];
+  let [year, month] = from.slice(0, 7).split("-").map(Number);
+  const [endYear, endMonth] = to.slice(0, 7).split("-").map(Number);
+
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    periods.push(`${year}-${String(month).padStart(2, "0")}`);
+    month += 1;
+    if (month === 13) {
+      month = 1;
+      year += 1;
+    }
+  }
+
+  return periods;
+}
+
+function rangeFor(query: z.infer<typeof reportQuerySchema>): DateRange {
+  const period = query.period ?? currentPeriod();
+  const from = query.from ?? `${period}-01`;
+  const to = query.to ?? `${period}-${String(daysInMonth(period)).padStart(2, "0")}`;
+  const endExclusive = new Date(`${to}T00:00:00.000Z`);
+  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+
+  return {
+    from,
+    to,
+    start: new Date(`${from}T00:00:00.000Z`),
+    endExclusive,
+    periods: monthPeriodsBetween(from, to)
+  };
 }
 
 function effectivePaymentStatus(payment: { status: string; dueDate: Date }) {
@@ -33,138 +149,355 @@ function effectivePaymentStatus(payment: { status: string; dueDate: Date }) {
   return payment.status;
 }
 
+function emptyFinancialSummary(): FinancialSummary {
+  return {
+    totalAmount: 0,
+    count: 0,
+    collectedAmount: 0,
+    paidCount: 0,
+    pendingAmount: 0,
+    pendingCount: 0,
+    overdueAmount: 0,
+    overdueCount: 0,
+    cancelledAmount: 0,
+    cancelledCount: 0
+  };
+}
+
+/**
+ * Status of charges whose academic occurrence/month belongs to the selected range.
+ * This is deliberately different from cash: a September monthly fee paid in October
+ * belongs here in September, but in cash in October.
+ */
+function summarizeIssuedPayments(payments: Array<{ amount: number; status: string; dueDate: Date }>) {
+  return payments.reduce((summary, payment) => {
+    const status = effectivePaymentStatus(payment);
+
+    if (status === "CANCELLED") {
+      summary.cancelledAmount += payment.amount;
+      summary.cancelledCount += 1;
+      return summary;
+    }
+
+    summary.totalAmount += payment.amount;
+    summary.count += 1;
+
+    if (status === "PAID") {
+      summary.collectedAmount += payment.amount;
+      summary.paidCount += 1;
+    } else if (status === "OVERDUE") {
+      summary.overdueAmount += payment.amount;
+      summary.overdueCount += 1;
+    } else if (status === "PENDING") {
+      summary.pendingAmount += payment.amount;
+      summary.pendingCount += 1;
+    }
+
+    return summary;
+  }, emptyFinancialSummary());
+}
+
+function emptyBucket(): FinancialBucket {
+  return { amount: 0, count: 0 };
+}
+
+function addToBucket(bucket: FinancialBucket, amount: number) {
+  bucket.amount += amount;
+  bucket.count += 1;
+}
+
+function dateForExcel(value: string) {
+  return value.split("-").reverse().join("/");
+}
+
 async function buildOverview(
   organizationId: string,
-  period: string,
-  branchId?: string
+  query: z.infer<typeof reportQuerySchema>
 ) {
-  const { start, end } = periodBounds(period);
-  const commonFilter: Record<string, unknown> = { organizationId };
-  if (branchId) commonFilter.branchId = branchId;
+  const range = rangeFor(query);
+  const branchFilter = query.branchId ? { branchId: query.branchId } : {};
+  const organizationObjectId = new Types.ObjectId(organizationId);
 
-  const classFilter: Record<string, unknown> = {
+  const issuedFilter = {
     organizationId,
-    status: "ACTIVE"
+    ...branchFilter,
+    $or: [
+      {
+        paymentType: "PER_CLASS",
+        classDate: { $gte: range.start, $lt: range.endExclusive }
+      },
+      {
+        // Old manual per-class charges may not have classDate. Their period is the
+        // best historical key available, so keep them visible instead of dropping them.
+        paymentType: "PER_CLASS",
+        classDate: { $exists: false },
+        period: { $in: range.periods }
+      },
+      { paymentType: "MONTHLY", period: { $in: range.periods } }
+    ]
   };
-  if (branchId) classFilter.branchId = branchId;
 
-  const studentFilter: Record<string, unknown> = {
+  const cashFilter = {
     organizationId,
-    isActive: true
+    ...branchFilter,
+    status: "PAID",
+    paidAt: { $gte: range.start, $lt: range.endExclusive }
   };
-  if (branchId) studentFilter.branchId = branchId;
 
-  const paymentFilter: Record<string, unknown> = {
+  const sessionFilter = {
     organizationId,
-    period
+    ...branchFilter,
+    sessionDate: { $gte: range.from, $lte: range.to }
   };
-  if (branchId) paymentFilter.branchId = branchId;
 
-  const [students, newStudents, professors, classes, payments] = await Promise.all([
+  const classFilter = { organizationId, ...branchFilter };
+  const studentFilter = { organizationId, isActive: true, ...branchFilter };
+
+  const [students, newStudents, classes, issuedPayments, cashPayments, sessions] = await Promise.all([
     StudentModel.countDocuments(studentFilter),
     StudentModel.countDocuments({
       ...studentFilter,
-      createdAt: { $gte: start, $lt: end }
+      createdAt: { $gte: range.start, $lt: range.endExclusive }
     }),
-    ProfessorModel.countDocuments({ organizationId, isActive: true }),
     DanceClassModel.find(classFilter)
-      .select("name branchId capacity professorIds disciplineIds schedules")
+      .select("name branchId capacity billingMode disciplineIds professorIds status")
       .populate("disciplineIds", "name")
-      .sort({ name: 1 }),
-    PaymentModel.find(paymentFilter).select("amount status dueDate")
+      .lean(),
+    PaymentModel.find(issuedFilter)
+      .select("classId paymentType amount status dueDate period classDate")
+      .lean(),
+    PaymentModel.find(cashFilter)
+      .select("classId paymentType amount paymentMethod paidAt")
+      .lean(),
+    ClassSessionModel.find(sessionFilter)
+      .select("classId sessionDate status")
+      .lean()
   ]);
 
-  const classIds = classes.map((item) => item._id);
-  const enrollmentGroups = classIds.length
-    ? await EnrollmentModel.aggregate([
+  const activeClasses = classes.filter((danceClass: any) => danceClass.status === "ACTIVE");
+  const activeClassIds = activeClasses.map((danceClass: any) => danceClass._id);
+  const enrollmentGroups = activeClassIds.length
+    ? await EnrollmentModel.aggregate<{ _id: Types.ObjectId; occupied: number }>([
         {
           $match: {
-            organizationId: new Types.ObjectId(organizationId),
-            classId: { $in: classIds },
+            organizationId: organizationObjectId,
+            classId: { $in: activeClassIds },
             status: "ACTIVE"
           }
         },
-        {
-          $group: {
-            _id: "$classId",
-            occupied: { $sum: 1 }
-          }
-        }
+        { $group: { _id: "$classId", occupied: { $sum: 1 } } }
       ])
     : [];
 
+  const sessionIds = sessions.map((session: any) => session._id);
+  const attendance = sessionIds.length
+    ? await ClassAttendanceModel.find({
+        organizationId,
+        sessionId: { $in: sessionIds }
+      })
+        .select("sessionId status")
+        .lean()
+    : [];
+
   const occupiedByClass = new Map(
-    enrollmentGroups.map((item) => [String(item._id), item.occupied as number])
+    enrollmentGroups.map((item) => [String(item._id), item.occupied])
   );
+  const classById = new Map(classes.map((danceClass: any) => [String(danceClass._id), danceClass]));
 
-  const occupancy = classes.map((danceClass) => {
-    const occupied = occupiedByClass.get(String(danceClass._id)) ?? 0;
-    return {
-      id: danceClass.id,
-      name: danceClass.name,
-      capacity: danceClass.capacity,
-      occupied,
-      available: Math.max(0, danceClass.capacity - occupied),
-      occupancyPercent: danceClass.capacity
-        ? Math.round((occupied / danceClass.capacity) * 100)
-        : 0,
-      disciplines: (danceClass.disciplineIds as unknown as Array<{ name: string }>).map(
-        (item) => item.name
-      )
-    };
-  }).sort((a, b) => b.occupancyPercent - a.occupancyPercent);
+  const occupancy = activeClasses
+    .map((danceClass: any) => {
+      const occupied = occupiedByClass.get(String(danceClass._id)) ?? 0;
+      const disciplines = (danceClass.disciplineIds ?? [])
+        .map((item: unknown) =>
+          item && typeof item === "object" && "name" in item
+            ? String((item as { name: string }).name)
+            : ""
+        )
+        .filter(Boolean);
+      return {
+        id: String(danceClass._id),
+        name: danceClass.name,
+        capacity: danceClass.capacity,
+        occupied,
+        available: Math.max(0, danceClass.capacity - occupied),
+        occupancyPercent: danceClass.capacity ? Math.round((occupied / danceClass.capacity) * 100) : 0,
+        disciplines
+      };
+    })
+    .sort((a, b) => b.occupancyPercent - a.occupancyPercent || a.name.localeCompare(b.name));
 
-  const financial = payments.reduce(
-    (acc, payment) => {
-      const status = effectivePaymentStatus(payment);
-      acc.totalAmount += payment.amount;
-      acc.count += 1;
+  const financial = summarizeIssuedPayments(issuedPayments as Array<any>);
+  const issuedByType = PAYMENT_TYPES.map((paymentType) => ({
+    paymentType,
+    ...summarizeIssuedPayments(
+      (issuedPayments as Array<any>).filter((payment) => payment.paymentType === paymentType)
+    )
+  }));
 
-      if (status === "PAID") {
-        acc.collectedAmount += payment.amount;
-        acc.paidCount += 1;
-      } else if (status === "OVERDUE") {
-        acc.overdueAmount += payment.amount;
-        acc.overdueCount += 1;
-      } else if (status === "PENDING") {
-        acc.pendingAmount += payment.amount;
-        acc.pendingCount += 1;
-      } else if (status === "CANCELLED") {
-        acc.cancelledAmount += payment.amount;
-        acc.cancelledCount += 1;
+  const cashByType = new Map<string, FinancialBucket>();
+  const cashByMethod = new Map<string, FinancialBucket>();
+  for (const payment of cashPayments as Array<any>) {
+    const typeBucket = cashByType.get(payment.paymentType) ?? emptyBucket();
+    addToBucket(typeBucket, payment.amount);
+    cashByType.set(payment.paymentType, typeBucket);
+
+    const method = payment.paymentMethod ?? "OTHER";
+    const methodBucket = cashByMethod.get(method) ?? emptyBucket();
+    addToBucket(methodBucket, payment.amount);
+    cashByMethod.set(method, methodBucket);
+  }
+
+  const performance = new Map<string, {
+    id: string;
+    name: string;
+    billingMode: string;
+    capacity: number;
+    sessions: { total: number; completed: number; scheduled: number; cancelled: number };
+    attendance: { present: number; absent: number; expected: number; recorded: number };
+    invoiced: FinancialBucket;
+    collected: FinancialBucket;
+    occupancy: { occupied: number; percent: number };
+  }>();
+
+  function classPerformance(classId: string) {
+    const existing = performance.get(classId);
+    if (existing) return existing;
+
+    const danceClass: any = classById.get(classId);
+    const capacity = danceClass?.capacity ?? 0;
+    const occupied = occupiedByClass.get(classId) ?? 0;
+    const item = {
+      id: classId,
+      name: danceClass?.name ?? "Clase sin nombre",
+      billingMode: danceClass?.billingMode ?? "MONTHLY",
+      capacity,
+      sessions: { total: 0, completed: 0, scheduled: 0, cancelled: 0 },
+      attendance: { present: 0, absent: 0, expected: 0, recorded: 0 },
+      invoiced: emptyBucket(),
+      collected: emptyBucket(),
+      occupancy: {
+        occupied,
+        percent: capacity ? Math.round((occupied / capacity) * 100) : 0
       }
+    };
+    performance.set(classId, item);
+    return item;
+  }
 
-      return acc;
-    },
-    {
-      totalAmount: 0,
-      collectedAmount: 0,
-      pendingAmount: 0,
-      overdueAmount: 0,
-      cancelledAmount: 0,
-      count: 0,
-      paidCount: 0,
-      pendingCount: 0,
-      overdueCount: 0,
-      cancelledCount: 0
+  const sessionClassById = new Map<string, string>();
+  const activity = {
+    sessions: sessions.length,
+    completedSessions: 0,
+    scheduledSessions: 0,
+    cancelledSessions: 0,
+    attendance: { present: 0, absent: 0, expected: 0, recorded: 0 }
+  };
+
+  for (const session of sessions as Array<any>) {
+    const item = classPerformance(String(session.classId));
+    sessionClassById.set(String(session._id), String(session.classId));
+    item.sessions.total += 1;
+    if (session.status === "COMPLETED") {
+      item.sessions.completed += 1;
+      activity.completedSessions += 1;
+    } else if (session.status === "CANCELLED") {
+      item.sessions.cancelled += 1;
+      activity.cancelledSessions += 1;
+    } else {
+      item.sessions.scheduled += 1;
+      activity.scheduledSessions += 1;
     }
+  }
+
+  for (const record of attendance as Array<any>) {
+    const classId = sessionClassById.get(String(record.sessionId));
+    if (!classId) continue;
+    const item = classPerformance(classId);
+    item.attendance.recorded += 1;
+    activity.attendance.recorded += 1;
+    if (record.status === "PRESENT") {
+      item.attendance.present += 1;
+      activity.attendance.present += 1;
+    } else if (record.status === "ABSENT") {
+      item.attendance.absent += 1;
+      activity.attendance.absent += 1;
+    } else {
+      item.attendance.expected += 1;
+      activity.attendance.expected += 1;
+    }
+  }
+
+  for (const payment of issuedPayments as Array<any>) {
+    if (payment.status === "CANCELLED" || !payment.classId) continue;
+    addToBucket(classPerformance(String(payment.classId)).invoiced, payment.amount);
+  }
+
+  for (const payment of cashPayments as Array<any>) {
+    if (!payment.classId) continue;
+    addToBucket(classPerformance(String(payment.classId)).collected, payment.amount);
+  }
+
+  const classPerformanceRows = [...performance.values()]
+    .sort(
+      (a, b) =>
+        b.collected.amount - a.collected.amount ||
+        b.invoiced.amount - a.invoiced.amount ||
+        b.sessions.total - a.sessions.total ||
+        a.name.localeCompare(b.name)
+    );
+
+  const activeProfessorIds = new Set(
+    activeClasses.flatMap((danceClass: any) => (danceClass.professorIds ?? []).map(String))
   );
+  const professors = activeProfessorIds.size
+    ? await ProfessorModel.countDocuments({
+        organizationId,
+        isActive: true,
+        _id: { $in: [...activeProfessorIds] }
+      })
+    : 0;
+
+  const cashTotal = [...cashByType.values()].reduce((total, item) => total + item.amount, 0);
+  const cashCount = [...cashByType.values()].reduce((total, item) => total + item.count, 0);
 
   return {
-    period,
+    // `period`, `financial`, `classes` and `occupancy` remain for the dashboard API contract.
+    period: range.periods.length === 1 ? range.periods[0] : `${range.from} a ${range.to}`,
+    range: {
+      from: range.from,
+      to: range.to,
+      periods: range.periods,
+      days: calendarDaysBetween(range.from, range.to)
+    },
     students: {
       active: students,
-      newInPeriod: newStudents
+      newInPeriod: newStudents,
+      newInRange: newStudents
     },
-    professors: {
-      active: professors
-    },
+    professors: { active: professors },
     classes: {
-      active: classes.length,
+      active: activeClasses.length,
       totalCapacity: occupancy.reduce((sum, item) => sum + item.capacity, 0),
       occupied: occupancy.reduce((sum, item) => sum + item.occupied, 0)
     },
     financial,
+    billing: {
+      issued: financial,
+      byPaymentType: issuedByType
+    },
+    cash: {
+      collectedAmount: cashTotal,
+      paidCount: cashCount,
+      byPaymentType: PAYMENT_TYPES.map((paymentType) => ({
+        paymentType,
+        ...(cashByType.get(paymentType) ?? emptyBucket())
+      })),
+      byMethod: [...cashByMethod.entries()]
+        .map(([paymentMethod, values]) => ({ paymentMethod, ...values }))
+        .sort((a, b) => b.amount - a.amount)
+    },
+    activity,
+    classPerformance: classPerformanceRows,
     occupancy
   };
 }
@@ -174,13 +507,7 @@ export const adminReportsRouter = Router();
 adminReportsRouter.get("/overview", async (request, response, next) => {
   try {
     const query = reportQuerySchema.parse(request.query);
-    const overview = await buildOverview(
-      request.auth!.organizationId,
-      query.period ?? currentPeriod(),
-      query.branchId
-    );
-
-    response.json(overview);
+    response.json(await buildOverview(request.auth!.organizationId, query));
   } catch (error) {
     next(error);
   }
@@ -189,57 +516,88 @@ adminReportsRouter.get("/overview", async (request, response, next) => {
 adminReportsRouter.get("/export.xlsx", async (request, response, next) => {
   try {
     const query = reportQuerySchema.parse(request.query);
-    const period = query.period ?? currentPeriod();
-    const overview = await buildOverview(
-      request.auth!.organizationId,
-      period,
-      query.branchId
-    );
-
+    const overview = await buildOverview(request.auth!.organizationId, query);
     const workbook = new ExcelJS.Workbook();
+    workbook.creator = "M&M Academia";
+    workbook.created = new Date();
+
     const summary = workbook.addWorksheet("Resumen");
     summary.columns = [
-      { header: "Indicador", key: "label", width: 30 },
-      { header: "Valor", key: "value", width: 20 }
+      { header: "Indicador", key: "label", width: 35 },
+      { header: "Valor", key: "value", width: 22 },
+      { header: "Criterio", key: "criterion", width: 58 }
     ];
-
     summary.addRows([
-      { label: "Período", value: period },
-      { label: "Alumnos activos", value: overview.students.active },
-      { label: "Altas del período", value: overview.students.newInPeriod },
-      { label: "Profesores activos", value: overview.professors.active },
-      { label: "Clases activas", value: overview.classes.active },
-      { label: "Cupo total", value: overview.classes.totalCapacity },
-      { label: "Lugares ocupados", value: overview.classes.occupied },
-      { label: "Cobrado", value: overview.financial.collectedAmount },
-      { label: "Pendiente", value: overview.financial.pendingAmount },
-      { label: "Vencido", value: overview.financial.overdueAmount }
+      { label: "Desde", value: dateForExcel(overview.range.from), criterion: "Rango seleccionado" },
+      { label: "Hasta", value: dateForExcel(overview.range.to), criterion: "Rango seleccionado" },
+      { label: "Cobrado en caja", value: overview.cash.collectedAmount, criterion: "Pagos con fecha de cobro dentro del rango" },
+      { label: "Facturado vigente", value: overview.billing.issued.totalAmount, criterion: "Cargos por clase o mensualidades del rango; excluye anulados" },
+      { label: "Pendiente", value: overview.billing.issued.pendingAmount, criterion: "Estado actual de cargos del rango" },
+      { label: "Vencido", value: overview.billing.issued.overdueAmount, criterion: "Estado actual de cargos del rango" },
+      { label: "Turnos registrados", value: overview.activity.sessions, criterion: "Ocurrencias creadas en Clase del día" },
+      { label: "Asistencias presentes", value: overview.activity.attendance.present, criterion: "Registros de asistencia cargados" }
     ]);
     summary.getRow(1).font = { bold: true };
+    summary.getColumn("value").numFmt = '#,##0.00';
 
-    const occupancySheet = workbook.addWorksheet("Ocupación");
-    occupancySheet.columns = [
-      { header: "Clase", key: "name", width: 30 },
-      { header: "Disciplinas", key: "disciplines", width: 30 },
-      { header: "Cupo", key: "capacity", width: 12 },
-      { header: "Inscriptos", key: "occupied", width: 12 },
-      { header: "Disponibles", key: "available", width: 12 },
-      { header: "Ocupación %", key: "percent", width: 14 }
+    const finance = workbook.addWorksheet("Facturación y caja");
+    finance.columns = [
+      { header: "Modalidad", key: "type", width: 18 },
+      { header: "Facturado vigente", key: "issued", width: 20 },
+      { header: "Pagado del cargo", key: "settled", width: 20 },
+      { header: "Pendiente", key: "pending", width: 18 },
+      { header: "Vencido", key: "overdue", width: 18 },
+      { header: "Cobrado en caja", key: "cash", width: 20 },
+      { header: "Cobros", key: "cashCount", width: 12 }
     ];
-
-    for (const item of overview.occupancy) {
-      occupancySheet.addRow({
-        name: item.name,
-        disciplines: item.disciplines.join(", "),
-        capacity: item.capacity,
-        occupied: item.occupied,
-        available: item.available,
-        percent: item.occupancyPercent / 100
+    for (const type of overview.billing.byPaymentType) {
+      const cash = overview.cash.byPaymentType.find((item) => item.paymentType === type.paymentType);
+      finance.addRow({
+        type: type.paymentType === "PER_CLASS" ? "Por clase" : "Mensual",
+        issued: type.totalAmount,
+        settled: type.collectedAmount,
+        pending: type.pendingAmount,
+        overdue: type.overdueAmount,
+        cash: cash?.amount ?? 0,
+        cashCount: cash?.count ?? 0
       });
     }
+    finance.getRow(1).font = { bold: true };
+    ["issued", "settled", "pending", "overdue", "cash"].forEach((key) => {
+      finance.getColumn(key).numFmt = '"$" #,##0.00';
+    });
 
-    occupancySheet.getRow(1).font = { bold: true };
-    occupancySheet.getColumn("percent").numFmt = "0%";
+    const classes = workbook.addWorksheet("Actividad por clase");
+    classes.columns = [
+      { header: "Clase", key: "name", width: 30 },
+      { header: "Modalidad", key: "billingMode", width: 16 },
+      { header: "Turnos", key: "sessions", width: 12 },
+      { header: "Completados", key: "completed", width: 14 },
+      { header: "Cancelados", key: "cancelled", width: 14 },
+      { header: "Presentes", key: "present", width: 12 },
+      { header: "Ausentes", key: "absent", width: 12 },
+      { header: "Facturado", key: "invoiced", width: 16 },
+      { header: "Cobrado", key: "collected", width: 16 },
+      { header: "Ocupación actual", key: "occupancy", width: 18 }
+    ];
+    for (const item of overview.classPerformance) {
+      classes.addRow({
+        name: item.name,
+        billingMode: item.billingMode === "PER_CLASS" ? "Por clase" : item.billingMode === "MONTHLY" ? "Mensual" : item.billingMode === "BOTH" ? "Ambas" : "Sin cargo",
+        sessions: item.sessions.total,
+        completed: item.sessions.completed,
+        cancelled: item.sessions.cancelled,
+        present: item.attendance.present,
+        absent: item.attendance.absent,
+        invoiced: item.invoiced.amount,
+        collected: item.collected.amount,
+        occupancy: item.capacity ? item.occupancy.percent / 100 : undefined
+      });
+    }
+    classes.getRow(1).font = { bold: true };
+    classes.getColumn("invoiced").numFmt = '"$" #,##0.00';
+    classes.getColumn("collected").numFmt = '"$" #,##0.00';
+    classes.getColumn("occupancy").numFmt = "0%";
 
     response.setHeader(
       "Content-Type",
@@ -247,7 +605,7 @@ adminReportsRouter.get("/export.xlsx", async (request, response, next) => {
     );
     response.setHeader(
       "Content-Disposition",
-      `attachment; filename="reporte-${period}.xlsx"`
+      `attachment; filename="reporte-${overview.range.from}_a_${overview.range.to}.xlsx"`
     );
 
     await workbook.xlsx.write(response);

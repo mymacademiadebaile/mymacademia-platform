@@ -8,7 +8,7 @@ import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { BillingMode, Branch, CatalogItem, DanceClass, Professor } from "./live-types";
-import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import { ErrorBlock, fetchAllPaginated, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
 
 const dayLabels: Record<string, string> = {
@@ -87,7 +87,7 @@ export function ClassesLive() {
       const [classList, branchList, professorList, catalogList] = await Promise.all([
         apiFetch<DanceClass[]>("/admin/classes?" + params.toString()),
         apiFetch<Branch[]>("/admin/branches"),
-        apiFetch<Professor[]>("/admin/professors?isActive=true"),
+        fetchAllPaginated<Professor>("/admin/professors?isActive=true"),
         apiFetch<CatalogItem[]>("/admin/catalogs")
       ]);
 

@@ -76,7 +76,8 @@ Reglas:
 | `AcademySpace` | `academy-space.tsx` | collage de 3 fotos con la palabra "LA PLATA" cruzándolo |
 | `LocationSection` | `location-section.tsx` | dirección tipográfica y mapa oscurecido con tinte violeta y marcas de corte |
 | `FaqSection` | `faq-section.tsx` | `<details>` nativos, sin JS |
-| `FinalCta`, `WhatsAppFloat` | `whatsapp-cta.tsx` | cierre ¿Bailamos? y CTA persistente discreto |
+| `FinalCta` | `whatsapp-cta.tsx` | cierre ¿Bailamos? |
+| `WhatsAppFloat` | `whatsapp-float.tsx` | CTA persistente discreto que se oculta sobre el footer |
 | `PublicFooter` | `public-footer.tsx` | logo, dirección, links; "Acceso equipo" lleva a `/login` |
 | `SectionHeading`, `PageIntro`, `DetailHero` | — | encabezados reutilizables |
 

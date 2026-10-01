@@ -6,7 +6,7 @@
  */
 import { mapsSearchUrl } from "./maps";
 import { SITE, absoluteUrl, toAbsoluteUrl } from "./site";
-import type { Branch, DanceStyle, FaqItem, PublicProfessor } from "./types";
+import type { Branch, DanceStyle, FaqItem, PublicProfessor, PublicSocialLinks } from "./types";
 
 type JsonLd = Record<string, unknown>;
 
@@ -24,7 +24,13 @@ function postalAddress(branch: Branch): JsonLd {
   };
 }
 
-export function organizationJsonLd(branch: Branch, styles: DanceStyle[]): JsonLd {
+export function organizationJsonLd(
+  branch: Branch,
+  styles: DanceStyle[],
+  socialLinks: PublicSocialLinks = {}
+): JsonLd {
+  const sameAs = Object.values(socialLinks).filter((url): url is string => Boolean(url));
+
   return {
     "@type": ["EducationalOrganization", "LocalBusiness"],
     "@id": ORG_ID,
@@ -48,7 +54,7 @@ export function organizationJsonLd(branch: Branch, styles: DanceStyle[]): JsonLd
     ...(branch.geo
       ? { geo: { "@type": "GeoCoordinates", latitude: branch.geo.latitude, longitude: branch.geo.longitude } }
       : {}),
-    ...(SITE.instagramUrl ? { sameAs: [SITE.instagramUrl] } : {})
+    ...(sameAs.length ? { sameAs } : {})
   };
 }
 

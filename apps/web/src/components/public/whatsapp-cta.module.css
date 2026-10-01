@@ -152,6 +152,15 @@
   text-transform: uppercase;
 }
 
+/* The footer already exposes WhatsApp. Hide this fixed CTA while that area is visible
+   so it never covers the "Acceso equipo" link or any other footer action. */
+.floatOverFooter {
+  pointer-events: none;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateY(24px) !important;
+}
+
 @media (hover: hover) {
   .float:hover {
     border-color: var(--purple-bright);

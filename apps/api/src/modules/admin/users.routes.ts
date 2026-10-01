@@ -9,7 +9,7 @@ import { UserModel } from "../auth/user.model";
 import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { ProfessorModel } from "../professors/professor.model";
-import { objectIdSchema } from "./admin.schemas";
+import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 
 const manageableRoles = z.enum(["ADMIN", "PROFESSOR"]);
 const passwordSchema = z
@@ -39,7 +39,8 @@ const updateUserSchema = z.object({
   isActive: z.boolean().optional()
 });
 
-const listQuerySchema = z.object({
+const listQuerySchema = pageQuerySchema.extend({
+  limit: z.coerce.number().int().min(1).max(100).default(10),
   q: z.string().trim().max(120).optional(),
   role: manageableRoles.optional(),
   isActive: z.enum(["true", "false"]).optional()
@@ -101,11 +102,21 @@ adminUsersRouter.get("/", async (request, response, next) => {
       ];
     }
 
-    const users = await UserModel.find(filter)
-      .select("firstName lastName email phone role isActive branchIds createdAt")
-      .sort({ role: 1, lastName: 1, firstName: 1 });
+    const [users, total] = await Promise.all([
+      UserModel.find(filter)
+        .select("firstName lastName email phone role isActive branchIds createdAt")
+        .sort({ role: 1, lastName: 1, firstName: 1, _id: 1 })
+        .skip((query.page - 1) * query.limit)
+        .limit(query.limit),
+      UserModel.countDocuments(filter)
+    ]);
 
-    response.json(users.map(userResponse));
+    response.json({
+      items: users.map(userResponse),
+      total,
+      page: query.page,
+      limit: query.limit
+    });
   } catch (error) {
     next(error);
   }

@@ -4,7 +4,7 @@
   gap: 5px;
   margin-bottom: 14px;
   color: #5b21b6;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
 }
 
@@ -18,7 +18,7 @@
   border-radius: 13px;
   background: #f0fdf4;
   color: #166534;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -62,14 +62,14 @@
 .heroText p {
   margin: 0;
   color: #ddd2e8;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .active,
 .inactive {
   padding: 5px 8px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
 }
 
@@ -104,7 +104,7 @@
   border-radius: 11px;
   background: rgba(255,255,255,.1);
   color: white;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -132,7 +132,7 @@
 .financialGrid span,
 .financialGrid small {
   color: #807687;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .financialGrid strong {
@@ -172,14 +172,14 @@
 
 .cardHeader > div > span {
   color: #6d28d9;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
   letter-spacing: .13em;
 }
 
 .cardHeader h3 {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .cardHeader button,
@@ -193,7 +193,7 @@
   border-radius: 10px;
   background: white;
   color: #5b21b6;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -222,12 +222,12 @@
 
 .detailList dt {
   color: #827888;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .detailList dd {
   margin: 0;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 750;
 }
 
@@ -269,12 +269,12 @@
 }
 
 .itemList strong {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .itemList small {
   color: #817787;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .itemList button {
@@ -292,7 +292,7 @@
 .empty {
   margin: 12px 0;
   color: #857b8b;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .paymentTable {
@@ -312,7 +312,7 @@
   min-height: 35px;
   padding: 0 9px;
   color: #817787;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 850;
 }
 
@@ -320,7 +320,7 @@
   min-height: 53px;
   padding: 7px 9px;
   border-top: 1px solid #f0ebf3;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .statusPaid,
@@ -329,7 +329,7 @@
   width: max-content;
   padding: 4px 7px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
 }
 
@@ -360,7 +360,7 @@
   border-radius: 9px;
   background: white;
   color: #5b21b6;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -409,7 +409,7 @@
   border-radius: 12px;
   background: #faf8fc;
   color: #6f6576;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.45;
 }
 
@@ -423,7 +423,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: #4d4453;
 }
 

@@ -9,7 +9,7 @@
  * and the next request retries (failed fetches are never cached).
  */
 import { cache } from "react";
-import { fetchCatalogFromApi, type PublicCatalog } from "./api-source";
+import { fetchCatalogFromApi, fetchPublicSocialLinksFromApi, type PublicCatalog } from "./api-source";
 import { buildFaq } from "./faq";
 import {
   mockClasses,
@@ -20,7 +20,7 @@ import {
 } from "./mock-data";
 import { resolveSchedule, upcomingFromSchedule } from "./schedule-utils";
 import { PRIMARY_BRANCH, SITE } from "./site";
-import type { Branch, DanceStyle, FaqItem, PublicProfessor, ScheduleEntry, UpcomingClass } from "./types";
+import type { Branch, DanceStyle, FaqItem, PublicProfessor, PublicSocialLinks, ScheduleEntry, UpcomingClass } from "./types";
 
 const USE_MOCK = process.env.PUBLIC_DATA_SOURCE === "mock";
 
@@ -74,6 +74,17 @@ export async function fetchUpcomingClasses(limit = 3, now = new Date()): Promise
 
 export async function fetchPrimaryBranch(): Promise<Branch> {
   return PRIMARY_BRANCH;
+}
+
+export async function fetchPublicSocialLinks(): Promise<PublicSocialLinks> {
+  if (USE_MOCK) return {};
+
+  try {
+    return await fetchPublicSocialLinksFromApi();
+  } catch (error) {
+    console.error("[public-site] could not load public social links", error);
+    return {};
+  }
 }
 
 export async function fetchPublicFaq(): Promise<FaqItem[]> {

@@ -54,6 +54,14 @@ export interface Branch {
   mapsQuery: string;
 }
 
+/** Social profiles explicitly configured by the academy for its public website. */
+export interface PublicSocialLinks {
+  instagram?: string;
+  tiktok?: string;
+  facebook?: string;
+  youtube?: string;
+}
+
 /** Future source: CatalogItem (type DISCIPLINE) + public editorial fields. */
 export interface DanceStyle {
   id: string;

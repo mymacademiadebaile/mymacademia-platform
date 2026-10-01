@@ -19,8 +19,6 @@ export const SITE = {
     waNumber: "5492215968108"
   },
   defaultWhatsappMessage: "Hola, vi la web de M&M Academia y quisiera consultar por las clases.",
-  /** Set once the official account is confirmed. Rendered only when defined. */
-  instagramUrl: undefined as string | undefined,
   logo: { src: "/mym-academia-logo.png", width: 160, height: 160 }
 } as const;
 

@@ -5,7 +5,7 @@
   align-content: center;
   gap: 10px;
   color: #6d28d9;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .loading svg,
@@ -31,7 +31,7 @@
   border: 1px solid #bbf7d0;
   background: #f0fdf4;
   color: #166534;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -44,11 +44,11 @@
 }
 
 .errorBox strong {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .errorBox span {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .errorBox button {
@@ -101,7 +101,7 @@
 .hero p {
   margin: 0;
   color: #ddd2e8;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .role {
@@ -109,7 +109,7 @@
   align-items: center;
   gap: 5px;
   color: #e9ddff;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -122,7 +122,7 @@
   background: rgba(220,252,231,.13);
   color: #dcfce7;
   border: 1px solid rgba(220,252,231,.16);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -171,7 +171,7 @@
 .cardHeader p {
   margin: 0;
   color: #7d7383;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
@@ -189,7 +189,7 @@
 .formGrid label > span,
 .sectionLabel {
   color: #655b6b;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
 }
 
@@ -244,7 +244,7 @@
   gap: 7px;
   background: linear-gradient(120deg, #5b21b6, #7c3aed);
   color: white;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -277,12 +277,12 @@
 
 .readOnlyList span {
   color: #817787;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .readOnlyList strong {
   text-align: right;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .branchList {
@@ -318,7 +318,7 @@
 }
 
 .branchList strong {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .branchList small {
@@ -326,18 +326,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #857b8b;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .branchList b {
   color: #166534;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .passwordHint {
   margin-top: 11px;
   color: #817787;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 @media (max-width: 900px) {

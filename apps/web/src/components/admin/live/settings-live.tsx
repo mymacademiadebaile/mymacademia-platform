@@ -18,6 +18,10 @@ type SettingsData = {
     phone?: string;
     inquiryContactName?: string;
     inquiryWhatsApp?: string;
+    instagramUrl?: string;
+    tiktokUrl?: string;
+    facebookUrl?: string;
+    youtubeUrl?: string;
     timezone?: string;
     cancellationNoticeHours?: number;
   };
@@ -67,6 +71,10 @@ export function SettingsLive() {
           phone: form.get("phone"),
           inquiryContactName: form.get("inquiryContactName"),
           inquiryWhatsApp: form.get("inquiryWhatsApp"),
+          instagramUrl: form.get("instagramUrl"),
+          tiktokUrl: form.get("tiktokUrl"),
+          facebookUrl: form.get("facebookUrl"),
+          youtubeUrl: form.get("youtubeUrl"),
           timezone: form.get("timezone"),
           cancellationNoticeHours: Number(form.get("cancellationNoticeHours"))
         })
@@ -234,6 +242,51 @@ export function SettingsLive() {
 
             <div className={styles.notice} style={{ marginTop: 14 }}>
               Las consultas e inscripciones se centralizan en el contacto de la academia. Los profesores no reciben leads públicos directamente.
+            </div>
+
+            <div style={{ marginTop: 24, paddingTop: 18, borderTop: "1px solid #eee8f2" }}>
+              <span className={styles.cardLabel}>REDES SOCIALES</span>
+              <p style={{ margin: "5px 0 16px", color: "#655b70", fontSize: 14 }}>
+                Se muestran como íconos en el pie de la web. Dejá un campo vacío para ocultar esa red.
+              </p>
+              <div className={styles.liveGrid3}>
+                <label className={styles.field}>
+                  <span>Instagram</span>
+                  <input
+                    name="instagramUrl"
+                    type="url"
+                    defaultValue={data.organization.instagramUrl ?? ""}
+                    placeholder="https://www.instagram.com/..."
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span>TikTok</span>
+                  <input
+                    name="tiktokUrl"
+                    type="url"
+                    defaultValue={data.organization.tiktokUrl ?? ""}
+                    placeholder="https://www.tiktok.com/@..."
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span>Facebook</span>
+                  <input
+                    name="facebookUrl"
+                    type="url"
+                    defaultValue={data.organization.facebookUrl ?? ""}
+                    placeholder="https://www.facebook.com/..."
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span>YouTube</span>
+                  <input
+                    name="youtubeUrl"
+                    type="url"
+                    defaultValue={data.organization.youtubeUrl ?? ""}
+                    placeholder="https://www.youtube.com/@..."
+                  />
+                </label>
+              </div>
             </div>
 
             <div style={{ marginTop: 18, paddingTop: 15, borderTop: "1px solid #eee8f2", display: "flex", alignItems: "center", gap: 9 }}>

@@ -1,0 +1,6 @@
+{
+  "/login/page": "/login",
+  "/admin/students/page": "/admin/students",
+  "/admin/professors/page": "/admin/professors",
+  "/admin/users/page": "/admin/users"
+}

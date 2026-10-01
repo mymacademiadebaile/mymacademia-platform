@@ -52,21 +52,3 @@ export function FinalCta({ image, message = TRIAL_MESSAGE }: { image: PublicImag
     </section>
   );
 }
-
-/** Persistent, discreet WhatsApp access. Appears once the hero is left behind. */
-export function WhatsAppFloat() {
-  return (
-    <a
-      className={s.float}
-      href={whatsappHref()}
-      target="_blank"
-      rel="noopener noreferrer"
-      {...trackAttrs(PUBLIC_EVENTS.whatsappClick, "floating")}
-    >
-      <span className={s.floatIcon}>
-        <WhatsAppIcon size={18} />
-      </span>
-      <span className={s.floatText}>Quiero empezar</span>
-    </a>
-  );
-}

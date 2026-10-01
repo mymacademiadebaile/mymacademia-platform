@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent } from "react";
-import { AlertCircle, Check, LoaderCircle, X } from "lucide-react";
+import { AlertCircle, Check, ChevronLeft, ChevronRight, LoaderCircle, X } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import type { Paginated } from "./live-types";
 import styles from "./live.module.css";
 
 export function LoadingBlock({ label = "Cargando..." }: { label?: string }) {
@@ -101,6 +103,94 @@ export function Field({
       <span>{label}</span>
       {children}
     </label>
+  );
+}
+
+const pageSizeOptions = [10, 50, 100] as const;
+
+/**
+ * Select inputs need the complete reference list, while the management views
+ * intentionally request one page at a time. Keep the latter paginated without
+ * silently dropping references once an organization has more than 100 items.
+ */
+export async function fetchAllPaginated<T>(path: string): Promise<T[]> {
+  const separator = path.includes("?") ? "&" : "?";
+  const firstPage = await apiFetch<Paginated<T>>(`${path}${separator}page=1&limit=100`);
+  const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+
+  if (totalPages <= 1) return firstPage.items;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      apiFetch<Paginated<T>>(`${path}${separator}page=${index + 2}&limit=${firstPage.limit}`)
+    )
+  );
+
+  return [firstPage, ...remainingPages].flatMap((page) => page.items);
+}
+
+export function PaginationControls({
+  page,
+  limit,
+  total,
+  loading = false,
+  onPageChange,
+  onLimitChange
+}: {
+  page: number;
+  limit: number;
+  total: number;
+  loading?: boolean;
+  onPageChange: (page: number) => void;
+  onLimitChange: (limit: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const firstItem = total === 0 ? 0 : (page - 1) * limit + 1;
+  const lastItem = Math.min(total, page * limit);
+
+  return (
+    <nav className={styles.paginationBar} aria-label="Paginación de resultados">
+      <span className={styles.paginationSummary} aria-live="polite">
+        {total === 0
+          ? "No hay registros para mostrar"
+          : <>Mostrando <strong>{firstItem}–{lastItem}</strong> de <strong>{total}</strong></>}
+      </span>
+
+      <label className={styles.pageSizeControl}>
+        <span>Mostrar</span>
+        <select
+          aria-label="Registros por página"
+          value={limit}
+          disabled={loading}
+          onChange={(event) => onLimitChange(Number(event.target.value))}
+        >
+          {pageSizeOptions.map((size) => <option key={size} value={size}>{size}</option>)}
+        </select>
+        <span>por página</span>
+      </label>
+
+      <div className={styles.paginationActions}>
+        <button
+          type="button"
+          aria-label="Página anterior"
+          disabled={loading || page <= 1}
+          onClick={() => onPageChange(page - 1)}
+        >
+          <ChevronLeft size={16} aria-hidden="true" />
+          <span>Anterior</span>
+        </button>
+        <span className={styles.pageIndicator}>Página {page} de {totalPages}</span>
+        <button
+          type="button"
+          aria-label="Página siguiente"
+          disabled={loading || page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+        >
+          <span>Siguiente</span>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </nav>
   );
 }
 

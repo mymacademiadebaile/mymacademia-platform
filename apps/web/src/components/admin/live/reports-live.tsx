@@ -1,60 +1,163 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, Download, UsersRound } from "lucide-react";
+import {
+  Banknote,
+  CalendarCheck2,
+  CircleAlert,
+  Download,
+  ReceiptText,
+  UsersRound,
+  WalletCards
+} from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
 import type { Branch } from "./live-types";
 import { ErrorBlock, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
 
+type FinancialSummary = {
+  totalAmount: number;
+  count: number;
+  collectedAmount: number;
+  paidCount: number;
+  pendingAmount: number;
+  pendingCount: number;
+  overdueAmount: number;
+  overdueCount: number;
+  cancelledAmount: number;
+  cancelledCount: number;
+};
+
 type ReportOverview = {
-  period: string;
+  range: {
+    from: string;
+    to: string;
+    periods: string[];
+    days: number;
+  };
   students: {
     active: number;
-    newInPeriod: number;
+    newInRange: number;
   };
-  professors: {
-    active: number;
+  billing: {
+    issued: FinancialSummary;
+    byPaymentType: Array<FinancialSummary & { paymentType: "PER_CLASS" | "MONTHLY" }>;
   };
-  classes: {
-    active: number;
-    totalCapacity: number;
-    occupied: number;
-  };
-  financial: {
-    totalAmount: number;
+  cash: {
     collectedAmount: number;
-    pendingAmount: number;
-    overdueAmount: number;
-    cancelledAmount: number;
-    count: number;
     paidCount: number;
-    pendingCount: number;
-    overdueCount: number;
-    cancelledCount: number;
+    byPaymentType: Array<{
+      paymentType: "PER_CLASS" | "MONTHLY";
+      amount: number;
+      count: number;
+    }>;
+    byMethod: Array<{
+      paymentMethod: "CASH" | "TRANSFER" | "CARD" | "OTHER";
+      amount: number;
+      count: number;
+    }>;
   };
-  occupancy: Array<{
+  activity: {
+    sessions: number;
+    completedSessions: number;
+    scheduledSessions: number;
+    cancelledSessions: number;
+    attendance: {
+      present: number;
+      absent: number;
+      expected: number;
+      recorded: number;
+    };
+  };
+  classPerformance: Array<{
     id: string;
     name: string;
+    billingMode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
     capacity: number;
-    occupied: number;
-    available: number;
-    occupancyPercent: number;
-    disciplines: string[];
+    sessions: {
+      total: number;
+      completed: number;
+      scheduled: number;
+      cancelled: number;
+    };
+    attendance: {
+      present: number;
+      absent: number;
+      expected: number;
+      recorded: number;
+    };
+    invoiced: { amount: number; count: number };
+    collected: { amount: number; count: number };
+    occupancy: { occupied: number; percent: number };
   }>;
 };
 
-function currentPeriod() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+type DateInputs = { from: string; to: string };
+
+function academyDate() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function currentMonthRange(): DateInputs {
+  const today = academyDate();
+  const [year, month] = today.slice(0, 7).split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return {
+    from: `${today.slice(0, 7)}-01`,
+    to: `${today.slice(0, 7)}-${String(lastDay).padStart(2, "0")}`
+  };
+}
+
+function money(value: number) {
+  return `$ ${value.toLocaleString("es-AR")}`;
+}
+
+function paymentTypeLabel(type: "PER_CLASS" | "MONTHLY") {
+  return type === "PER_CLASS" ? "Por clase" : "Mensual";
+}
+
+function billingModeLabel(mode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE") {
+  if (mode === "PER_CLASS") return "Por clase";
+  if (mode === "MONTHLY") return "Mensual";
+  if (mode === "BOTH") return "Ambas";
+  return "Sin cargo";
+}
+
+function methodLabel(method: "CASH" | "TRANSFER" | "CARD" | "OTHER") {
+  return {
+    CASH: "Efectivo",
+    TRANSFER: "Transferencia",
+    CARD: "Tarjeta",
+    OTHER: "Otro"
+  }[method];
+}
+
+function dateLabel(date: string) {
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(new Date(`${date}T12:00:00.000Z`));
 }
 
 export function ReportsLive() {
+  const initialRange = useMemo(currentMonthRange, []);
   const [data, setData] = useState<ReportOverview | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [period, setPeriod] = useState(currentPeriod());
+  const [from, setFrom] = useState(initialRange.from);
+  const [to, setTo] = useState(initialRange.to);
   const [branchId, setBranchId] = useState("");
+  const [appliedRange, setAppliedRange] = useState<DateInputs>(initialRange);
+  const [appliedBranchId, setAppliedBranchId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -63,8 +166,8 @@ export function ReportsLive() {
     setError("");
 
     try {
-      const params = new URLSearchParams({ period });
-      if (branchId) params.set("branchId", branchId);
+      const params = new URLSearchParams(appliedRange);
+      if (appliedBranchId) params.set("branchId", appliedBranchId);
 
       const [overview, branchList] = await Promise.all([
         apiFetch<ReportOverview>(`/admin/reports/overview?${params.toString()}`),
@@ -78,35 +181,56 @@ export function ReportsLive() {
     } finally {
       setLoading(false);
     }
-  }, [period, branchId]);
+  }, [appliedBranchId, appliedRange]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const generalOccupancy = useMemo(() => {
-    if (!data?.classes.totalCapacity) return 0;
-    return Math.round((data.classes.occupied / data.classes.totalCapacity) * 100);
-  }, [data]);
+  const outstanding = data
+    ? data.billing.issued.pendingAmount + data.billing.issued.overdueAmount
+    : 0;
+
+  function applyFilters(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (from > to) {
+      setError("La fecha de fin debe ser posterior a la fecha de inicio.");
+      return;
+    }
+    setAppliedRange({ from, to });
+    setAppliedBranchId(branchId);
+  }
+
+  function useCurrentMonth() {
+    const range = currentMonthRange();
+    setFrom(range.from);
+    setTo(range.to);
+    setAppliedRange(range);
+    setAppliedBranchId(branchId);
+  }
 
   function exportExcel() {
-    const params = new URLSearchParams({ period });
-    if (branchId) params.set("branchId", branchId);
+    const params = new URLSearchParams(appliedRange);
+    if (appliedBranchId) params.set("branchId", appliedBranchId);
     window.open(apiUrl(`/admin/reports/export.xlsx?${params.toString()}`), "_blank");
   }
 
   return (
     <>
       <PageHeader
-        eyebrow="ANÁLISIS"
+        eyebrow="ANÁLISIS OPERATIVO"
         title="Reportes"
-        description="Indicadores reales por período y sede, con exportación Excel."
+        description="Una lectura separada de actividad, facturación y caja para clases por día, mensuales o mixtas."
       />
 
-      <div className={styles.reportToolbar}>
+      <form className={styles.reportToolbar} onSubmit={applyFilters}>
         <label>
-          <span>Período</span>
-          <input type="month" value={period} onChange={(event) => setPeriod(event.target.value)} />
+          <span>Desde</span>
+          <input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} />
+        </label>
+        <label>
+          <span>Hasta</span>
+          <input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} />
         </label>
         <label>
           <span>Sede</span>
@@ -117,88 +241,153 @@ export function ReportsLive() {
             ))}
           </select>
         </label>
-        <button className={styles.primary} onClick={exportExcel}>
-          <Download size={16} /> Exportar Excel
-        </button>
-      </div>
+        <div className={styles.reportToolbarActions}>
+          <button type="button" className={styles.secondary} onClick={useCurrentMonth}>
+            Este mes
+          </button>
+          <button className={styles.primary} type="submit">Aplicar</button>
+          <button className={styles.secondary} type="button" onClick={exportExcel} disabled={!data}>
+            <Download size={16} /> Exportar Excel
+          </button>
+        </div>
+      </form>
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !data && <LoadingBlock label="Calculando reportes..." />}
 
       {data && (
         <>
-          <div className={styles.liveGrid4}>
-            <article className={styles.card}>
-              <span className={styles.cardLabel}>Cobrado</span>
-              <strong className={styles.cardValue}>$ {data.financial.collectedAmount.toLocaleString("es-AR")}</strong>
-              <span className={styles.cardDetail}>{data.financial.paidCount} pagos en {data.period}</span>
+          <section className={styles.reportContext} aria-label="Criterio del reporte">
+            <div>
+              <span className={styles.cardLabel}>PERÍODO ANALIZADO</span>
+              <strong>{dateLabel(data.range.from)} — {dateLabel(data.range.to)}</strong>
+              <small>{data.range.days} días · {data.students.newInRange} altas · {data.students.active} alumnos activos hoy</small>
+            </div>
+            <p>
+              <CircleAlert size={16} aria-hidden="true" />
+              Facturación se asigna a la clase o mensualidad; caja, a la fecha real del cobro. No se mezclan.
+            </p>
+          </section>
+
+          <div className={styles.reportMetricGrid}>
+            <article className={`${styles.card} ${styles.reportMetricCard}`}>
+              <span className={styles.reportMetricIcon}><WalletCards size={18} /></span>
+              <span className={styles.cardLabel}>COBRADO EN CAJA</span>
+              <strong className={styles.cardValue}>{money(data.cash.collectedAmount)}</strong>
+              <span className={styles.cardDetail}>{data.cash.paidCount} cobros registrados en estas fechas</span>
             </article>
-            <article className={styles.card}>
-              <span className={styles.cardLabel}>Deuda vencida</span>
-              <strong className={styles.cardValue}>$ {data.financial.overdueAmount.toLocaleString("es-AR")}</strong>
-              <span className={styles.cardDetail}>{data.financial.overdueCount} cuotas vencidas</span>
+            <article className={`${styles.card} ${styles.reportMetricCard}`}>
+              <span className={styles.reportMetricIcon}><ReceiptText size={18} /></span>
+              <span className={styles.cardLabel}>FACTURADO VIGENTE</span>
+              <strong className={styles.cardValue}>{money(data.billing.issued.totalAmount)}</strong>
+              <span className={styles.cardDetail}>{data.billing.issued.count} cargos; no incluye anulados</span>
             </article>
-            <article className={styles.card}>
-              <span className={styles.cardLabel}>Alumnos activos</span>
-              <strong className={styles.cardValue}>{data.students.active}</strong>
-              <span className={styles.cardDetail}>+{data.students.newInPeriod} altas en el período</span>
+            <article className={`${styles.card} ${styles.reportMetricCard} ${styles.reportMetricDebt}`}>
+              <span className={styles.reportMetricIcon}><Banknote size={18} /></span>
+              <span className={styles.cardLabel}>POR COBRAR</span>
+              <strong className={styles.cardValue}>{money(outstanding)}</strong>
+              <span className={styles.cardDetail}>{data.billing.issued.overdueCount} vencidos · {data.billing.issued.pendingCount} pendientes</span>
             </article>
-            <article className={styles.card}>
-              <span className={styles.cardLabel}>Ocupación general</span>
-              <strong className={styles.cardValue}>{generalOccupancy}%</strong>
-              <span className={styles.cardDetail}>
-                {data.classes.occupied} de {data.classes.totalCapacity} lugares
-              </span>
+            <article className={`${styles.card} ${styles.reportMetricCard}`}>
+              <span className={styles.reportMetricIcon}><CalendarCheck2 size={18} /></span>
+              <span className={styles.cardLabel}>CLASES DEL DÍA</span>
+              <strong className={styles.cardValue}>{data.activity.sessions}</strong>
+              <span className={styles.cardDetail}>{data.activity.completedSessions} completadas · {data.activity.cancelledSessions} canceladas</span>
             </article>
           </div>
 
-          <div className={styles.liveGrid3}>
-            <article className={styles.card}>
-              <span className={styles.cardLabel}>Profesores activos</span>
-              <strong className={styles.cardValue}>{data.professors.active}</strong>
-            </article>
-            <article className={styles.card}>
-              <span className={styles.cardLabel}>Clases activas</span>
-              <strong className={styles.cardValue}>{data.classes.active}</strong>
-            </article>
-            <article className={styles.card}>
-              <span className={styles.cardLabel}>Pendiente no vencido</span>
-              <strong className={styles.cardValue}>$ {data.financial.pendingAmount.toLocaleString("es-AR")}</strong>
-              <span className={styles.cardDetail}>{data.financial.pendingCount} cuotas</span>
-            </article>
+          <div className={styles.reportTwoColumns}>
+            <section className={styles.reportSection}>
+              <div className={styles.sectionTitleRow}>
+                <div>
+                  <span className={styles.cardLabel}>INGRESOS</span>
+                  <h3>Facturación y caja por modalidad</h3>
+                  <p>Permite comparar clases por día contra mensualidades sin falsear el período.</p>
+                </div>
+                <ReceiptText size={22} color="#5b21b6" />
+              </div>
+              <div className={styles.reportBreakdown}>
+                {data.billing.byPaymentType.map((item) => {
+                  const cash = data.cash.byPaymentType.find((candidate) => candidate.paymentType === item.paymentType);
+                  return (
+                    <article key={item.paymentType} className={styles.reportBreakdownRow}>
+                      <div>
+                        <strong>{paymentTypeLabel(item.paymentType)}</strong>
+                        <small>{item.count} cargos del período · {cash?.count ?? 0} cobros</small>
+                      </div>
+                      <dl>
+                        <div><dt>Facturado</dt><dd>{money(item.totalAmount)}</dd></div>
+                        <div><dt>Caja</dt><dd>{money(cash?.amount ?? 0)}</dd></div>
+                        <div className={item.overdueAmount ? styles.reportOverdue : undefined}><dt>Vencido</dt><dd>{money(item.overdueAmount)}</dd></div>
+                      </dl>
+                    </article>
+                  );
+                })}
+              </div>
+              {data.cash.byMethod.length > 0 && (
+                <div className={styles.reportMethods}>
+                  <span>CAJA POR MEDIO</span>
+                  {data.cash.byMethod.map((item) => (
+                    <small key={item.paymentMethod}>{methodLabel(item.paymentMethod)} <strong>{money(item.amount)}</strong></small>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className={styles.reportSection}>
+              <div className={styles.sectionTitleRow}>
+                <div>
+                  <span className={styles.cardLabel}>OPERACIÓN</span>
+                  <h3>Actividad y asistencia registrada</h3>
+                  <p>Cuenta únicamente turnos creados y asistencias cargadas en Clase del día.</p>
+                </div>
+                <UsersRound size={22} color="#5b21b6" />
+              </div>
+              <div className={styles.reportActivityGrid}>
+                <div><span>Completadas</span><strong>{data.activity.completedSessions}</strong></div>
+                <div><span>Programadas</span><strong>{data.activity.scheduledSessions}</strong></div>
+                <div><span>Presentes</span><strong>{data.activity.attendance.present}</strong></div>
+                <div><span>Ausentes</span><strong>{data.activity.attendance.absent}</strong></div>
+              </div>
+              <p className={styles.reportFootnote}>
+                {data.activity.attendance.recorded} asistencias cargadas. Las clases sin registro no se interpretan como ausencia.
+              </p>
+            </section>
           </div>
 
-          <section className={styles.historySection}>
+          <section className={styles.reportSection}>
             <div className={styles.sectionTitleRow}>
               <div>
-                <span className={styles.cardLabel}>CAPACIDAD</span>
-                <h3>Ocupación por clase</h3>
-                <p>Ordenada de mayor a menor ocupación.</p>
+                <span className={styles.cardLabel}>DETALLE POR CLASE</span>
+                <h3>Rendimiento académico y financiero</h3>
+                <p>Facturado por la fecha de la clase o mensualidad; cobrado por fecha de pago. La ocupación es la actual.</p>
               </div>
-              <BarChart3 size={22} color="#5b21b6" />
             </div>
 
-            <div className={styles.listCard}>
-              {data.occupancy.length === 0 && (
-                <div className={styles.stateBlock}>No hay clases activas para estos filtros.</div>
-              )}
-              {data.occupancy.map((item) => (
-                <div className={styles.listRow} key={item.id}>
-                  <span className={styles.avatar}><UsersRound size={16} /></span>
-                  <span className={styles.rowBody}>
-                    <strong>{item.name}</strong>
-                    <small>{item.disciplines.join(", ") || "Sin disciplina"}</small>
-                    <div className={styles.reportProgress}>
-                      <span style={{ width: `${Math.min(100, item.occupancyPercent)}%` }} />
-                    </div>
-                  </span>
-                  <strong>{item.occupied}/{item.capacity}</strong>
-                  <span className={item.occupancyPercent >= 90 ? styles.pillWarn : styles.pill}>
-                    {item.occupancyPercent}%
-                  </span>
+            {data.classPerformance.length === 0 ? (
+              <div className={styles.stateBlock}>No hay actividad, cargos ni cobros asociados a este período.</div>
+            ) : (
+              <div className={styles.reportClassList}>
+                <div className={styles.reportClassHead} aria-hidden="true">
+                  <span>Clase</span><span>Actividad</span><span>Asistencia</span><span>Finanzas</span><span>Ocupación</span>
                 </div>
-              ))}
-            </div>
+                {data.classPerformance.map((item) => (
+                  <article className={styles.reportClassRow} key={item.id}>
+                    <div className={styles.reportClassName}>
+                      <strong>{item.name}</strong>
+                      <small>{billingModeLabel(item.billingMode)}</small>
+                    </div>
+                    <div><strong>{item.sessions.total}</strong><small>{item.sessions.completed} completadas · {item.sessions.cancelled} canceladas</small></div>
+                    <div><strong>{item.attendance.present} presentes</strong><small>{item.attendance.absent} ausentes · {item.attendance.recorded} registros</small></div>
+                    <div><strong>{money(item.invoiced.amount)}</strong><small>Cobrado: {money(item.collected.amount)}</small></div>
+                    <div className={styles.reportClassOccupancy}>
+                      <strong>{item.capacity ? `${item.occupancy.percent}%` : "—"}</strong>
+                      <small>{item.capacity ? `${item.occupancy.occupied}/${item.capacity} actual` : "Sin cupo"}</small>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         </>
       )}

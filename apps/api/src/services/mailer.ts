@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { env } from "../config/env";
 import { AppError } from "../common/http/app-error";
+import { emailTemplate } from "./email-template";
 
 function createTransporter() {
   if (!env.SMTP_USER || !env.SMTP_PASSWORD) {
@@ -37,6 +38,6 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
     to: input.to,
     subject: input.subject,
     text: input.text,
-    html: input.html
+    html: input.html ?? emailTemplate(input)
   });
 }
