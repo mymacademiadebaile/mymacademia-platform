@@ -137,10 +137,7 @@ authRouter.post("/forgot-password", async (request, response, next) => {
         await sendEmail({
           to: user.email,
           subject: "Restablecer contraseña - M&M Academia",
-          text:
-            `Hola ${user.firstName}. Recibimos una solicitud para restablecer tu contraseña de M&M Academia. ` +
-            `Abrí este enlace dentro de los próximos 30 minutos: ${resetUrl}. ` +
-            "Si no solicitaste este cambio, ignorá este mensaje."
+          text: `Hola ${user.firstName},\n\nRecibimos una solicitud para restablecer la contraseña de tu cuenta en M&M Academia.\n\nUsá el botón a continuación dentro de los próximos 30 minutos.\n\n${resetUrl}\n\nSi no solicitaste este cambio, podés ignorar este mensaje con tranquilidad.`
         });
       } catch {
         await PasswordResetTokenModel.deleteMany({ userId: user._id });
