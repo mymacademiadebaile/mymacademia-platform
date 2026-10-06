@@ -163,10 +163,11 @@ adminSettingsRouter.post(
       }
 
       const result = await uploadAcademySpaceImage(request.file.buffer, String(organizationId), slot);
-      organization.academySpaceImages = {
-        ...(organization.academySpaceImages ?? {}),
-        [slot]: { url: result.secure_url, width: result.width, height: result.height }
-      };
+      organization.set(`academySpaceImages.${slot}`, {
+        url: result.secure_url,
+        width: result.width,
+        height: result.height
+      });
       await organization.save();
       resetPublicSiteImagesCache();
 
@@ -198,10 +199,10 @@ adminSettingsRouter.delete("/landing-images/:slot", async (request, response, ne
 
     if (organization.academySpaceImages?.[slot]) {
       await deleteAcademySpaceImage(String(organizationId), slot).catch(() => undefined);
-      const images = { ...(organization.academySpaceImages ?? {}) };
-      delete images[slot];
-      organization.academySpaceImages = images;
-      await organization.save();
+      await OrganizationModel.updateOne(
+        { _id: organization._id },
+        { $unset: { [`academySpaceImages.${slot}`]: 1 } }
+      );
       resetPublicSiteImagesCache();
 
       await AuditLogModel.create({
