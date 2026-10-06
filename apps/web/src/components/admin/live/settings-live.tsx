@@ -1,7 +1,22 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
-import { Building2, Check, Edit3, ImagePlus, Mail, MessageCircle, Plus, Power, RotateCcw, UserRound } from "lucide-react";
+import {
+  BookOpenCheck,
+  Building2,
+  Check,
+  Edit3,
+  ImagePlus,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Plus,
+  Power,
+  RotateCcw,
+  Settings2,
+  Share2,
+  UserRound
+} from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
@@ -239,7 +254,7 @@ export function SettingsLive() {
       <PageHeader
         eyebrow="SISTEMA"
         title="Configuración"
-        description="Datos de la academia, integraciones y sedes operativas."
+        description="Organizá los datos que definen cómo funciona la academia y cómo se presenta en la web."
       />
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
@@ -247,128 +262,132 @@ export function SettingsLive() {
 
       {data && (
         <>
-          <form className={styles.card} onSubmit={save}>
-            <div className={styles.communicationHeader}>
-              <div>
-                <span className={styles.cardLabel}>DATOS GENERALES</span>
-                <strong>Academia</strong>
+          <nav className={styles.settingsNav} aria-label="Secciones de configuración">
+            <a href="#academy-settings"><Building2 size={16} /> Academia</a>
+            <a href="#inquiries-settings"><MessageCircle size={16} /> Consultas</a>
+            <a href="#operation-settings"><Settings2 size={16} /> Operación</a>
+            <a href="#channels-settings"><Share2 size={16} /> Canales</a>
+            <a href="#landing-images-title"><ImagePlus size={16} /> Landing</a>
+            <a href="#branches-settings"><MapPin size={16} /> Sedes</a>
+            <a href="#catalogs-settings"><BookOpenCheck size={16} /> Catálogos</a>
+          </nav>
+
+          <form className={styles.settingsForm} onSubmit={save}>
+            <section className={styles.settingsGroup} id="academy-settings" aria-labelledby="academy-settings-title">
+              <div className={styles.settingsGroupHeader}>
+                <span className={styles.settingsGroupIcon}><Building2 size={19} /></span>
+                <div>
+                  <h2 id="academy-settings-title">Identidad de la academia</h2>
+                  <p>Estos datos se usan dentro del sistema y en las comunicaciones institucionales.</p>
+                </div>
               </div>
-              <Building2 size={22} color="#5b21b6" />
-            </div>
+              <div className={styles.settingsFieldGrid}>
+                <label className={styles.fieldWide}>
+                  <span>Nombre de la academia</span>
+                  <input name="name" defaultValue={data.organization.name} required />
+                </label>
+                <label className={styles.field}>
+                  <span>Email institucional</span>
+                  <input name="email" type="email" defaultValue={data.organization.email ?? ""} />
+                </label>
+                <label className={styles.field}>
+                  <span>Teléfono</span>
+                  <input name="phone" defaultValue={data.organization.phone ?? ""} placeholder="Ej. +54 9 221 ..." />
+                </label>
+              </div>
+            </section>
 
-            <div className={styles.liveGrid3}>
-              <label className={styles.field}>
-                <span>Nombre de la academia</span>
-                <input name="name" defaultValue={data.organization.name} required />
-              </label>
-              <label className={styles.field}>
-                <span>Email</span>
-                <input name="email" type="email" defaultValue={data.organization.email ?? ""} />
-              </label>
-              <label className={styles.field}>
-                <span>Teléfono</span>
-                <input name="phone" defaultValue={data.organization.phone ?? ""} />
-              </label>
-              <label className={styles.field}>
-                <span>Responsable de consultas</span>
-                <div style={{ position: "relative" }}>
-                  <UserRound size={15} style={{ position: "absolute", left: 10, top: 13, color: "#7c7284" }} />
-                  <input
-                    name="inquiryContactName"
-                    defaultValue={data.organization.inquiryContactName ?? ""}
-                    placeholder="Ej. Administración"
-                    style={{ paddingLeft: 34 }}
-                  />
+            <section className={styles.settingsGroup} id="inquiries-settings" aria-labelledby="inquiries-settings-title">
+              <div className={styles.settingsGroupHeader}>
+                <span className={styles.settingsGroupIcon}><MessageCircle size={19} /></span>
+                <div>
+                  <h2 id="inquiries-settings-title">Consultas e inscripciones</h2>
+                  <p>Definí un único contacto para responder a quienes llegan desde la web.</p>
                 </div>
-              </label>
-              <label className={styles.field}>
-                <span>WhatsApp de consultas e inscripción</span>
-                <div style={{ position: "relative" }}>
-                  <MessageCircle size={15} style={{ position: "absolute", left: 10, top: 13, color: "#7c7284" }} />
-                  <input
-                    name="inquiryWhatsApp"
-                    defaultValue={data.organization.inquiryWhatsApp ?? ""}
-                    placeholder="Ej. +54 9 221 ..."
-                    style={{ paddingLeft: 34 }}
-                  />
+              </div>
+              <div className={styles.settingsFieldGrid}>
+                <label className={styles.field}>
+                  <span>Responsable de consultas</span>
+                  <div className={styles.fieldWithIcon}>
+                    <UserRound size={15} />
+                    <input name="inquiryContactName" defaultValue={data.organization.inquiryContactName ?? ""} placeholder="Ej. Administración" />
+                  </div>
+                </label>
+                <label className={styles.field}>
+                  <span>WhatsApp de consultas e inscripción</span>
+                  <div className={styles.fieldWithIcon}>
+                    <MessageCircle size={15} />
+                    <input name="inquiryWhatsApp" defaultValue={data.organization.inquiryWhatsApp ?? ""} placeholder="Ej. +54 9 221 ..." />
+                  </div>
+                </label>
+              </div>
+              <p className={styles.settingsHint}>Los profesores no reciben contactos públicos de forma directa.</p>
+            </section>
+
+            <section className={styles.settingsGroup} id="operation-settings" aria-labelledby="operation-settings-title">
+              <div className={styles.settingsGroupHeader}>
+                <span className={styles.settingsGroupIcon}><Settings2 size={19} /></span>
+                <div>
+                  <h2 id="operation-settings-title">Reglas operativas</h2>
+                  <p>Preferencias que impactan en turnos, agenda y cancelaciones.</p>
                 </div>
-              </label>
-              <label className={styles.fieldWide}>
-                <span>Zona horaria</span>
-                <input
-                  name="timezone"
-                  defaultValue={data.organization.timezone ?? "America/Argentina/Buenos_Aires"}
-                  required
-                />
-              </label>
-              <label className={styles.fieldWide}>
-                <span>Anticipación mínima para cancelar (horas)</span>
-                <input
-                  name="cancellationNoticeHours"
-                  type="number"
-                  min="0"
-                  max="168"
-                  defaultValue={data.organization.cancellationNoticeHours ?? 6}
-                  required
-                />
-                <small>Los cambios entre turnos no tienen costo ni límite.</small>
-              </label>
-            </div>
+              </div>
+              <div className={styles.settingsFieldGrid}>
+                <label className={styles.field}>
+                  <span>Zona horaria</span>
+                  <input name="timezone" defaultValue={data.organization.timezone ?? "America/Argentina/Buenos_Aires"} required />
+                </label>
+                <label className={styles.field}>
+                  <span>Anticipación mínima para cancelar</span>
+                  <div className={styles.fieldUnit}>
+                    <input name="cancellationNoticeHours" type="number" min="0" max="168" defaultValue={data.organization.cancellationNoticeHours ?? 6} required />
+                    <span>horas</span>
+                  </div>
+                  <small>Los cambios entre turnos no tienen costo ni límite.</small>
+                </label>
+              </div>
+            </section>
 
-            <div className={styles.notice} style={{ marginTop: 14 }}>
-              Las consultas e inscripciones se centralizan en el contacto de la academia. Los profesores no reciben leads públicos directamente.
-            </div>
-
-            <div style={{ marginTop: 24, paddingTop: 18, borderTop: "1px solid #eee8f2" }}>
-              <span className={styles.cardLabel}>REDES SOCIALES</span>
-              <p style={{ margin: "5px 0 16px", color: "#655b70", fontSize: 14 }}>
-                Se muestran como íconos en el pie de la web. Dejá un campo vacío para ocultar esa red.
-              </p>
-              <div className={styles.liveGrid3}>
+            <section className={styles.settingsGroup} id="channels-settings" aria-labelledby="channels-settings-title">
+              <div className={styles.settingsGroupHeader}>
+                <span className={styles.settingsGroupIcon}><Share2 size={19} /></span>
+                <div>
+                  <h2 id="channels-settings-title">Canales públicos</h2>
+                  <p>Elegí cómo te encuentran y qué redes se muestran en el pie de la web.</p>
+                </div>
+              </div>
+              <div className={styles.settingsFieldGrid}>
                 <label className={styles.field}>
                   <span>Instagram</span>
-                  <input
-                    name="instagramUrl"
-                    type="url"
-                    defaultValue={data.organization.instagramUrl ?? ""}
-                    placeholder="https://www.instagram.com/..."
-                  />
+                  <input name="instagramUrl" type="url" defaultValue={data.organization.instagramUrl ?? ""} placeholder="https://www.instagram.com/..." />
                 </label>
                 <label className={styles.field}>
                   <span>TikTok</span>
-                  <input
-                    name="tiktokUrl"
-                    type="url"
-                    defaultValue={data.organization.tiktokUrl ?? ""}
-                    placeholder="https://www.tiktok.com/@..."
-                  />
+                  <input name="tiktokUrl" type="url" defaultValue={data.organization.tiktokUrl ?? ""} placeholder="https://www.tiktok.com/@..." />
                 </label>
                 <label className={styles.field}>
                   <span>Facebook</span>
-                  <input
-                    name="facebookUrl"
-                    type="url"
-                    defaultValue={data.organization.facebookUrl ?? ""}
-                    placeholder="https://www.facebook.com/..."
-                  />
+                  <input name="facebookUrl" type="url" defaultValue={data.organization.facebookUrl ?? ""} placeholder="https://www.facebook.com/..." />
                 </label>
                 <label className={styles.field}>
                   <span>YouTube</span>
-                  <input
-                    name="youtubeUrl"
-                    type="url"
-                    defaultValue={data.organization.youtubeUrl ?? ""}
-                    placeholder="https://www.youtube.com/@..."
-                  />
+                  <input name="youtubeUrl" type="url" defaultValue={data.organization.youtubeUrl ?? ""} placeholder="https://www.youtube.com/@..." />
                 </label>
               </div>
-            </div>
+              <div className={styles.settingsIntegration}>
+                <span className={styles.avatar}><Mail size={17} /></span>
+                <span className={styles.rowBody}>
+                  <strong>Envíos por Gmail</strong>
+                  <small>Las credenciales SMTP están protegidas en variables de entorno.</small>
+                </span>
+                <span className={styles.pillOff}>Administrado</span>
+              </div>
+            </section>
 
-            <div style={{ marginTop: 18, paddingTop: 15, borderTop: "1px solid #eee8f2", display: "flex", alignItems: "center", gap: 9 }}>
-              <span className={styles.avatar}><Mail size={17} /></span>
-              <span className={styles.rowBody}>
-                <strong>Gmail + Nodemailer</strong>
-                <small>Las credenciales SMTP viven únicamente en variables de entorno.</small>
+            <div className={styles.settingsSaveBar}>
+              <span>
+                <strong>Guardá los cambios de configuración</strong>
+                <small>Podés modificar distintos grupos antes de confirmar.</small>
               </span>
               <button className={styles.primary} disabled={saving}>
                 <Check size={16} />
@@ -377,7 +396,7 @@ export function SettingsLive() {
             </div>
           </form>
 
-          <section className={styles.historySection} aria-labelledby="landing-images-title">
+          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} aria-labelledby="landing-images-title">
             <div className={styles.sectionTitleRow}>
               <div>
                 <span className={styles.cardLabel}>LANDING PÚBLICA · 06</span>
@@ -437,7 +456,7 @@ export function SettingsLive() {
             </p>
           </section>
 
-          <section className={styles.historySection}>
+          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} id="branches-settings">
             <div className={styles.sectionTitleRow}>
               <div>
                 <span className={styles.cardLabel}>SEDES</span>
@@ -473,7 +492,7 @@ export function SettingsLive() {
             </div>
           </section>
 
-          <section className={styles.historySection}>
+          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} id="catalogs-settings">
             <div className={styles.sectionTitleRow}>
               <div>
                 <span className={styles.cardLabel}>CONFIGURACIÓN ACADÉMICA</span>
