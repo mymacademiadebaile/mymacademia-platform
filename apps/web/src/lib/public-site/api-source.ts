@@ -149,3 +149,17 @@ export async function fetchPublicSocialLinksFromApi(): Promise<PublicSocialLinks
   }
   return (await response.json()) as PublicSocialLinks;
 }
+
+interface ApiSiteImages {
+  academySpace: Partial<Record<"tall" | "wide" | "detail", { src: string; width?: number; height?: number }>>;
+}
+
+export async function fetchPublicSiteImagesFromApi(): Promise<ApiSiteImages> {
+  const response = await fetch(`${API_URL}/public/site-images`, {
+    next: { revalidate: REVALIDATE_SECONDS, tags: ["public-site-images"] }
+  });
+  if (!response.ok) {
+    throw new Error(`Public site images API responded ${response.status}`);
+  }
+  return (await response.json()) as ApiSiteImages;
+}

@@ -18,12 +18,17 @@ const CACHE_TTL_MS = 60_000;
 let organizationCache: { id: string; expiresAt: number } | undefined;
 let catalogCache: { value: PublicCatalogDto; expiresAt: number } | undefined;
 let socialLinksCache: { value: PublicSocialLinksDto; expiresAt: number } | undefined;
+let siteImagesCache: { value: PublicSiteImagesDto; expiresAt: number } | undefined;
 
 export interface PublicSocialLinksDto {
   instagram?: string;
   tiktok?: string;
   facebook?: string;
   youtube?: string;
+}
+
+export interface PublicSiteImagesDto {
+  academySpace: Partial<Record<"tall" | "wide" | "detail", { src: string; width?: number; height?: number }>>;
 }
 
 async function resolveOrganizationId(): Promise<string> {
@@ -49,6 +54,10 @@ export function resetPublicCatalogCache() {
 
 export function resetPublicSocialLinksCache() {
   socialLinksCache = undefined;
+}
+
+export function resetPublicSiteImagesCache() {
+  siteImagesCache = undefined;
 }
 
 function safeSocialUrl(value: string | undefined, hosts: string[]): string | undefined {
@@ -112,6 +121,34 @@ export async function loadPublicCatalog(): Promise<PublicCatalogDto> {
   return value;
 }
 
+/** Public-only projection of editorial photos configured in the backoffice. */
+export async function loadPublicSiteImages(): Promise<PublicSiteImagesDto> {
+  if (siteImagesCache && siteImagesCache.expiresAt > Date.now()) return siteImagesCache.value;
+
+  const organizationId = await resolveOrganizationId();
+  const organization = await OrganizationModel.findById(organizationId)
+    .select("academySpaceImages")
+    .lean();
+  const source = organization?.academySpaceImages;
+  const slots = ["tall", "wide", "detail"] as const;
+  const academySpace = Object.fromEntries(
+    slots.flatMap((slot) => {
+      const image = source?.[slot];
+      if (!image?.url) return [];
+      const publicImage = {
+        src: image.url,
+        ...(image.width ? { width: image.width } : {}),
+        ...(image.height ? { height: image.height } : {})
+      };
+      return [[slot, publicImage]];
+    })
+  ) as PublicSiteImagesDto["academySpace"];
+
+  const value = { academySpace };
+  siteImagesCache = { value, expiresAt: Date.now() + CACHE_TTL_MS };
+  return value;
+}
+
 publicRouter.use((_request, response, next) => {
   // Shared caches (CDN) may keep it briefly; the website also revalidates on its side.
   response.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
@@ -129,6 +166,14 @@ publicRouter.get("/catalog", async (_request, response, next) => {
 publicRouter.get("/social-links", async (_request, response, next) => {
   try {
     response.json(await loadPublicSocialLinks());
+  } catch (error) {
+    next(error);
+  }
+});
+
+publicRouter.get("/site-images", async (_request, response, next) => {
+  try {
+    response.json(await loadPublicSiteImages());
   } catch (error) {
     next(error);
   }

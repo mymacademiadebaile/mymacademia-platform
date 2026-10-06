@@ -97,7 +97,8 @@ La landing lee el **catálogo publicado** desde la API pública (ver "Datos real
 | --- | --- |
 | Ritmos, profesores, clases, horarios, niveles | **reales**, del backoffice (solo lo publicado) |
 | Fotos de ritmos y profesores | las sube el admin a Cloudinary |
-| Fotos del hero, manifiesto, salón y cierre | estáticas en `public/landing/mock/` (Unsplash, temporales). Son imágenes de marca, no salen del backoffice |
+| Fotos del hero, manifiesto y cierre | estáticas en `public/landing/mock/` (Unsplash, temporales). Son imágenes de marca, no salen del backoffice |
+| Fotos de la sección 06, La academia / El salón | se administran en **Configuración → Landing pública · 06**. Mientras no haya una personalizada, se conserva la foto temporal de `public/landing/mock/`. |
 | FAQ | texto en `lib/public-site/faq.ts`. Las respuestas con `isPlaceholder` no están confirmadas, se ven con el tag "Respuesta a confirmar" y quedan fuera del `FAQPage` JSON-LD |
 | Dirección y WhatsApp | reales, en `lib/public-site/site.ts` |
 | Instagram de la academia, código postal, coordenadas, horarios de apertura | no publicados hasta confirmarlos |
@@ -123,8 +124,9 @@ Las temporales están en `apps/web/public/landing/mock/`. Son fotos libres de Un
 ### Cómo reemplazar imágenes
 
 - **Ritmos y profesores:** se cargan desde el admin (Ficha web del ritmo y foto del profesor). No requieren cambios de código. Para los ritmos conviene una imagen vertical 4:5 de al menos 1000 px de ancho; el recorte usa `object-fit: cover`.
-- **Fotos de marca (hero, manifiesto, salón, cierre):** guardá las definitivas en `apps/web/public/landing/` (fuera de `mock/`), en JPG o WebP de 1600–2400 px del lado largo, y actualizá `src`, `alt` y `focus` (el `object-position` que mantiene al sujeto en el recorte) en `mockImages` de `mock-data.ts`, sacando `isPlaceholder`. El collage del salón acepta cualquier trío `[vertical, horizontal, detalle]`.
-- Borrá `public/landing/mock/` cuando no quede ninguna referencia.
+- **Fotos de marca (hero, manifiesto y cierre):** guardá las definitivas en `apps/web/public/landing/` (fuera de `mock/`), en JPG o WebP de 1600–2400 px del lado largo, y actualizá `src`, `alt` y `focus` (el `object-position` que mantiene al sujeto en el recorte) en `mockImages` de `mock-data.ts`, sacando `isPlaceholder`.
+- **Collage del salón:** se carga desde **Configuración → Landing pública · 06**. Cada posición admite JPG, PNG o WEBP de hasta 4 MB; la disposición es `[vertical, horizontal, detalle]`. Restaurar una foto vuelve a mostrar la imagen temporal actual.
+- Conservá `public/landing/mock/` mientras alguna de sus fotos siga funcionando como imagen predeterminada.
 
 ## Datos reales desde el backoffice
 

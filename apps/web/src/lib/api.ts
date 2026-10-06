@@ -134,7 +134,15 @@ export async function uploadProfessorIntroVideo(
 
 export function apiMessage(error: unknown): string {
   if (error instanceof ApiError && error.payload && typeof error.payload === "object") {
-    const payload = error.payload as { message?: string; error?: string };
+    const payload = error.payload as {
+      message?: string;
+      error?: string;
+      issues?: Array<{ message?: string }>;
+    };
+
+    const validationMessage = payload.issues?.find((issue) => issue.message)?.message;
+    if (validationMessage) return validationMessage;
+
     return payload.message ?? payload.error ?? "No pudimos completar la operación.";
   }
 

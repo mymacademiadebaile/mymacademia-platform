@@ -244,7 +244,18 @@ export function UsersLive() {
         <Field label="Apellido"><input name="lastName" defaultValue={editing?.lastName} required /></Field>
         <Field label="Email de acceso" wide><input name="email" type="email" defaultValue={editing?.email} required /></Field>
         <Field label="Teléfono"><input name="phone" defaultValue={editing?.phone} /></Field>
-        <Field label={editing ? "Nueva contraseña (opcional)" : "Contraseña inicial"}><input name="password" type="password" minLength={10} required={!editing} /></Field>
+        <Field label={editing ? "Nueva contraseña (opcional)" : "Contraseña inicial (10+ caracteres, letra y número)"}>
+          <input
+            name="password"
+            type="password"
+            minLength={10}
+            maxLength={128}
+            pattern="(?=.*[A-Za-z])(?=.*[0-9]).{10,128}"
+            title="Usá entre 10 y 128 caracteres, con al menos una letra y un número."
+            autoComplete="new-password"
+            required={!editing}
+          />
+        </Field>
         <Field label="Sedes" wide>
           <select name="branchIds" multiple required defaultValue={editing?.branchIds ?? []} size={Math.min(5, Math.max(2, branches.length))}>
             {branches.map((branch) => <option value={branch._id} key={branch._id}>{branch.name}</option>)}

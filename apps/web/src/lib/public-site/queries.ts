@@ -9,7 +9,12 @@
  * and the next request retries (failed fetches are never cached).
  */
 import { cache } from "react";
-import { fetchCatalogFromApi, fetchPublicSocialLinksFromApi, type PublicCatalog } from "./api-source";
+import {
+  fetchCatalogFromApi,
+  fetchPublicSiteImagesFromApi,
+  fetchPublicSocialLinksFromApi,
+  type PublicCatalog
+} from "./api-source";
 import { buildFaq } from "./faq";
 import {
   mockClasses,
@@ -20,7 +25,7 @@ import {
 } from "./mock-data";
 import { resolveSchedule, upcomingFromSchedule } from "./schedule-utils";
 import { PRIMARY_BRANCH, SITE } from "./site";
-import type { Branch, DanceStyle, FaqItem, PublicProfessor, PublicSocialLinks, ScheduleEntry, UpcomingClass } from "./types";
+import type { Branch, DanceStyle, FaqItem, PublicImage, PublicProfessor, PublicSocialLinks, ScheduleEntry, UpcomingClass } from "./types";
 
 const USE_MOCK = process.env.PUBLIC_DATA_SOURCE === "mock";
 
@@ -91,7 +96,40 @@ export async function fetchPublicFaq(): Promise<FaqItem[]> {
   return buildFaq((await fetchPublicDanceStyles()).map((style) => style.name));
 }
 
-/** Editorial photos of the home sections (brand imagery, not in the backoffice yet). */
-export async function fetchSiteImages(): Promise<typeof mockImages> {
-  return mockImages;
+/** Editorial home photos. The salon collage can be replaced from Settings. */
+export async function fetchSiteImages(): Promise<Record<keyof typeof mockImages, PublicImage>> {
+  if (USE_MOCK) return mockImages;
+
+  try {
+    const configured = await fetchPublicSiteImagesFromApi();
+    const makeImage = (
+      image: { src: string; width?: number; height?: number } | undefined,
+      fallback: PublicImage,
+      alt: string
+    ) => image
+      ? { ...fallback, ...image, alt, isPlaceholder: false, credit: undefined }
+      : fallback;
+
+    return {
+      ...mockImages,
+      spaceBarre: makeImage(
+        configured.academySpace.tall,
+        mockImages.spaceBarre,
+        "Salón de M&M Academia de Baile"
+      ),
+      spaceGroup: makeImage(
+        configured.academySpace.wide,
+        mockImages.spaceGroup,
+        "Clase en el salón de M&M Academia de Baile"
+      ),
+      spaceClass: makeImage(
+        configured.academySpace.detail,
+        mockImages.spaceClass,
+        "Detalle del salón de M&M Academia de Baile"
+      )
+    };
+  } catch (error) {
+    console.error("[public-site] could not load configured site images", error);
+    return mockImages;
+  }
 }

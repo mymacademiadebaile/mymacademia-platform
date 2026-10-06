@@ -45,7 +45,9 @@ const actionLabels: Record<string, string> = {
   WHATSAPP_OPENED: "WhatsApp abierto",
   BRANCH_CREATED: "Sede creada",
   BRANCH_UPDATED: "Sede actualizada",
-  ORGANIZATION_SETTINGS_UPDATED: "Configuración de academia actualizada"
+  ORGANIZATION_SETTINGS_UPDATED: "Configuración de academia actualizada",
+  LANDING_IMAGE_UPDATED: "Imagen de la landing actualizada",
+  LANDING_IMAGE_RESTORED: "Imagen de la landing restaurada"
 };
 
 export function AuditLive() {

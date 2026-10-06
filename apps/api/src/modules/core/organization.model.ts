@@ -1,5 +1,17 @@
 import { Schema, model } from "mongoose";
 
+export interface LandingImage {
+  url: string;
+  width?: number;
+  height?: number;
+}
+
+export interface AcademySpaceImages {
+  tall?: LandingImage;
+  wide?: LandingImage;
+  detail?: LandingImage;
+}
+
 export interface Organization {
   name: string;
   slug: string;
@@ -14,6 +26,8 @@ export interface Organization {
   timezone?: string;
   /** Minimum notice required to cancel a booked class session. */
   cancellationNoticeHours: number;
+  /** Optional photos replacing the default collage in landing section 06. */
+  academySpaceImages?: AcademySpaceImages;
   isActive: boolean;
 }
 
@@ -31,6 +45,23 @@ const organizationSchema = new Schema<Organization>(
     youtubeUrl: { type: String, trim: true, maxlength: 500 },
     timezone: { type: String, trim: true, default: "America/Argentina/Buenos_Aires" },
     cancellationNoticeHours: { type: Number, min: 0, max: 168, default: 6 },
+    academySpaceImages: {
+      tall: {
+        url: { type: String, trim: true },
+        width: { type: Number, min: 1 },
+        height: { type: Number, min: 1 }
+      },
+      wide: {
+        url: { type: String, trim: true },
+        width: { type: Number, min: 1 },
+        height: { type: Number, min: 1 }
+      },
+      detail: {
+        url: { type: String, trim: true },
+        width: { type: Number, min: 1 },
+        height: { type: Number, min: 1 }
+      }
+    },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }

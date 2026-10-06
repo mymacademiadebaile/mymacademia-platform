@@ -4,7 +4,13 @@ import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { OrganizationModel } from "../core/organization.model";
 import { BranchModel } from "../core/branch.model";
-import { resetPublicSocialLinksCache } from "../public/public.routes";
+import { resetPublicSiteImagesCache, resetPublicSocialLinksCache } from "../public/public.routes";
+import {
+  deleteAcademySpaceImage,
+  landingImageUpload,
+  type AcademySpaceImageSlot,
+  uploadAcademySpaceImage
+} from "../../services/landing-media";
 
 function socialUrlSchema(network: string, hosts: string[]) {
   return z
@@ -42,6 +48,14 @@ const updateSettingsSchema = z.object({
 });
 
 export const adminSettingsRouter = Router();
+
+const academySpaceImageSlotSchema = z.enum(["tall", "wide", "detail"]);
+
+const academySpaceImageLabels: Record<AcademySpaceImageSlot, string> = {
+  tall: "foto vertical",
+  wide: "foto horizontal",
+  detail: "foto de detalle"
+};
 
 adminSettingsRouter.get("/", async (request, response, next) => {
   try {
@@ -127,6 +141,80 @@ adminSettingsRouter.put("/", async (request, response, next) => {
     });
 
     response.json({ organization });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminSettingsRouter.post(
+  "/landing-images/:slot",
+  landingImageUpload.single("file"),
+  async (request, response, next) => {
+    try {
+      const slot = academySpaceImageSlotSchema.parse(request.params.slot);
+      const organizationId = request.auth!.organizationId;
+      if (!request.file) {
+        throw new AppError(422, "Seleccioná una imagen", "LANDING_IMAGE_REQUIRED");
+      }
+
+      const organization = await OrganizationModel.findById(organizationId);
+      if (!organization) {
+        throw new AppError(404, "Organización no encontrada", "ORGANIZATION_NOT_FOUND");
+      }
+
+      const result = await uploadAcademySpaceImage(request.file.buffer, String(organizationId), slot);
+      organization.academySpaceImages = {
+        ...(organization.academySpaceImages ?? {}),
+        [slot]: { url: result.secure_url, width: result.width, height: result.height }
+      };
+      await organization.save();
+      resetPublicSiteImagesCache();
+
+      await AuditLogModel.create({
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "LANDING_IMAGE_UPDATED",
+        entityType: "Organization",
+        entityId: organization._id,
+        metadata: { section: "academy-space", slot, label: academySpaceImageLabels[slot] }
+      });
+
+      response.json({ images: organization.academySpaceImages });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/** Restores the current static landing photo for the requested collage position. */
+adminSettingsRouter.delete("/landing-images/:slot", async (request, response, next) => {
+  try {
+    const slot = academySpaceImageSlotSchema.parse(request.params.slot);
+    const organizationId = request.auth!.organizationId;
+    const organization = await OrganizationModel.findById(organizationId);
+    if (!organization) {
+      throw new AppError(404, "Organización no encontrada", "ORGANIZATION_NOT_FOUND");
+    }
+
+    if (organization.academySpaceImages?.[slot]) {
+      await deleteAcademySpaceImage(String(organizationId), slot).catch(() => undefined);
+      const images = { ...(organization.academySpaceImages ?? {}) };
+      delete images[slot];
+      organization.academySpaceImages = images;
+      await organization.save();
+      resetPublicSiteImagesCache();
+
+      await AuditLogModel.create({
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "LANDING_IMAGE_RESTORED",
+        entityType: "Organization",
+        entityId: organization._id,
+        metadata: { section: "academy-space", slot, label: academySpaceImageLabels[slot] }
+      });
+    }
+
+    response.json({ images: organization.academySpaceImages ?? {} });
   } catch (error) {
     next(error);
   }

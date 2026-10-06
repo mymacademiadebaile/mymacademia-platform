@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Building2, Check, Edit3, Mail, MessageCircle, Plus, Power, UserRound } from "lucide-react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
+import { Building2, Check, Edit3, ImagePlus, Mail, MessageCircle, Plus, Power, RotateCcw, UserRound } from "lucide-react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
@@ -24,9 +24,39 @@ type SettingsData = {
     youtubeUrl?: string;
     timezone?: string;
     cancellationNoticeHours?: number;
+    academySpaceImages?: Partial<Record<AcademySpaceImageSlot, LandingImage>>;
   };
   primaryBranch: Branch | null;
   branches: Branch[];
+};
+
+type AcademySpaceImageSlot = "tall" | "wide" | "detail";
+type LandingImage = { url: string; width?: number; height?: number };
+
+const ACADEMY_SPACE_IMAGES: Record<AcademySpaceImageSlot, {
+  title: string;
+  help: string;
+  fallback: string;
+  previewClass: string;
+}> = {
+  tall: {
+    title: "Foto vertical",
+    help: "La imagen alta de la izquierda. Mejor si es vertical.",
+    fallback: "/landing/mock/space-studio-barre.jpg",
+    previewClass: "tall"
+  },
+  wide: {
+    title: "Foto horizontal",
+    help: "La imagen amplia del centro. Mejor si es horizontal.",
+    fallback: "/landing/mock/space-group-overhead.jpg",
+    previewClass: "wide"
+  },
+  detail: {
+    title: "Foto de detalle",
+    help: "La imagen pequeña de la derecha. Puede ser horizontal o cuadrada.",
+    fallback: "/landing/mock/space-class-mirror.jpg",
+    previewClass: "detail"
+  }
 };
 
 export function SettingsLive() {
@@ -37,6 +67,7 @@ export function SettingsLive() {
   const [branchModal, setBranchModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [branchSaving, setBranchSaving] = useState(false);
+  const [landingImageBusy, setLandingImageBusy] = useState<AcademySpaceImageSlot | null>(null);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -156,6 +187,50 @@ export function SettingsLive() {
       await load();
     } catch (requestError) {
       setError(apiMessage(requestError));
+    }
+  }
+
+  async function uploadLandingImage(slot: AcademySpaceImageSlot, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const form = new FormData();
+    form.append("file", file);
+    setLandingImageBusy(slot);
+    setError("");
+
+    try {
+      await apiFetch(`/admin/settings/landing-images/${slot}`, { method: "POST", body: form });
+      toast(`${ACADEMY_SPACE_IMAGES[slot].title} actualizada`);
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setLandingImageBusy(null);
+    }
+  }
+
+  async function restoreLandingImage(slot: AcademySpaceImageSlot) {
+    const approved = await confirm({
+      title: "Restaurar imagen predeterminada",
+      description: `Se quitará la foto personalizada de ${ACADEMY_SPACE_IMAGES[slot].title.toLocaleLowerCase("es-AR")} y volverá a mostrarse la imagen actual de la landing.`,
+      confirmLabel: "Restaurar",
+      tone: "danger"
+    });
+    if (!approved) return;
+
+    setLandingImageBusy(slot);
+    setError("");
+
+    try {
+      await apiFetch(`/admin/settings/landing-images/${slot}`, { method: "DELETE" });
+      toast("Imagen predeterminada restaurada");
+      await load();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setLandingImageBusy(null);
     }
   }
 
@@ -301,6 +376,66 @@ export function SettingsLive() {
               </button>
             </div>
           </form>
+
+          <section className={styles.historySection} aria-labelledby="landing-images-title">
+            <div className={styles.sectionTitleRow}>
+              <div>
+                <span className={styles.cardLabel}>LANDING PÚBLICA · 06</span>
+                <h3 id="landing-images-title">La academia / El salón</h3>
+                <p>Reemplazá las tres imágenes del collage que se muestra hoy en esta sección de la landing.</p>
+              </div>
+            </div>
+
+            <div className={styles.landingImageGrid}>
+              {(Object.keys(ACADEMY_SPACE_IMAGES) as AcademySpaceImageSlot[]).map((slot) => {
+                const definition = ACADEMY_SPACE_IMAGES[slot];
+                const image = data.organization.academySpaceImages?.[slot];
+                const busy = landingImageBusy === slot;
+
+                return (
+                  <article className={styles.landingImageCard} key={slot}>
+                    <div className={`${styles.landingImagePreview} ${styles[`landingImagePreview${definition.previewClass[0].toUpperCase()}${definition.previewClass.slice(1)}`]}`}>
+                      <img src={image?.url ?? definition.fallback} alt="Vista previa de la imagen de la landing" />
+                    </div>
+                    <div className={styles.landingImageBody}>
+                      <div>
+                        <strong>{definition.title}</strong>
+                        <p>{definition.help}</p>
+                      </div>
+                      <span className={image ? styles.pill : styles.pillOff}>
+                        {image ? "Personalizada" : "Imagen actual"}
+                      </span>
+                    </div>
+                    <div className={styles.landingImageActions}>
+                      <label className={styles.secondary} aria-disabled={busy}>
+                        <ImagePlus size={14} />
+                        {busy ? "Subiendo…" : image ? "Cambiar" : "Cargar imagen"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          disabled={busy}
+                          onChange={(event) => void uploadLandingImage(slot, event)}
+                        />
+                      </label>
+                      {image && (
+                        <button
+                          type="button"
+                          className={styles.inlineAction}
+                          disabled={busy}
+                          onClick={() => void restoreLandingImage(slot)}
+                        >
+                          <RotateCcw size={14} /> Restaurar
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <p className={styles.landingImageNote}>
+              Formatos admitidos: JPG, PNG o WEBP de hasta 4 MB. La landing puede tardar hasta un minuto en reflejar el cambio.
+            </p>
+          </section>
 
           <section className={styles.historySection}>
             <div className={styles.sectionTitleRow}>
