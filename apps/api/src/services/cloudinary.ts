@@ -58,3 +58,47 @@ export function uploadBuffer(
     stream.end(buffer);
   });
 }
+
+/**
+ * Uploads a financial document (transfer proof) as an authenticated asset: it cannot be opened
+ * with a plain URL, only through a short-lived signed link. Every upload gets its own public id,
+ * so a replacement never erases the previous proof.
+ */
+export function uploadPrivateBuffer(
+  buffer: Buffer,
+  options: { folder: string; publicId: string }
+): Promise<UploadApiResponse> {
+  const client = getCloudinary();
+
+  return new Promise((resolve, reject) => {
+    const stream = client.uploader.upload_stream(
+      {
+        folder: options.folder,
+        public_id: options.publicId,
+        resource_type: "auto",
+        type: "authenticated",
+        overwrite: false
+      },
+      (error, result) => {
+        if (error || !result) {
+          reject(error ?? new Error("Cloudinary upload failed"));
+          return;
+        }
+
+        resolve(result);
+      }
+    );
+
+    stream.end(buffer);
+  });
+}
+
+/** Signed link to a private asset, valid for a few minutes. */
+export function privateAssetUrl(asset: { publicId: string; resourceType: string; format?: string }, ttlSeconds = 300) {
+  const client = getCloudinary();
+  return client.utils.private_download_url(asset.publicId, asset.format ?? "", {
+    resource_type: asset.resourceType,
+    type: "authenticated",
+    expires_at: Math.floor(Date.now() / 1000) + ttlSeconds
+  });
+}

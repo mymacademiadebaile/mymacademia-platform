@@ -37,6 +37,12 @@ export interface Organization {
   cancellationNoticeHours: number;
   /** Optional photos replacing the default collage in landing section 06. */
   academySpaceImages?: AcademySpaceImages;
+  billing?: {
+    /** Day of the month monthly fees are due (1-28). */
+    monthlyDueDay: number;
+    /** What to do when a student joins mid-month. ASK: the administrator decides every time. */
+    midMonthPolicy: "ASK" | "FULL" | "PRORATED" | "CUSTOM";
+  };
   isActive: boolean;
 }
 
@@ -58,6 +64,10 @@ const organizationSchema = new Schema<Organization>(
       tall: { type: landingImageSchema, default: undefined },
       wide: { type: landingImageSchema, default: undefined },
       detail: { type: landingImageSchema, default: undefined }
+    },
+    billing: {
+      monthlyDueDay: { type: Number, min: 1, max: 28, default: 10 },
+      midMonthPolicy: { type: String, enum: ["ASK", "FULL", "PRORATED", "CUSTOM"], default: "ASK" }
     },
     isActive: { type: Boolean, default: true }
   },

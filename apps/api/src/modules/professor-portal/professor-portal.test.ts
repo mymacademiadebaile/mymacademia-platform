@@ -97,7 +97,15 @@ function enroll(
   studentId: Types.ObjectId,
   billingPreference?: "PER_CLASS" | "MONTHLY"
 ) {
-  return EnrollmentModel.create({ organizationId, branchId, classId, studentId, billingPreference });
+  // Enrolled long before the past session under test: rosters only include valid enrollments.
+  return EnrollmentModel.create({
+    organizationId,
+    branchId,
+    classId,
+    studentId,
+    billingPreference,
+    enrolledAt: new Date("2019-01-01T12:00:00.000Z")
+  });
 }
 
 function session(

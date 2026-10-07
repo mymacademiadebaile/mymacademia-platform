@@ -7,6 +7,8 @@ import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { StudentModel } from "../students/student.model";
 import { ACTIVE_CHARGE_INDEX_NAME } from "./active-charge-key";
 import { PaymentModel } from "./payment.model";
+import { ChargeModel, classChargeKey, classDayChargeKey, monthlyChargeKey } from "../billing/charge.model";
+import { hasMonthlyCoverage } from "../billing/coverage-service";
 
 export function duplicateChargeError(paymentType: PaymentType) {
   return new AppError(
@@ -143,23 +145,28 @@ export async function assertNoActiveDuplicate(input: {
 
   if (await PaymentModel.exists(filter)) throw duplicateChargeError(input.paymentType);
 
+  // The same obligation may already exist in the new billing model (generated monthly fee,
+  // class fee charged from a session).
+  const key =
+    input.paymentType === "MONTHLY"
+      ? monthlyChargeKey(input.studentId, input.classId, input.period)
+      : input.sessionId
+        ? classChargeKey(input.studentId, input.sessionId)
+        : classDayChargeKey(input.studentId, input.classId, input.classDateKey!);
+  if (await ChargeModel.exists({ organizationId: input.organizationId, chargeKey: key })) {
+    throw duplicateChargeError(input.paymentType);
+  }
+
   // A monthly fee already covers every class of its month: charging a class of that month too
   // would bill the student twice for the same session.
-  if (input.paymentType === "PER_CLASS") {
-    const coveredByMonthly = await PaymentModel.exists({
-      organizationId: input.organizationId,
-      studentId: input.studentId,
-      classId: input.classId,
-      paymentType: "MONTHLY",
-      period: input.period,
-      status: { $ne: "CANCELLED" }
-    });
-    if (coveredByMonthly) {
-      throw new AppError(
-        409,
-        "El alumno ya tiene la mensualidad de ese mes, que incluye esta clase",
-        "COVERED_BY_MONTHLY"
-      );
-    }
+  if (
+    input.paymentType === "PER_CLASS" &&
+    (await hasMonthlyCoverage(input.organizationId, input.studentId, input.classId, input.period))
+  ) {
+    throw new AppError(
+      409,
+      "El alumno ya tiene la mensualidad de ese mes, que incluye esta clase",
+      "COVERED_BY_MONTHLY"
+    );
   }
 }

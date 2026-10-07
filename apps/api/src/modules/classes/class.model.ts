@@ -14,6 +14,22 @@ interface ClassSchedule {
   endTime: string;
 }
 
+/** A period without regular sessions. `to` absent means "until resumed". */
+export interface ClassPause {
+  _id?: Types.ObjectId;
+  from: string;
+  to?: string;
+  reason?: string;
+  createdByUserId?: Types.ObjectId;
+  createdAt?: Date;
+}
+
+/**
+ * A group: a concrete activity (for example "Bachata Inicial") with its professors, prices,
+ * capacity and recurring schedule. The recurring schedule lives in ClassSchedule (with validity
+ * dates); `schedules` is a read cache of the slots valid today, kept for the public site, the
+ * professor portal and legacy screens.
+ */
 export interface DanceClass {
   organizationId: Types.ObjectId;
   branchId: Types.ObjectId;
@@ -29,12 +45,17 @@ export interface DanceClass {
   freeTrialEnabled: boolean;
   schedules: ClassSchedule[];
   status: ClassStatus;
+  pauses: ClassPause[];
+  defaultSpaceId?: Types.ObjectId;
+  archivedAt?: Date;
   /**
    * Lets the admin hide one class from the website. Defaults to true: a class is
    * only exposed when its rhythm is published too, so this is an opt-out.
    * Read with `{ $ne: false }` so documents created before the field still match.
    */
   publishOnWeb: boolean;
+  /** Bumped inside transactions that check capacity, so concurrent enrollments serialize. */
+  lockVersion: number;
 }
 
 const scheduleSchema = new Schema<ClassSchedule>(
@@ -44,6 +65,17 @@ const scheduleSchema = new Schema<ClassSchedule>(
     endTime: { type: String, required: true }
   },
   { _id: false }
+);
+
+const pauseSchema = new Schema<ClassPause>(
+  {
+    from: { type: String, required: true, match: /^\d{4}-\d{2}-\d{2}$/ },
+    to: { type: String, match: /^\d{4}-\d{2}-\d{2}$/ },
+    reason: { type: String, trim: true, maxlength: 300 },
+    createdByUserId: { type: Schema.Types.ObjectId, ref: "User" },
+    createdAt: { type: Date, default: Date.now }
+  },
+  { _id: true }
 );
 
 const danceClassSchema = new Schema<DanceClass>(
@@ -62,9 +94,28 @@ const danceClassSchema = new Schema<DanceClass>(
     freeTrialEnabled: { type: Boolean, default: false },
     schedules: { type: [scheduleSchema], default: [] },
     status: { type: String, enum: CLASS_STATUSES, default: "ACTIVE" },
-    publishOnWeb: { type: Boolean, default: true }
+    pauses: { type: [pauseSchema], default: [] },
+    defaultSpaceId: { type: Schema.Types.ObjectId, ref: "DanceSpace" },
+    archivedAt: { type: Date },
+    publishOnWeb: { type: Boolean, default: true },
+    lockVersion: { type: Number, default: 0 }
   },
   { timestamps: true }
 );
 
 export const DanceClassModel = model<DanceClass>("DanceClass", danceClassSchema);
+
+/** Statuses that keep generating regular sessions (a PAUSED group skips only its pause dates). */
+export const SCHEDULABLE_CLASS_STATUSES: ClassStatus[] = ["ACTIVE", "PAUSED"];
+
+/** Statuses that accept new enrollments. */
+export const ENROLLABLE_CLASS_STATUSES: ClassStatus[] = ["ACTIVE", "PAUSED"];
+
+export function isArchivedStatus(status?: string) {
+  return status === "ARCHIVED" || status === "INACTIVE";
+}
+
+/** True when a pause of the group covers the calendar day. */
+export function isPausedOn(danceClass: { pauses?: Array<{ from: string; to?: string }> }, date: string) {
+  return (danceClass.pauses ?? []).some((pause) => pause.from <= date && (!pause.to || date <= pause.to));
+}

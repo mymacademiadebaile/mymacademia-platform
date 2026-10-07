@@ -23,6 +23,7 @@ import {
   rethrowDuplicateCharge
 } from "../payments/payment-charge";
 import { nextReceiptNumber } from "../payments/sequence.model";
+import { mirrorLegacyPayment } from "../billing/legacy-sync";
 import { StudentModel } from "../students/student.model";
 import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
@@ -503,6 +504,7 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       }
     });
 
+    await mirrorLegacyPayment(payment._id);
     response.status(201).json(payment);
   } catch (error) {
     next(error);
@@ -576,6 +578,7 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
       }
     });
 
+    await mirrorLegacyPayment(payment._id);
     response.status(201).json(payment);
   } catch (error) {
     next(error);
@@ -653,6 +656,7 @@ adminPaymentsRouter.post("/:id/mark-paid", async (request, response, next) => {
       }
     });
 
+    await mirrorLegacyPayment(paid._id);
     response.json(paid);
   } catch (error) {
     next(error);
@@ -716,6 +720,7 @@ adminPaymentsRouter.post("/:id/cancel", async (request, response, next) => {
       }
     });
 
+    await mirrorLegacyPayment(cancelled._id);
     response.json(cancelled);
   } catch (error) {
     next(error);

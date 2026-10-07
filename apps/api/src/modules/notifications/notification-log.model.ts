@@ -1,7 +1,7 @@
 import { Schema, Types, model } from "mongoose";
 
 const CHANNELS = ["EMAIL", "WHATSAPP"] as const;
-const TYPES = ["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION"] as const;
+const TYPES = ["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION", "SESSION_CHANGE"] as const;
 const STATUSES = ["PENDING", "SENT", "FAILED", "OPENED"] as const;
 
 type Channel = (typeof CHANNELS)[number];

@@ -40,9 +40,11 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
 
   const known = error instanceof AppError ? error : clientError(error);
   if (known) {
+    const details = known.details;
     response.status(known.statusCode).json({
       error: known.code,
-      message: known.message
+      message: known.message,
+      ...(details !== undefined ? { details } : {})
     });
     return;
   }

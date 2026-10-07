@@ -12,8 +12,8 @@ import {
   ClassAttendanceModel
 } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
+import { generateSessions } from "../scheduling/session-generator";
 import {
-  ensureSessions,
   loadSessionParticipants,
   sessionPhase,
   setSessionAttendance
@@ -53,7 +53,7 @@ async function sessionsInRange(
   options: { includeCancelled?: boolean } = {}
 ) {
   if (!classes.length) return [];
-  await ensureSessions(organizationId, classes, from, to, { respectCreatedAt: true });
+  await generateSessions(organizationId, { from, to, classIds: classes.map((item) => item._id) });
   return ClassSessionModel.find({
     organizationId,
     classId: { $in: classes.map((item) => item._id) },

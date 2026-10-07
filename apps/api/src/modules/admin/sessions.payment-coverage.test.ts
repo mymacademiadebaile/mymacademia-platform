@@ -50,7 +50,9 @@ async function setup(mode: Mode, preference?: PaymentKind, sessionDate = SESSION
     branchId: ids.branch,
     classId: danceClass._id,
     studentId: student._id,
-    billingPreference: preference
+    billingPreference: preference,
+    // Enrolled before the sessions under test: rosters only include valid enrollments.
+    enrolledAt: new Date("2026-01-01T12:00:00.000Z")
   });
   const session = await ClassSessionModel.create({
     organizationId: ids.org,
