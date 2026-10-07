@@ -41,7 +41,10 @@ const envSchema = z
     SMTP_SECURE: booleanEnv,
     SMTP_USER: z.string().email().optional(),
     SMTP_PASSWORD: z.string().min(1).optional(),
-    MAIL_FROM_NAME: z.string().min(1).default("M&M Academia")
+    MAIL_FROM_NAME: z.string().min(1).default("M&M Academia"),
+
+    // Shared secret of the scheduled daily job (Vercel Cron sends it as a Bearer token).
+    CRON_SECRET: z.preprocess(blankAsUndefined, z.string().min(16).optional())
   })
   .superRefine((value, ctx) => {
     if (value.NODE_ENV !== "production") return;

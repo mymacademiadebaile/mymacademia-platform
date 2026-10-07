@@ -4,7 +4,7 @@ import { academyDateOf, academyNow } from "../../common/dates";
 import { AppError } from "../../common/http/app-error";
 import { withTransaction } from "../../common/transaction";
 import { AuditLogModel } from "../audit/audit-log.model";
-import { nextReceiptNumber } from "../payments/sequence.model";
+import { ensureReceiptSequence, nextReceiptNumber } from "../payments/sequence.model";
 import { StudentModel } from "../students/student.model";
 import { ChargeModel } from "./charge.model";
 import { availableCreditCents, CollectionModel } from "./collection.model";
@@ -99,6 +99,7 @@ export async function registerCollection(actor: Actor, input: CollectionInput) {
 
   const student = await StudentModel.findOne({ _id: input.studentId, organizationId: actor.organizationId }).lean<any>();
   if (!student) throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
+  await ensureReceiptSequence(actor.organizationId);
 
   try {
     return await withTransaction(async (dbSession) => {
