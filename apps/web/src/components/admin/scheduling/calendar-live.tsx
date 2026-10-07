@@ -57,9 +57,13 @@ function move(view: View, anchor: string, direction: 1 | -1) {
   return value.toISOString().slice(0, 10);
 }
 
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 function rangeLabel(view: View, anchor: string, from: string, to: string) {
-  if (view === "month") return formatDateOnly(anchor, { month: "long", year: "numeric" });
-  if (view === "day") return formatDateOnly(anchor, { weekday: "long", day: "numeric", month: "long" });
+  if (view === "month") return capitalize(formatDateOnly(anchor, { month: "long", year: "numeric" }));
+  if (view === "day") return capitalize(formatDateOnly(anchor, { weekday: "long", day: "numeric", month: "long" }));
   return `${formatDateOnly(from, { day: "numeric", month: "short" })} – ${formatDateOnly(to, { day: "numeric", month: "short", year: "numeric" })}`;
 }
 

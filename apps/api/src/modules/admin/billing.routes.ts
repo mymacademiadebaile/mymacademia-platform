@@ -35,6 +35,7 @@ import { RefundModel } from "../billing/refund.model";
 import { DanceClassModel } from "../classes/class.model";
 import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
+import { billingModeOn } from "../enrollments/enrollment-validity";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
 import { privateAssetUrl, uploadPrivateBuffer } from "../../services/cloudinary";
@@ -642,8 +643,21 @@ adminBillingRouter.post("/sessions/:id/collect", async (request, response, next)
     const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean<any>();
     if (!session) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
 
+    // A monthly student whose fee of that month was not generated yet: generate it now (the
+    // mid-month rules still apply) and collect it, instead of charging a single class.
+    const period = periodOf(session.sessionDate);
+    const enrollment = await EnrollmentModel.findOne({ organizationId: actor.organizationId, classId: session.classId, studentId: input.studentId }).lean<any>();
+    const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId: actor.organizationId }).lean<any>();
+    const monthlyStudent =
+      enrollment &&
+      danceClass &&
+      (danceClass.billingMode === "MONTHLY" || (danceClass.billingMode === "BOTH" && billingModeOn(enrollment, session.sessionDate) === "MONTHLY"));
+    if (monthlyStudent && !(await hasMonthlyCoverage(actor.organizationId, input.studentId, session.classId, period))) {
+      await createMonthlyChargeForEnrollment(actor, String(enrollment._id), period, {});
+    }
+
     let charge: any;
-    if (await hasMonthlyCoverage(actor.organizationId, input.studentId, session.classId, periodOf(session.sessionDate))) {
+    if (await hasMonthlyCoverage(actor.organizationId, input.studentId, session.classId, period)) {
       charge = await ChargeModel.findOne({
         organizationId: actor.organizationId,
         studentId: input.studentId,

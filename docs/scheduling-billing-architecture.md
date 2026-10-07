@@ -157,3 +157,29 @@ group) document, so concurrent bookings for the last spot cannot both succeed.
 | Charge generation | `modules/billing/charge-service.ts` |
 | Collections, refunds, adjustments | `modules/billing/collection-service.ts` |
 | Balances and debt | `modules/billing/balance-service.ts` |
+
+## 8. Operating it
+
+| Task | Command / endpoint |
+|---|---|
+| Migration, dry run (default) | `pnpm --filter @mym/api migrate:scheduling-billing` |
+| Migration, apply on a local copy | `... migrate:scheduling-billing -- --apply` |
+| Migration, apply on a remote database (after a backup) | `... migrate:scheduling-billing -- --apply --allow-remote` |
+| Daily job by hand | `pnpm --filter @mym/api jobs:daily` |
+| Daily job in production | `GET /api/internal/jobs/daily` with `Authorization: Bearer $CRON_SECRET` |
+
+The daily job is not scheduled yet: add a Vercel Cron entry for `/api/internal/jobs/daily`
+and set `CRON_SECRET` when deploying. Without it, sessions are still generated on demand by the
+calendar and monthly fees can be generated from Pagos > Mensualidades.
+
+Recommended rollout:
+
+1. Deploy the code. Old screens and endpoints keep working; every legacy payment write is
+   mirrored into the new model, and unmirrored history is read through the legacy adapter.
+2. Restore a production backup locally, run the migration dry run and then `--apply`, and
+   compare the `validation` block (legacy paid = mirrored collections, legacy open = mirrored open).
+3. Back up production, run the dry run there, review, then apply with `--allow-remote`.
+4. Review Pagos > Revisión (MigrationIssue) with the administration.
+
+Transactions need a replica set (Atlas has one). On a standalone development server the
+services run without transactions and keep only the unique indexes and conditional updates.

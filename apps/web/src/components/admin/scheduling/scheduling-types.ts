@@ -125,7 +125,7 @@ export const COVERAGE_LABEL: Record<CoverageStatus, string> = {
   PARTIAL: "Pago parcial",
   PENDING: "Pendiente",
   OVERDUE: "Vencido",
-  NONE: "Sin cargo",
+  NONE: "Sin generar",
   FREE: "Sin costo"
 };
 

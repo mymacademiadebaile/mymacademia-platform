@@ -11,6 +11,8 @@ import { academyNow } from "../../common/dates";
 import { PaymentModel } from "../payments/payment.model";
 import { effectivePaymentStatus } from "../payments/payment-status";
 import { studentBalances, studentIdsWithOverdueDebt } from "../billing/balance-service";
+import { CollectionModel } from "../billing/collection.model";
+import { unmirroredLegacyPayments } from "../billing/legacy-adapter";
 import { toPesos } from "../../common/money";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
@@ -155,6 +157,14 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
       studentBalances(organizationId, [student._id])
     ]);
     const balance = balances.get(String(student._id))!;
+    const [collections, unmirroredPaid] = await Promise.all([
+      CollectionModel.find({ organizationId, studentId: student._id }).select("amountCents refundedCents").lean<any[]>(),
+      unmirroredLegacyPayments({ organizationId, studentId: student._id, status: "PAID" })
+    ]);
+    const collected = collections.reduce(
+      (sum, item) => ({ amountCents: sum.amountCents + item.amountCents, refundedCents: sum.refundedCents + item.refundedCents, count: sum.count + 1 }),
+      { amountCents: 0, refundedCents: 0, count: 0 }
+    );
 
     const financial = payments.reduce(
       (summary, payment) => {
@@ -189,6 +199,10 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
       // Legacy totals of the payments list plus the central balance (same rule as every screen).
       financial: {
         ...financial,
+        // Money received: collections of the new model (legacy payments are mirrored there) plus
+        // legacy paid payments not mirrored yet, minus refunds.
+        paidAmount: toPesos(collected.amountCents - collected.refundedCents) + unmirroredPaid.reduce((sum, item) => sum + item.amount, 0),
+        paidCount: collected.count + unmirroredPaid.length,
         pendingAmount: toPesos(balance.pendingCents - balance.overdueCents),
         overdueAmount: toPesos(balance.overdueCents),
         creditAmount: toPesos(balance.creditCents),

@@ -213,6 +213,14 @@ describe("3-4. per-class billing and monthly coverage", () => {
     const again = await ensureClassCharge(actor(), String(session._id), String(daily._id));
     expect(again).toMatchObject({ covered: false, created: false });
 
+    // Collecting a monthly student from the session generates the missing fee and pays it.
+    const monthlyCollect = await admin(request(app).post(`/api/admin/billing/sessions/${session._id}/collect`)).send({
+      studentId: String(monthly._id),
+      method: "TRANSFER"
+    });
+    expect(monthlyCollect.status).toBe(201);
+    expect(monthlyCollect.body.charge).toMatchObject({ kind: "MONTHLY_FEE", period: "2026-09", status: "PAID" });
+
     await generateMonthlyCharges(actor(), "2026-09");
     const covered = await ensureClassCharge(actor(), String(session._id), String(monthly._id));
     expect(covered).toMatchObject({ covered: true, reason: "MONTHLY" });
