@@ -15,6 +15,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { formatDateOnly, todayInArgentina } from "@/lib/dates";
+import { StudentAccountPanel } from "../billing/student-account-panel";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type {
   BillingPreference,
@@ -408,6 +409,8 @@ export function StudentDetailLive({ id }: { id: string }) {
         <article data-tone="danger"><span>Vencido</span><strong>$ {financial.overdueAmount.toLocaleString("es-AR")}</strong><small>{financial.overdueCount} pagos</small></article>
         <article><span>Clases activas</span><strong>{activeEnrollments.length}</strong><small>inscripciones actuales</small></article>
       </div>
+
+      <StudentAccountPanel studentId={id} onChanged={() => void load()} />
 
       <div className={styles.grid}>
         <section className={styles.card}>

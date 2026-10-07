@@ -87,8 +87,11 @@ export type DanceClass = {
     startTime: string;
     endTime: string;
   }>;
-  status: "ACTIVE" | "INACTIVE";
+  status: "ACTIVE" | "INACTIVE" | "PAUSED" | "ARCHIVED";
   publishOnWeb?: boolean;
+  defaultSpaceId?: string;
+  pauses?: Array<{ _id: string; from: string; to?: string; reason?: string }>;
+  scheduleOccupancy?: Array<{ seriesId: string; day: string; startTime: string; endTime: string; validFrom: string; validTo?: string; occupied: number }>;
 };
 
 export type PaymentMethod = "CASH" | "TRANSFER" | "CARD" | "OTHER";
@@ -110,6 +113,7 @@ export type Payment = {
   paymentMethod?: PaymentMethod;
   receiptNumber?: string;
   proofUrl?: string;
+  proof?: { publicId: string };
   notes?: string;
   cancellationReason?: string;
 };

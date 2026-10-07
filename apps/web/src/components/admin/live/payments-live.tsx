@@ -472,11 +472,21 @@ export function PaymentsLive() {
     </>
   );
 
+  // Proofs are private: the API answers with a short-lived signed link.
+  async function openProof(paymentId: string) {
+    try {
+      const result = await apiFetch<{ url: string }>("/admin/payments/" + paymentId + "/proof");
+      window.open(result.url, "_blank", "noopener");
+    } catch (requestError) {
+      toast({ title: "No pudimos abrir el comprobante", description: apiMessage(requestError), tone: "error" });
+    }
+  }
+
   return (
     <>
       <PageHeader
-        eyebrow="CAJA"
-        title="Pagos"
+        eyebrow="SISTEMA ANTERIOR"
+        title="Pagos registrados"
         description="Cobrá una clase en segundos, registrá mensualidades y seguí los pendientes."
         actionLabel="Registrar cobro"
         onAction={() => openComposer("charge")}
@@ -552,7 +562,11 @@ export function PaymentsLive() {
                       <FileText size={15} /> Recibo
                     </a>
                   )}
-                  {payment.proofUrl && <a href={payment.proofUrl} target="_blank" rel="noreferrer"><Paperclip size={15} /> Comprobante</a>}
+                  {(payment.proofUrl || payment.proof) && (
+                    <button type="button" onClick={() => void openProof(payment._id)}>
+                      <Paperclip size={15} /> Comprobante
+                    </button>
+                  )}
                 </span>
                 <span className={styles.actions}>
                   {currentStatus !== "PAID" && currentStatus !== "CANCELLED" && (

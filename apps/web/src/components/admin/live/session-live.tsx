@@ -20,10 +20,11 @@ import { todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
+import { SESSION_STATUS_LABEL, type SessionStatus } from "../scheduling/scheduling-types";
 
 type AttendanceStatus = "EXPECTED" | "PRESENT" | "ABSENT";
 type BillingType = "PER_CLASS" | "MONTHLY" | "FREE";
-type PaymentState = "FREE" | "NONE" | "PENDING" | "OVERDUE" | "PAID";
+type PaymentState = "FREE" | "NONE" | "PENDING" | "PARTIAL" | "OVERDUE" | "PAID";
 
 type SessionParticipant = {
   studentId: string;
@@ -53,7 +54,8 @@ type SessionDetail = {
   sessionDate: string;
   startTime: string;
   endTime: string;
-  status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  status: SessionStatus;
+  statusReason?: string;
   class: {
     id: string;
     name: string;
@@ -94,6 +96,7 @@ function paymentLabel(participant: SessionParticipant) {
       : "Clase pagada";
   }
   if (status === "OVERDUE") return "Vencido";
+  if (status === "PARTIAL") return "Pago parcial";
   if (status === "PENDING") return "Pendiente";
   return participant.billingType === "MONTHLY" ? "Mensual pendiente" : "Pendiente de cobro";
 }
@@ -135,7 +138,7 @@ export function SessionLive({ id }: { id: string }) {
       present: participants.filter((item) => item.attendanceStatus === "PRESENT").length,
       absent: participants.filter((item) => item.attendanceStatus === "ABSENT").length,
       toCollect: participants.filter(
-        (item) => item.payment.status === "NONE" || item.payment.status === "PENDING" || item.payment.status === "OVERDUE"
+        (item) => ["NONE", "PENDING", "PARTIAL", "OVERDUE"].includes(item.payment.status)
       ).length
     };
   }, [data]);
@@ -343,11 +346,8 @@ export function SessionLive({ id }: { id: string }) {
       <section className={styles.sessionHero}>
         <div>
           <span className={styles.sessionStatus} data-status={data.status}>
-            {data.status === "COMPLETED"
-              ? "Finalizada"
-              : data.status === "CANCELLED"
-                ? "Cancelada"
-                : "Programada"}
+            {SESSION_STATUS_LABEL[data.status]}
+            {data.statusReason ? " · " + data.statusReason : ""}
           </span>
           <h2>{data.class.name}</h2>
           <p>

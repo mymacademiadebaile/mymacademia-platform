@@ -563,6 +563,22 @@ describe("23. permissions", () => {
     expect(calendar.status).toBe(200);
   });
 
+  it("shows a substitute only the session they cover, and hides it from the replaced professor", async () => {
+    const danceClass = await group({ slots: [{ day: "THURSDAY", startTime: "08:00", endTime: "09:00" }], professorId: ids.professorA });
+    const [session] = await sessionsOf(danceClass._id, "2026-10-08", "2026-10-08");
+    await updateSingleSession(actor(), String(session._id), { professorIds: [String(ids.professorB)], reason: "Suplencia" });
+    expect((await ClassSessionModel.findById(session._id).lean())?.substitute).toBe(true);
+
+    const professorB = await ProfessorModel.findById(ids.professorB).lean();
+    const substituteToken = jwt.sign({ sub: String(professorB!.userId), organizationId: String(ids.org), role: "PROFESSOR" }, env.JWT_ACCESS_SECRET);
+    const asSubstitute = await request(app).get("/api/professor/calendar?from=2026-10-05&to=2026-10-11").set("Authorization", `Bearer ${substituteToken}`);
+    expect(asSubstitute.body.items.map((item: any) => item.id)).toContain(String(session._id));
+    expect((await request(app).get(`/api/professor/sessions/${session._id}`).set("Authorization", `Bearer ${substituteToken}`)).status).toBe(200);
+
+    const asOwner = await request(app).get("/api/professor/calendar?from=2026-10-05&to=2026-10-11").set("Authorization", `Bearer ${professorToken}`);
+    expect(asOwner.body.items.map((item: any) => item.id)).not.toContain(String(session._id));
+  });
+
   it("rejects collections dated in the future", async () => {
     const someone = await student();
     const response = await admin(request(app).post("/api/admin/billing/collections")).send({

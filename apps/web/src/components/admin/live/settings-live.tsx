@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
 import {
   BookOpenCheck,
+  CalendarCog,
   Building2,
   Check,
   Edit3,
@@ -22,6 +23,7 @@ import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { Branch } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
+import { SchedulingSettingsPanel } from "../scheduling/scheduling-settings-panel";
 import { CatalogsLive } from "./catalogs-live";
 import styles from "./live.module.css";
 
@@ -47,7 +49,7 @@ type SettingsData = {
 
 type AcademySpaceImageSlot = "tall" | "wide" | "detail";
 type LandingImage = { url: string; width?: number; height?: number };
-type SettingsTab = "academy" | "inquiries" | "operation" | "channels" | "landing" | "branches" | "catalogs";
+type SettingsTab = "academy" | "inquiries" | "operation" | "channels" | "landing" | "branches" | "catalogs" | "scheduling";
 
 const ACADEMY_SPACE_IMAGES: Record<AcademySpaceImageSlot, {
   title: string;
@@ -272,6 +274,7 @@ export function SettingsLive() {
             <button type="button" role="tab" id="landing-tab" aria-controls="landing-settings" aria-selected={activeSettingsTab === "landing"} onClick={() => setActiveSettingsTab("landing")}><ImagePlus size={16} /> Landing</button>
             <button type="button" role="tab" id="branches-tab" aria-controls="branches-settings" aria-selected={activeSettingsTab === "branches"} onClick={() => setActiveSettingsTab("branches")}><MapPin size={16} /> Sedes</button>
             <button type="button" role="tab" id="catalogs-tab" aria-controls="catalogs-settings" aria-selected={activeSettingsTab === "catalogs"} onClick={() => setActiveSettingsTab("catalogs")}><BookOpenCheck size={16} /> Catálogos</button>
+            <button type="button" role="tab" id="scheduling-tab" aria-controls="scheduling-settings" aria-selected={activeSettingsTab === "scheduling"} onClick={() => setActiveSettingsTab("scheduling")}><CalendarCog size={16} /> Pistas, feriados y cobros</button>
           </nav>
 
           <form className={styles.settingsForm} onSubmit={save}>
@@ -507,6 +510,10 @@ export function SettingsLive() {
             </div>
 
             <CatalogsLive embedded />
+          </section>
+
+          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} id="scheduling-settings" role="tabpanel" aria-labelledby="scheduling-tab" hidden={activeSettingsTab !== "scheduling"}>
+            {activeSettingsTab === "scheduling" && <SchedulingSettingsPanel branches={data.branches} />}
           </section>
 
           <LiveModal

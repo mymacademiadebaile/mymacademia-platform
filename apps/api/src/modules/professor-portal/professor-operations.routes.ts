@@ -15,6 +15,7 @@ import {
   ClassAttendanceModel
 } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
+import { DanceClassModel } from "../classes/class.model";
 import { generateSessions } from "../scheduling/session-generator";
 import {
   loadSessionParticipants,
@@ -67,6 +68,39 @@ async function sessionsInRange(
     .lean<any[]>();
 }
 
+/**
+ * Sessions the professor teaches in [from, to]: those of their groups (unless another professor
+ * was assigned to that date) plus the ones where they are the substitute. The classes of
+ * substitute sessions are added to the map so every session can be serialized.
+ */
+async function teachingSessions(
+  context: { organizationId: string; professor: any },
+  classes: any[],
+  from: string,
+  to: string,
+  options: { includeCancelled?: boolean } = {}
+) {
+  const own = await sessionsInRange(context.organizationId, classes, from, to, options);
+  const professorId = String(context.professor._id);
+  const substitute = await ClassSessionModel.find({
+    organizationId: context.organizationId,
+    professorIds: context.professor._id,
+    classId: { $nin: classes.map((item) => item._id) },
+    sessionDate: { $gte: from, $lte: to },
+    ...(options.includeCancelled ? {} : { status: { $ne: "CANCELLED" } })
+  }).lean<any[]>();
+  const extraClasses = substitute.length
+    ? await DanceClassModel.find({ organizationId: context.organizationId, _id: { $in: substitute.map((item) => item.classId) } })
+        .populate("disciplineIds segmentIds levelIds", "name type")
+        .lean<any[]>()
+    : [];
+  const sessions = [
+    ...own.filter((item) => !item.professorIds?.length || item.professorIds.some((id: unknown) => String(id) === professorId)),
+    ...substitute
+  ].sort((a, b) => (a.sessionDate + a.startTime).localeCompare(b.sessionDate + b.startTime));
+  return { sessions, classesById: new Map([...classes, ...extraClasses].map((item) => [String(item._id), item])) };
+}
+
 professorOperationsRouter.get("/dashboard", async (request, response, next) => {
   try {
     const context = await loadProfessorContext(request);
@@ -75,14 +109,15 @@ professorOperationsRouter.get("/dashboard", async (request, response, next) => {
     const week = weekBounds(now.date);
 
     const classes = await ownedClasses(context, { activeOnly: true });
-    const classesById = new Map(classes.map((item) => [String(item._id), item]));
-    const classIds = classes.map((item) => item._id as Types.ObjectId);
 
-    const [counts, branches, sessions, students] = await Promise.all([
-      enrollmentCounts(organizationId, classIds),
-      branchNames(organizationId, classes),
-      sessionsInRange(organizationId, classes, week.from, addDays(now.date, 14)),
+    const [{ sessions, classesById }, students] = await Promise.all([
+      teachingSessions(context, classes, week.from, addDays(now.date, 14)),
       buildStudentOverview(context, classes)
+    ]);
+    const taughtClasses = [...classesById.values()];
+    const [counts, branches] = await Promise.all([
+      enrollmentCounts(organizationId, taughtClasses.map((item) => item._id as Types.ObjectId)),
+      branchNames(organizationId, taughtClasses)
     ]);
 
     const todaySessionsRaw = sessions.filter((item) => item.sessionDate === now.date);
@@ -223,12 +258,11 @@ professorOperationsRouter.get("/calendar", async (request, response, next) => {
 
     const context = await loadProfessorContext(request);
     const classes = await ownedClasses(context, { activeOnly: true });
-    const classesById = new Map(classes.map((item) => [String(item._id), item]));
-
-    const [sessions, counts, branches] = await Promise.all([
-      sessionsInRange(context.organizationId, classes, from, to, { includeCancelled: true }),
-      enrollmentCounts(context.organizationId, classes.map((item) => item._id)),
-      branchNames(context.organizationId, classes)
+    const { sessions, classesById } = await teachingSessions(context, classes, from, to, { includeCancelled: true });
+    const taughtClasses = [...classesById.values()];
+    const [counts, branches] = await Promise.all([
+      enrollmentCounts(context.organizationId, taughtClasses.map((item) => item._id)),
+      branchNames(context.organizationId, taughtClasses)
     ]);
 
     response.json({

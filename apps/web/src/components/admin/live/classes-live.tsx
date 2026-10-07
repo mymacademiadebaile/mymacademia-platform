@@ -213,7 +213,8 @@ export function ClassesLive() {
         </select>
         <select value={status} onChange={(event) => setStatus(event.target.value)}>
           <option value="ACTIVE">Activas</option>
-          <option value="INACTIVE">Inactivas</option>
+          <option value="PAUSED">En pausa</option>
+          <option value="ARCHIVED">Archivadas</option>
           <option value="ALL">Todas</option>
         </select>
       </div>
@@ -244,7 +245,7 @@ export function ClassesLive() {
               <Link className={styles.cardLink} href={"/admin/classes/" + danceClass._id} key={danceClass._id}>
                 <div className={styles.cardTopLine}>
                   <span className={danceClass.status === "ACTIVE" ? styles.pill : styles.pillOff}>
-                    {danceClass.status === "ACTIVE" ? "Activa" : "Inactiva"}
+                    {danceClass.status === "ACTIVE" ? "Activa" : danceClass.status === "PAUSED" ? "En pausa" : "Archivada"}
                   </span>
                   <span className={styles.cardDetail}>{occupied}/{danceClass.capacity} alumnos</span>
                 </div>

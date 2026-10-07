@@ -44,7 +44,7 @@ export type SessionItem = {
   startTime: string;
   endTime: string;
   durationMinutes: number;
-  persistedStatus: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  persistedStatus: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "SUSPENDED" | "RESCHEDULED" | "CANCELLED";
   phase: SessionPhase;
   class: {
     id: string;

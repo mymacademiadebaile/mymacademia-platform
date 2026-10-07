@@ -70,9 +70,16 @@ export async function loadOwnedSession(context: ProfessorContext, sessionId: str
     new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
   if (!session) throw notFound();
 
-  const [danceClass] = await ownedClasses(context, { classId: String(session.classId) });
-  if (!danceClass) throw notFound();
+  const [owned] = await ownedClasses(context, { classId: String(session.classId) });
+  if (owned) return { session, danceClass: owned };
 
+  // A substitute teaches this one session of a group that is not theirs.
+  const substitute = (session.professorIds ?? []).some((id: unknown) => String(id) === String(context.professor._id));
+  if (!substitute) throw notFound();
+  const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId: context.organizationId })
+    .populate("disciplineIds segmentIds levelIds", "name type")
+    .lean<any>();
+  if (!danceClass) throw notFound();
   return { session, danceClass };
 }
 
