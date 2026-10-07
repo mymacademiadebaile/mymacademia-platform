@@ -4,13 +4,18 @@ import { Types } from "mongoose";
 import { z } from "zod";
 import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
-import { PaymentModel } from "../payments/payment.model";
-import { effectivePaymentStatus } from "../payments/payment-status";
+import { toPesos } from "../../common/money";
+import { chargeState } from "../billing/balance-service";
+import { ChargeModel } from "../billing/charge.model";
+import { CollectionModel } from "../billing/collection.model";
+import { legacyPaymentToChargeView, unmirroredLegacyPayments, type ChargeView } from "../billing/legacy-adapter";
+import { PaymentAllocationModel } from "../billing/payment-allocation.model";
+import { RefundModel } from "../billing/refund.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
-import { academyRangeBounds } from "../../common/dates";
+import { academyNow, academyRangeBounds } from "../../common/dates";
 import { objectIdSchema } from "./admin.schemas";
 
 const calendarDateSchema = z.string()
@@ -164,29 +169,31 @@ function emptyFinancialSummary(): FinancialSummary {
 /**
  * Status of charges whose academic occurrence/month belongs to the selected range.
  * This is deliberately different from cash: a September monthly fee paid in October
- * belongs here in September, but in cash in October.
+ * belongs here in September, but in cash in October. States come from chargeState, the same
+ * rule every other screen uses (partial payments count as collected and pending).
  */
-function summarizeIssuedPayments(payments: Array<{ amount: number; status: string; dueDate: Date }>) {
-  return payments.reduce((summary, payment) => {
-    const status = effectivePaymentStatus(payment);
+function summarizeIssuedCharges(charges: ChargeView[], today: string) {
+  return charges.reduce((summary, charge) => {
+    const state = chargeState(charge, today);
+    const owed = toPesos(state.owedCents);
 
-    if (status === "CANCELLED") {
-      summary.cancelledAmount += payment.amount;
+    if (state.status === "VOID") {
+      summary.cancelledAmount += toPesos(charge.amountCents);
       summary.cancelledCount += 1;
       return summary;
     }
 
-    summary.totalAmount += payment.amount;
+    summary.totalAmount += owed;
     summary.count += 1;
+    summary.collectedAmount += toPesos(state.paidCents);
 
-    if (status === "PAID") {
-      summary.collectedAmount += payment.amount;
+    if (state.status === "PAID") {
       summary.paidCount += 1;
-    } else if (status === "OVERDUE") {
-      summary.overdueAmount += payment.amount;
+    } else if (state.status === "OVERDUE") {
+      summary.overdueAmount += toPesos(state.balanceCents);
       summary.overdueCount += 1;
-    } else if (status === "PENDING") {
-      summary.pendingAmount += payment.amount;
+    } else {
+      summary.pendingAmount += toPesos(state.balanceCents);
       summary.pendingCount += 1;
     }
 
@@ -215,30 +222,24 @@ async function buildOverview(
   const branchFilter = query.branchId ? { branchId: query.branchId } : {};
   const organizationObjectId = new Types.ObjectId(organizationId);
 
-  const issuedFilter = {
-    organizationId,
-    ...branchFilter,
+  const today = academyNow().date;
+  const scope = { organizationId, ...branchFilter };
+  const legacyIssuedFilter = {
+    ...scope,
     $or: [
-      {
-        paymentType: "PER_CLASS",
-        classDate: { $gte: range.start, $lt: range.endExclusive }
-      },
-      {
-        // Old manual per-class charges may not have classDate. Their period is the
-        // best historical key available, so keep them visible instead of dropping them.
-        paymentType: "PER_CLASS",
-        classDate: { $exists: false },
-        period: { $in: range.periods }
-      },
+      { paymentType: "PER_CLASS", classDate: { $gte: range.start, $lt: range.endExclusive } },
+      // Old manual per-class charges may not have classDate: their period is the best key.
+      { paymentType: "PER_CLASS", classDate: { $exists: false }, period: { $in: range.periods } },
       { paymentType: "MONTHLY", period: { $in: range.periods } }
     ]
   };
-
-  const cashFilter = {
-    organizationId,
-    ...branchFilter,
-    status: "PAID",
-    paidAt: { $gte: range.start, $lt: range.endExclusive }
+  const chargeIssuedFilter = {
+    ...scope,
+    $or: [
+      { kind: "CLASS_FEE", serviceDate: { $gte: range.from, $lte: range.to } },
+      { kind: "CLASS_FEE", serviceDate: { $exists: false }, period: { $in: range.periods } },
+      { kind: { $in: ["MONTHLY_FEE", "OTHER"] }, period: { $in: range.periods } }
+    ]
   };
 
   const sessionFilter = {
@@ -250,7 +251,7 @@ async function buildOverview(
   const classFilter = { organizationId, ...branchFilter };
   const studentFilter = { organizationId, isActive: true, ...branchFilter };
 
-  const [students, newStudents, classes, issuedPayments, cashPayments, sessions] = await Promise.all([
+  const [students, newStudents, classes, issuedCharges, legacyIssued, cash, sessions] = await Promise.all([
     StudentModel.countDocuments(studentFilter),
     StudentModel.countDocuments({
       ...studentFilter,
@@ -260,12 +261,9 @@ async function buildOverview(
       .select("name branchId capacity billingMode disciplineIds professorIds status")
       .populate("disciplineIds", "name")
       .lean(),
-    PaymentModel.find(issuedFilter)
-      .select("classId paymentType amount status dueDate period classDate")
-      .lean(),
-    PaymentModel.find(cashFilter)
-      .select("classId paymentType amount paymentMethod paidAt")
-      .lean(),
+    ChargeModel.find(chargeIssuedFilter).lean<ChargeView[]>(),
+    unmirroredLegacyPayments(legacyIssuedFilter),
+    cashMovements(organizationId, range, query.branchId),
     ClassSessionModel.find(sessionFilter)
       .select("classId sessionDate status")
       .lean()
@@ -323,25 +321,24 @@ async function buildOverview(
     })
     .sort((a, b) => b.occupancyPercent - a.occupancyPercent || a.name.localeCompare(b.name));
 
-  const financial = summarizeIssuedPayments(issuedPayments as Array<any>);
+  const issued: ChargeView[] = [...issuedCharges, ...legacyIssued.map(legacyPaymentToChargeView)];
+  const typeOf = (charge: ChargeView) => (charge.kind === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS");
+  const financial = summarizeIssuedCharges(issued, today);
   const issuedByType = PAYMENT_TYPES.map((paymentType) => ({
     paymentType,
-    ...summarizeIssuedPayments(
-      (issuedPayments as Array<any>).filter((payment) => payment.paymentType === paymentType)
-    )
+    ...summarizeIssuedCharges(issued.filter((charge) => typeOf(charge) === paymentType), today)
   }));
 
   const cashByType = new Map<string, FinancialBucket>();
   const cashByMethod = new Map<string, FinancialBucket>();
-  for (const payment of cashPayments as Array<any>) {
-    const typeBucket = cashByType.get(payment.paymentType) ?? emptyBucket();
-    addToBucket(typeBucket, payment.amount);
-    cashByType.set(payment.paymentType, typeBucket);
+  for (const movement of cash.entries) {
+    const typeBucket = cashByType.get(movement.paymentType) ?? emptyBucket();
+    addToBucket(typeBucket, movement.amount);
+    cashByType.set(movement.paymentType, typeBucket);
 
-    const method = payment.paymentMethod ?? "OTHER";
-    const methodBucket = cashByMethod.get(method) ?? emptyBucket();
-    addToBucket(methodBucket, payment.amount);
-    cashByMethod.set(method, methodBucket);
+    const methodBucket = cashByMethod.get(movement.method) ?? emptyBucket();
+    addToBucket(methodBucket, movement.amount);
+    cashByMethod.set(movement.method, methodBucket);
   }
 
   const performance = new Map<string, {
@@ -424,14 +421,14 @@ async function buildOverview(
     }
   }
 
-  for (const payment of issuedPayments as Array<any>) {
-    if (payment.status === "CANCELLED" || !payment.classId) continue;
-    addToBucket(classPerformance(String(payment.classId)).invoiced, payment.amount);
+  for (const charge of issued) {
+    if (charge.status === "VOID" || !charge.classId) continue;
+    addToBucket(classPerformance(String(charge.classId)).invoiced, toPesos(chargeState(charge, today).owedCents));
   }
 
-  for (const payment of cashPayments as Array<any>) {
-    if (!payment.classId) continue;
-    addToBucket(classPerformance(String(payment.classId)).collected, payment.amount);
+  for (const movement of cash.entries) {
+    if (!movement.classId) continue;
+    addToBucket(classPerformance(movement.classId).collected, movement.amount);
   }
 
   const classPerformanceRows = [...performance.values()]
@@ -485,6 +482,8 @@ async function buildOverview(
     cash: {
       collectedAmount: cashTotal,
       paidCount: cashCount,
+      refundedAmount: cash.refunded,
+      netAmount: cashTotal - cash.refunded,
       byPaymentType: PAYMENT_TYPES.map((paymentType) => ({
         paymentType,
         ...(cashByType.get(paymentType) ?? emptyBucket())
@@ -497,6 +496,54 @@ async function buildOverview(
     classPerformance: classPerformanceRows,
     occupancy
   };
+}
+
+/**
+ * Money received in the range, by Argentina accounting day: collections of the new model
+ * (split by the charges they paid) plus legacy paid payments not mirrored yet. Refunds are
+ * reported separately, on the day they happened.
+ */
+async function cashMovements(organizationId: string, range: DateRange, branchId?: string) {
+  const scope = { organizationId, ...(branchId ? { branchId } : {}) };
+  const [collections, legacyPaid, refunds] = await Promise.all([
+    CollectionModel.find({ ...scope, accountingDate: { $gte: range.from, $lte: range.to } }).lean<any[]>(),
+    unmirroredLegacyPayments({ ...scope, status: "PAID", paidAt: { $gte: range.start, $lt: range.endExclusive } }),
+    RefundModel.find({ ...scope, accountingDate: { $gte: range.from, $lte: range.to } }).select("amountCents").lean<any[]>()
+  ]);
+  const allocations = collections.length
+    ? await PaymentAllocationModel.find({ collectionId: { $in: collections.map((item) => item._id) } }).lean<any[]>()
+    : [];
+  const charges = allocations.length
+    ? await ChargeModel.find({ _id: { $in: allocations.map((item) => item.chargeId) } }).select("kind classId").lean<any[]>()
+    : [];
+  const chargeById = new Map(charges.map((item) => [String(item._id), item]));
+
+  const entries: Array<{ amount: number; method: string; paymentType: string; classId?: string }> = [];
+  for (const collection of collections) {
+    const own = allocations.filter((item) => item.collectionId.equals(collection._id));
+    let rest = collection.amountCents;
+    for (const allocation of own) {
+      const charge = chargeById.get(String(allocation.chargeId));
+      rest -= allocation.amountCents;
+      entries.push({
+        amount: toPesos(allocation.amountCents),
+        method: collection.method,
+        paymentType: charge?.kind === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS",
+        classId: charge?.classId ? String(charge.classId) : undefined
+      });
+    }
+    // Money received and left as credit (not applied to any charge yet).
+    if (rest > 0) entries.push({ amount: toPesos(rest), method: collection.method, paymentType: "CREDIT" });
+  }
+  for (const payment of legacyPaid) {
+    entries.push({
+      amount: payment.amount,
+      method: payment.paymentMethod ?? "OTHER",
+      paymentType: payment.paymentType,
+      classId: payment.classId ? String(payment.classId) : undefined
+    });
+  }
+  return { entries, refunded: toPesos(refunds.reduce((sum, item) => sum + item.amountCents, 0)) };
 }
 
 export const adminReportsRouter = Router();

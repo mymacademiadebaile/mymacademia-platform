@@ -8,7 +8,8 @@ import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import { ACADEMY_TIME_ZONE, toDateOnly } from "../../common/dates";
-import { uploadBuffer } from "../../services/cloudinary";
+import { privateAssetUrl, uploadPrivateBuffer } from "../../services/cloudinary";
+import { CollectionModel } from "../billing/collection.model";
 import { sendEmail } from "../../services/mailer";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { NotificationLogModel } from "../notifications/notification-log.model";
@@ -29,7 +30,7 @@ import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { OrganizationModel } from "../core/organization.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
-import { sessionEnrollmentIds } from "../sessions/session-booking-service";
+import { loadRoster } from "../sessions/roster-service";
 import {
   dateOnlyInputSchema,
   objectIdSchema,
@@ -141,13 +142,13 @@ async function resolveChargeSession(input: {
     _id: input.sessionId,
     organizationId: input.organizationId,
     classId: input.classId,
-    status: { $ne: "CANCELLED" }
+    status: { $in: ["SCHEDULED", "IN_PROGRESS", "COMPLETED"] }
   });
   if (!session || (input.classDate && session.sessionDate !== input.classDate)) {
     throw new AppError(422, "El turno no coincide con la clase y fecha cobradas", "INVALID_PAYMENT_SESSION");
   }
-  const enrolled = await sessionEnrollmentIds(input.organizationId, session);
-  if (!enrolled.some((item) => item._id.equals(input.enrollmentId))) {
+  const roster = await loadRoster(input.organizationId, session);
+  if (!roster.some((item) => item.enrollmentId === String(input.enrollmentId))) {
     throw new AppError(422, "El alumno no tiene una reserva en ese turno", "STUDENT_NOT_BOOKED");
   }
   return session;
@@ -749,13 +750,24 @@ adminPaymentsRouter.post(
         throw new AppError(404, "Pago no encontrado", "PAYMENT_NOT_FOUND");
       }
 
-      const result = await uploadBuffer(request.file.buffer, {
+      // Private asset with its own id per upload: never a public link, never overwritten.
+      const result = await uploadPrivateBuffer(request.file.buffer, {
         folder: `mym-academia/${organizationId}/payment-proofs`,
-        publicId: `payment-${payment.id}`
+        publicId: `payment-${payment.id}-${Date.now()}`
       });
 
-      payment.proofUrl = result.secure_url;
+      const previous = payment.proof?.publicId;
+      payment.proof = {
+        publicId: result.public_id,
+        resourceType: result.resource_type,
+        format: result.format,
+        uploadedAt: new Date()
+      };
       await payment.save();
+      await CollectionModel.updateOne(
+        { organizationId, legacyPaymentId: payment._id },
+        { $set: { proof: payment.proof } }
+      );
 
       await AuditLogModel.create({
         organizationId,
@@ -763,15 +775,35 @@ adminPaymentsRouter.post(
         action: "PAYMENT_PROOF_UPLOADED",
         entityType: "Payment",
         entityId: payment._id,
-        metadata: { proofUrl: payment.proofUrl }
+        metadata: { publicId: result.public_id, previousPublicId: previous }
       });
 
-      response.json({ proofUrl: payment.proofUrl });
+      response.json({ hasProof: true });
     } catch (error) {
       next(error);
     }
   }
 );
+
+/** Short-lived signed link to the proof of a payment (old public links are returned as they were). */
+adminPaymentsRouter.get("/:id/proof", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const payment = await PaymentModel.findOne({ _id: id, organizationId: request.auth!.organizationId }).lean();
+    if (!payment) throw new AppError(404, "Pago no encontrado", "PAYMENT_NOT_FOUND");
+    if (payment.proof?.publicId) {
+      response.json({ url: privateAssetUrl(payment.proof), expiresInSeconds: 300 });
+      return;
+    }
+    if (payment.proofUrl) {
+      response.json({ url: payment.proofUrl, legacy: true });
+      return;
+    }
+    throw new AppError(404, "El pago no tiene comprobante", "PROOF_NOT_FOUND");
+  } catch (error) {
+    next(error);
+  }
+});
 
 adminPaymentsRouter.post("/:id/remind", async (request, response, next) => {
   try {

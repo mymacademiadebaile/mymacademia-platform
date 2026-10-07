@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { academyNow, addDays, utcDayRange } from "../../common/dates";
+import { academyNow, addDays } from "../../common/dates";
 import {
   lastOccurrence,
   minutesBetween,
@@ -8,14 +8,14 @@ import {
 } from "../../common/schedule";
 import { BranchModel } from "../core/branch.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
-import { PaymentModel } from "../payments/payment.model";
+import { loadCoverageViews, pickCoverage } from "../billing/coverage-service";
+import { billingModeOn } from "../enrollments/enrollment-validity";
+import { rosterBatch } from "../sessions/roster-service";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import {
-  effectivePaymentStatus,
   expectedAmount,
   resolvedBillingPreference,
-  resolveSessionPaymentCoverage,
   sessionPhase,
   type BillingType
 } from "../sessions/session-service";
@@ -25,13 +25,12 @@ import type { ProfessorContext } from "./professor-scope";
 /** Payment states the professor sees. NONE (no Payment row yet) is shown as pending. */
 export type ProfessorPaymentStatus = "PAID" | "PENDING" | "OVERDUE" | "FREE";
 
-export function professorPaymentStatus(
-  billingType: BillingType,
-  payment?: { status: string; dueDate: Date } | null
-): ProfessorPaymentStatus {
-  if (billingType === "FREE") return "FREE";
-  if (!payment) return "PENDING";
-  const status = effectivePaymentStatus(payment);
+/**
+ * What the professor sees of a coverage status. Professors never see amounts owed in total,
+ * only whether the student is up to date for that class.
+ */
+export function professorPaymentStatus(billingType: BillingType, status?: string | null): ProfessorPaymentStatus {
+  if (billingType === "FREE" || status === "FREE") return "FREE";
   if (status === "PAID") return "PAID";
   if (status === "OVERDUE") return "OVERDUE";
   return "PENDING";
@@ -51,6 +50,7 @@ export async function branchNames(organizationId: string, classes: any[]) {
 
 export async function enrollmentCounts(organizationId: string, classIds: Types.ObjectId[]) {
   if (!classIds.length) return new Map<string, number>();
+  // Students who left the academy keep no seat even before their enrollment is closed.
   const rows = await EnrollmentModel.aggregate<{ _id: Types.ObjectId; count: number }>([
     {
       $match: {
@@ -59,6 +59,8 @@ export async function enrollmentCounts(organizationId: string, classIds: Types.O
         status: "ACTIVE"
       }
     },
+    { $lookup: { from: "students", localField: "studentId", foreignField: "_id", as: "student" } },
+    { $match: { "student.isActive": { $ne: false } } },
     { $group: { _id: "$classId", count: { $sum: 1 } } }
   ]);
   return new Map(rows.map((item) => [String(item._id), item.count]));
@@ -115,8 +117,8 @@ const emptySummary = (): SessionSummary => ({
 });
 
 /**
- * Batch summary (enrollments only) for many sessions with four queries in total,
- * regardless of how many sessions or students are involved.
+ * Batch summary for many sessions: the same roster and coverage rules as the session screen
+ * (rosterBatch + pickCoverage), with a fixed number of queries.
  */
 export async function summarizeSessions(
   organizationId: string,
@@ -126,99 +128,49 @@ export async function summarizeSessions(
   const summaries = new Map<string, SessionSummary>();
   if (!sessions.length) return summaries;
 
-  const classIds = [...new Set(sessions.map((item) => String(item.classId)))].map(
-    (id) => new Types.ObjectId(id)
-  );
-  const dates = sessions.map((item) => item.sessionDate as string).sort();
-  const rangeStart = utcDayRange(dates[0]).start;
-  const rangeEnd = utcDayRange(dates[dates.length - 1]).end;
-  const periods = [...new Set(dates.map((date) => date.slice(0, 7)))];
-
-  const [enrollments, attendance, payments] = await Promise.all([
-    EnrollmentModel.find({ organizationId, classId: { $in: classIds }, status: "ACTIVE" })
-      .select("classId studentId billingPreference")
-      .lean<any[]>(),
-    ClassAttendanceModel.find({
-      organizationId,
-      sessionId: { $in: sessions.map((item) => item._id) }
-    })
-      .select("sessionId studentId status")
-      .lean<any[]>(),
-    PaymentModel.find({
-      organizationId,
-      classId: { $in: classIds },
-      status: { $ne: "CANCELLED" },
-      $or: [
-        { paymentType: "PER_CLASS", classDate: { $gte: rangeStart, $lt: rangeEnd } },
-        { paymentType: "MONTHLY", period: { $in: periods } }
-      ]
-    })
-      .sort({ createdAt: -1 })
-      .lean<any[]>()
-  ]);
-
-  const activeStudents = enrollments.length
-    ? new Set(
-        (
-          await StudentModel.find({
-            organizationId,
-            _id: { $in: enrollments.map((item) => item.studentId) },
-            isActive: true
-          })
-            .select("_id")
-            .lean<any[]>()
-        ).map((item) => String(item._id))
-      )
-    : new Set<string>();
-
-  const enrollmentsByClass = new Map<string, any[]>();
-  for (const enrollment of enrollments) {
-    if (!activeStudents.has(String(enrollment.studentId))) continue;
-    const key = String(enrollment.classId);
-    enrollmentsByClass.set(key, [...(enrollmentsByClass.get(key) ?? []), enrollment]);
-  }
-
-  const attendanceByKey = new Map(
-    attendance.map((item) => [`${item.sessionId}:${item.studentId}`, item.status as string])
-  );
-  const paymentByKey = new Map<string, any>();
-  for (const payment of payments) {
-    const when =
-      payment.paymentType === "PER_CLASS" && payment.classDate
-        ? payment.classDate.toISOString().slice(0, 10)
-        : payment.period;
-    const key = `${payment.studentId}:${payment.classId}:${payment.paymentType}:${when}`;
-    if (!paymentByKey.has(key)) paymentByKey.set(key, payment);
-  }
+  const rosters = await rosterBatch(organizationId, sessions);
+  const entries = [...rosters.values()].flat();
+  const enrollmentIds = [...new Set(entries.map((item) => item.enrollmentId).filter(Boolean))] as string[];
+  const enrollments = enrollmentIds.length
+    ? await EnrollmentModel.find({ organizationId, _id: { $in: enrollmentIds } }).lean<any[]>()
+    : [];
+  const enrollmentById = new Map(enrollments.map((item) => [String(item._id), item]));
+  const sessionIds = sessions.flatMap((item) => [item._id, item.rescheduledFromSessionId].filter(Boolean));
+  const loaded = await loadCoverageViews(organizationId, {
+    classIds: [...new Set(sessions.map((item) => String(item.classId)))].map((id) => new Types.ObjectId(id)),
+    studentIds: [...new Set(entries.map((item) => item.studentId))].map((id) => new Types.ObjectId(id)),
+    periods: [...new Set(sessions.map((item) => item.sessionDate.slice(0, 7)))],
+    sessionIds,
+    days: sessions.map((item) => item.sessionDate)
+  });
 
   for (const session of sessions) {
-    const danceClass = classesById.get(String(session.classId));
+    const danceClass = classesById.get(String(session.classId)) ?? {};
     const summary = emptySummary();
-    for (const enrollment of enrollmentsByClass.get(String(session.classId)) ?? []) {
+    for (const entry of rosters.get(String(session._id)) ?? []) {
       summary.enrolled += 1;
-      const billingType = resolvedBillingPreference(
-        danceClass ?? {},
-        enrollment.billingPreference
-      );
-      const coverage = resolveSessionPaymentCoverage(
+      const enrollment = entry.enrollmentId ? enrollmentById.get(entry.enrollmentId) : undefined;
+      const billingType: BillingType =
+        entry.participantType === "TRIAL"
+          ? "FREE"
+          : resolvedBillingPreference(danceClass, enrollment ? billingModeOn(enrollment, session.sessionDate) : "PER_CLASS");
+      const coverage = pickCoverage(loaded, {
+        studentId: entry.studentId,
+        classId: String(session.classId),
         billingType,
-        (["PER_CLASS", "MONTHLY"] as const).flatMap((type) => {
-          const when = type === "MONTHLY" ? session.sessionDate.slice(0, 7) : session.sessionDate;
-          const found = paymentByKey.get(
-            `${enrollment.studentId}:${session.classId}:${type}:${when}`
-          );
-          return found ? [found] : [];
-        })
-      );
-      const status = professorPaymentStatus(billingType, coverage.payment);
+        period: session.sessionDate.slice(0, 7),
+        sessionIds: [session._id, session.rescheduledFromSessionId].filter(Boolean).map(String),
+        days: [session.sessionDate],
+        listPrice: expectedAmount(danceClass, billingType)
+      });
+      const status = professorPaymentStatus(billingType, coverage.status);
       if (status === "PAID") summary.paid += 1;
       else if (status === "OVERDUE") summary.overdue += 1;
       else if (status === "FREE") summary.free += 1;
       else summary.pending += 1;
 
-      const attended = attendanceByKey.get(`${session._id}:${enrollment.studentId}`);
-      if (attended === "PRESENT") summary.present += 1;
-      else if (attended === "ABSENT") summary.absent += 1;
+      if (entry.attendanceStatus === "PRESENT") summary.present += 1;
+      else if (entry.attendanceStatus === "ABSENT") summary.absent += 1;
       else summary.expected += 1;
     }
     summaries.set(String(session._id), summary);
@@ -337,38 +289,28 @@ export async function buildStudentOverview(
     .sort();
 
   const historyFrom = addDays(now.date, -120);
-  const [payments, sessions] = await Promise.all([
-    referenceDates.length
-      ? PaymentModel.find({
-          organizationId,
-          classId: { $in: classIds },
-          studentId: { $in: studentIds },
-          status: { $ne: "CANCELLED" },
-          $or: [
-            {
-              paymentType: "PER_CLASS",
-              classDate: {
-                $gte: utcDayRange(referenceDates[0]).start,
-                $lt: utcDayRange(referenceDates[referenceDates.length - 1]).end
-              }
-            },
-            {
-              paymentType: "MONTHLY",
-              period: { $in: [...new Set(referenceDates.map((date) => date.slice(0, 7)))] }
-            }
-          ]
-        })
-          .sort({ createdAt: -1 })
-          .lean<any[]>()
-      : Promise.resolve([] as any[]),
+  const referencePeriods = [...new Set(referenceDates.map((date) => date.slice(0, 7)))];
+  const [sessions, referenceSessions] = await Promise.all([
     ClassSessionModel.find({
       organizationId,
       classId: { $in: classIds },
       sessionDate: { $gte: historyFrom, $lte: now.date }
     })
       .select("classId sessionDate")
-      .lean<any[]>()
+      .lean<any[]>(),
+    referenceDates.length
+      ? ClassSessionModel.find({ organizationId, classId: { $in: classIds }, sessionDate: { $in: referenceDates } })
+          .select("_id classId sessionDate")
+          .lean<any[]>()
+      : Promise.resolve([] as any[])
   ]);
+  const loaded = await loadCoverageViews(organizationId, {
+    classIds,
+    studentIds: studentIds.map((id) => new Types.ObjectId(id)),
+    periods: referencePeriods,
+    sessionIds: referenceSessions.map((item) => item._id),
+    days: referenceDates
+  });
 
   const attendance = sessions.length
     ? await ClassAttendanceModel.find({
@@ -397,31 +339,34 @@ export async function buildStudentOverview(
     }
   }
 
-  const paymentByKey = new Map<string, any>();
-  for (const payment of payments) {
-    const when =
-      payment.paymentType === "PER_CLASS" && payment.classDate
-        ? payment.classDate.toISOString().slice(0, 10)
-        : payment.period;
-    const key = `${payment.studentId}:${payment.classId}:${payment.paymentType}:${when}`;
-    if (!paymentByKey.has(key)) paymentByKey.set(key, payment);
-  }
-
   const rows = new Map<string, StudentOverviewRow>();
   for (const enrollment of enrollments) {
     const student = studentMap.get(String(enrollment.studentId));
     const danceClass = classesById.get(String(enrollment.classId));
     if (!student || !danceClass) continue;
 
-    const billingType = resolvedBillingPreference(danceClass, enrollment.billingPreference);
     const reference = referenceByClass.get(String(danceClass._id));
+    const billingType = resolvedBillingPreference(
+      danceClass,
+      reference ? billingModeOn(enrollment, reference.date) : enrollment.billingPreference
+    );
     const when = reference
       ? billingType === "MONTHLY"
         ? reference.date.slice(0, 7)
         : reference.date
       : undefined;
-    const payment = when
-      ? paymentByKey.get(`${student._id}:${danceClass._id}:${billingType}:${when}`)
+    const coverage = reference
+      ? pickCoverage(loaded, {
+          studentId: String(student._id),
+          classId: String(danceClass._id),
+          billingType,
+          period: reference.date.slice(0, 7),
+          sessionIds: referenceSessions
+            .filter((item) => String(item.classId) === String(danceClass._id) && item.sessionDate === reference.date)
+            .map((item) => String(item._id)),
+          days: [reference.date],
+          listPrice: expectedAmount(danceClass, billingType)
+        })
       : undefined;
 
     const row: StudentEnrollmentRow = {
@@ -435,8 +380,8 @@ export async function buildStudentOverview(
       paymentStatus:
         billingType !== "FREE" && !reference
           ? "PENDING"
-          : professorPaymentStatus(billingType, payment),
-      amount: payment?.amount ?? expectedAmount(danceClass, billingType),
+          : professorPaymentStatus(billingType, coverage?.status),
+      amount: coverage?.amount ?? expectedAmount(danceClass, billingType),
       reference:
         billingType === "FREE" || !when
           ? null

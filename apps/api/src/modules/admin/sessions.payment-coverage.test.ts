@@ -139,7 +139,8 @@ describe("GET /admin/sessions/:id: historical payment coverage", () => {
     expect((await changePreference(ctx.enrollment._id, "MONTHLY")).status).toBe(200);
     const participant = await participantOf(ctx);
 
-    expect(participant.billingType).toBe("MONTHLY");
+    // The change applies from today on: a past session keeps the mode it had on its day.
+    expect(participant.billingType).toBe("PER_CLASS");
     expect(participant.payment).toMatchObject({
       status: "PAID",
       paymentType: "PER_CLASS",
@@ -155,7 +156,8 @@ describe("GET /admin/sessions/:id: historical payment coverage", () => {
     expect((await changePreference(ctx.enrollment._id, "PER_CLASS")).status).toBe(200);
     const participant = await participantOf(ctx);
 
-    expect(participant.billingType).toBe("PER_CLASS");
+    // The change applies from today on: a past session keeps the mode it had on its day.
+    expect(participant.billingType).toBe("MONTHLY");
     expect(participant.payment).toMatchObject({
       status: "PAID",
       paymentType: "MONTHLY",

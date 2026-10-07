@@ -226,14 +226,21 @@ export async function assertSeatAvailable(
 
 export { ensureLocks, touchLocks };
 
+export interface BatchRosterEntry {
+  studentId: string;
+  enrollmentId?: string;
+  participantType: ParticipantType;
+  attendanceStatus: AttendanceStatus;
+}
+
 /**
- * Participant counts of many sessions with four queries in total (calendar and list views).
- * Same rules as loadRoster: frozen sessions count their rows; the others count enrollments
+ * Rosters of many sessions with five queries in total (calendar, dashboards, summaries).
+ * Same rules as loadRoster: frozen sessions answer with their rows; the others with enrollments
  * valid that day for the session's series, booking overrides, trials and explicit additions.
  */
-export async function rosterCounts(organizationId: string, sessions: RosterSession[]) {
-  const counts = new Map<string, number>();
-  if (!sessions.length) return counts;
+export async function rosterBatch(organizationId: string, sessions: RosterSession[]) {
+  const rosters = new Map<string, BatchRosterEntry[]>();
+  if (!sessions.length) return rosters;
   const today = academyNow().date;
   const classIds = [...new Set(sessions.map((item) => String(item.classId)))].map((id) => new Types.ObjectId(id));
   const sessionIds = sessions.map((item) => item._id);
@@ -247,7 +254,7 @@ export async function rosterCounts(organizationId: string, sessions: RosterSessi
       .lean<any[]>(),
     SessionBookingModel.find({ organizationId, sessionId: { $in: sessionIds } }).select("sessionId enrollmentId status").lean<any[]>(),
     ClassAttendanceModel.find({ organizationId, sessionId: { $in: sessionIds }, removedAt: { $exists: false } })
-      .select("sessionId studentId")
+      .select("sessionId studentId enrollmentId participantType status")
       .lean<any[]>(),
     TrialBookingModel.find({
       organizationId,
@@ -283,37 +290,59 @@ export async function rosterCounts(organizationId: string, sessions: RosterSessi
     map.set(String(item.enrollmentId), item.status);
     overridesBySession.set(key, map);
   }
-  const rowsBySession = new Map<string, Set<string>>();
+  const rowsBySession = new Map<string, any[]>();
   for (const row of rows) {
     const key = String(row.sessionId);
-    rowsBySession.set(key, (rowsBySession.get(key) ?? new Set()).add(String(row.studentId)));
+    rowsBySession.set(key, [...(rowsBySession.get(key) ?? []), row]);
   }
 
   for (const session of sessions) {
-    const persisted = rowsBySession.get(String(session._id)) ?? new Set<string>();
-    if (session.rosterFrozenAt) {
-      counts.set(String(session._id), persisted.size);
-      continue;
+    const entries = new Map<string, BatchRosterEntry>();
+    for (const row of rowsBySession.get(String(session._id)) ?? []) {
+      entries.set(String(row.studentId), {
+        studentId: String(row.studentId),
+        enrollmentId: row.enrollmentId ? String(row.enrollmentId) : undefined,
+        participantType: row.participantType ?? "ENROLLMENT",
+        attendanceStatus: row.status
+      });
     }
-    const students = new Set(persisted);
-    const sessionOverrides = overridesBySession.get(String(session._id)) ?? new Map<string, string>();
-    const legacySlotKey = sessionLegacyKey(session);
-    for (const enrollment of enrollmentsByClass.get(String(session.classId)) ?? []) {
-      const override = sessionOverrides.get(String(enrollment._id));
-      if (override === "CANCELLED") continue;
-      const regular =
-        isEnrollmentValidOn(enrollment, session.sessionDate) &&
-        enrollmentMatchesSeries(enrollment, { seriesId: session.seriesId, legacySlotKey });
-      if (override !== "BOOKED" && !regular) continue;
-      if (session.sessionDate >= today && inactive.has(String(enrollment.studentId))) continue;
-      students.add(String(enrollment.studentId));
+    if (!session.rosterFrozenAt) {
+      const sessionOverrides = overridesBySession.get(String(session._id)) ?? new Map<string, string>();
+      const legacySlotKey = sessionLegacyKey(session);
+      for (const enrollment of enrollmentsByClass.get(String(session.classId)) ?? []) {
+        const override = sessionOverrides.get(String(enrollment._id));
+        if (override === "CANCELLED") continue;
+        const regular =
+          isEnrollmentValidOn(enrollment, session.sessionDate) &&
+          enrollmentMatchesSeries(enrollment, { seriesId: session.seriesId, legacySlotKey });
+        if (override !== "BOOKED" && !regular) continue;
+        if (session.sessionDate >= today && inactive.has(String(enrollment.studentId))) continue;
+        const studentId = String(enrollment.studentId);
+        const existing = entries.get(studentId);
+        entries.set(studentId, {
+          studentId,
+          enrollmentId: existing?.enrollmentId ?? String(enrollment._id),
+          participantType: existing?.participantType ?? "ENROLLMENT",
+          attendanceStatus: existing?.attendanceStatus ?? "EXPECTED"
+        });
+      }
+      const { start, end } = academyDayBounds(session.sessionDate);
+      for (const trial of trials) {
+        if (String(trial.classId) !== String(session.classId)) continue;
+        if (trial.scheduledFor < start || trial.scheduledFor >= end) continue;
+        const studentId = String(trial.studentId);
+        if (!entries.has(studentId)) {
+          entries.set(studentId, { studentId, participantType: "TRIAL", attendanceStatus: "EXPECTED" });
+        }
+      }
     }
-    const { start, end } = academyDayBounds(session.sessionDate);
-    for (const trial of trials) {
-      if (String(trial.classId) !== String(session.classId)) continue;
-      if (trial.scheduledFor >= start && trial.scheduledFor < end) students.add(String(trial.studentId));
-    }
-    counts.set(String(session._id), students.size);
+    rosters.set(String(session._id), [...entries.values()]);
   }
-  return counts;
+  return rosters;
+}
+
+/** Participant counts of many sessions (calendar and list views). */
+export async function rosterCounts(organizationId: string, sessions: RosterSession[]) {
+  const rosters = await rosterBatch(organizationId, sessions);
+  return new Map([...rosters.entries()].map(([id, entries]) => [id, entries.length]));
 }

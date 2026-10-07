@@ -30,6 +30,7 @@ export interface LegacyPaymentLike {
   paymentMethod?: "CASH" | "TRANSFER" | "CARD" | "OTHER";
   receiptNumber?: string;
   proofUrl?: string;
+  proof?: { publicId: string; resourceType: string; format?: string; uploadedAt: Date };
   notes?: string;
   paidByUserId?: Types.ObjectId;
   cancelledAt?: Date;
@@ -120,6 +121,7 @@ export function legacyPaymentToCollectionFields(payment: LegacyPaymentLike) {
     sessionId: payment.sessionId,
     legacyPaymentId: payment._id,
     legacyProofUrl: payment.proofUrl,
+    ...(payment.proof?.publicId ? { proof: payment.proof } : {}),
     createdByUserId: payment.paidByUserId
   };
 }

@@ -6,9 +6,12 @@ import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { BranchModel } from "../core/branch.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
+import { closeEnrollment } from "../enrollments/enrollment-service";
+import { academyNow } from "../../common/dates";
 import { PaymentModel } from "../payments/payment.model";
 import { effectivePaymentStatus } from "../payments/payment-status";
-import { studentIdsWithOverdueDebt } from "../billing/balance-service";
+import { studentBalances, studentIdsWithOverdueDebt } from "../billing/balance-service";
+import { toPesos } from "../../common/money";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 
@@ -129,7 +132,7 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
       throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
     }
 
-    const [enrollments, payments] = await Promise.all([
+    const [enrollments, payments, balances] = await Promise.all([
       EnrollmentModel.find({
         organizationId,
         studentId: student._id
@@ -148,8 +151,10 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
       PaymentModel.find({
         organizationId,
         studentId: student._id
-      }).sort({ dueDate: -1 })
+      }).sort({ dueDate: -1 }),
+      studentBalances(organizationId, [student._id])
     ]);
+    const balance = balances.get(String(student._id))!;
 
     const financial = payments.reduce(
       (summary, payment) => {
@@ -181,7 +186,14 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
       student,
       enrollments,
       payments,
-      financial
+      // Legacy totals of the payments list plus the central balance (same rule as every screen).
+      financial: {
+        ...financial,
+        pendingAmount: toPesos(balance.pendingCents - balance.overdueCents),
+        overdueAmount: toPesos(balance.overdueCents),
+        creditAmount: toPesos(balance.creditCents),
+        partialCount: balance.partialCount
+      }
     });
   } catch (error) {
     next(error);
@@ -306,7 +318,20 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
     if (input.notes !== undefined) student.notes = input.notes.trim() || undefined;
     if (input.isActive !== undefined) student.isActive = input.isActive;
 
+    const deactivated = before.isActive && input.isActive === false;
     await student.save();
+
+    // A student who leaves the academy stops taking seats. Enrollments close today; history,
+    // attendance and pending debts stay (and can still be collected).
+    let enrollmentsClosed = 0;
+    if (deactivated) {
+      const open = await EnrollmentModel.find({ organizationId, studentId: student._id, status: "ACTIVE" });
+      for (const enrollment of open) {
+        closeEnrollment(enrollment, academyNow().date, "Alumno dado de baja");
+        await enrollment.save();
+      }
+      enrollmentsClosed = open.length;
+    }
 
     await AuditLogModel.create({
       organizationId,
@@ -327,7 +352,8 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
           guardianPhone: student.guardianPhone ?? "",
           notes: student.notes ?? "",
           isActive: student.isActive
-        }
+        },
+        ...(deactivated ? { enrollmentsClosed } : {})
       }
     });
 

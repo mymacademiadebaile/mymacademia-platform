@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { NotificationLogModel } from "../notifications/notification-log.model";
-import { PaymentModel } from "../payments/payment.model";
-import { overduePaymentFilter } from "../payments/payment-status";
+import { toPesos } from "../../common/money";
+import { overdueSummary } from "../billing/balance-service";
 
 const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20)
@@ -16,27 +16,23 @@ adminNotificationsRouter.get("/", async (request, response, next) => {
     const organizationId = request.auth!.organizationId;
     const now = new Date();
 
-    const [notifications, overduePayments, failedCommunications] = await Promise.all([
+    const [notifications, overdue, failedCommunications] = await Promise.all([
       NotificationLogModel.find({ organizationId })
         .populate("studentId", "firstName lastName")
         .sort({ createdAt: -1 })
         .limit(limit),
-      PaymentModel.find({ organizationId, ...overduePaymentFilter(now) }).select("amount"),
+      overdueSummary(organizationId, now),
       NotificationLogModel.countDocuments({
         organizationId,
         status: "FAILED"
       })
     ]);
 
-    const overdueAmount = overduePayments.reduce(
-      (total, payment) => total + payment.amount,
-      0
-    );
 
     response.json({
       attention: {
-        overdueCount: overduePayments.length,
-        overdueAmount,
+        overdueCount: overdue.overdueCount,
+        overdueAmount: toPesos(overdue.overdueCents),
         failedCommunications
       },
       items: notifications.map((notification) => {

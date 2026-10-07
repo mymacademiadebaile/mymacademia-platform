@@ -15,7 +15,17 @@ import { PaymentModel } from "../payments/payment.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { TrialBookingModel } from "../trials/trial-booking.model";
-import { objectIdSchema } from "./admin.schemas";
+import { academyNow } from "../../common/dates";
+import { isArchivedStatus } from "../classes/class.model";
+import {
+  applyWeeklySchedules,
+  archiveGroup,
+  createScheduleSeries,
+  pauseGroup,
+  resumeGroup
+} from "../scheduling/schedule-commands";
+import { ensureScheduleRules, loadRules, ruleCoversDate, slotKey } from "../scheduling/schedule-service";
+import { calendarDateSchema, objectIdSchema } from "./admin.schemas";
 
 const scheduleSchema = z.object({
   day: z.enum(WEEK_DAYS),
@@ -38,8 +48,17 @@ const classBodySchema = z.object({
   pricePerClass: z.number().min(0).max(100000000).default(0),
   monthlyPrice: z.number().min(0).max(100000000).default(0),
   freeTrialEnabled: z.boolean().default(false),
-  schedules: z.array(scheduleSchema).min(1).max(14)
+  schedules: z.array(scheduleSchema).min(1).max(14),
+  /** First day of the recurring schedule (default today). */
+  startDate: calendarDateSchema.optional(),
+  /** Last day of the recurring schedule; absent means open-ended. */
+  endDate: calendarDateSchema.optional(),
+  defaultSpaceId: objectIdSchema.optional(),
+  publishOnWeb: z.boolean().optional()
 }).superRefine((value, context) => {
+  if (value.startDate && value.endDate && value.endDate < value.startDate) {
+    context.addIssue({ code: "custom", path: ["endDate"], message: "La fecha de fin debe ser posterior al inicio" });
+  }
   const keys = new Set<string>();
 
   value.schedules.forEach((schedule, index) => {
@@ -68,8 +87,9 @@ const updateDanceClassSchema = z.object({
   monthlyPrice: z.number().min(0).max(100000000).optional(),
   freeTrialEnabled: z.boolean().optional(),
   schedules: z.array(scheduleSchema).min(1).max(14).optional(),
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
-  publishOnWeb: z.boolean().optional()
+  status: z.enum(["ACTIVE", "INACTIVE", "ARCHIVED"]).optional(),
+  publishOnWeb: z.boolean().optional(),
+  defaultSpaceId: objectIdSchema.nullable().optional()
 }).superRefine((value, context) => {
   if (!value.schedules) return;
 
@@ -92,7 +112,7 @@ const listQuerySchema = z.object({
   q: z.string().trim().max(120).optional(),
   branchId: objectIdSchema.optional(),
   professorId: objectIdSchema.optional(),
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional()
+  status: z.enum(["ACTIVE", "INACTIVE", "PAUSED", "ARCHIVED"]).optional()
 });
 
 type ScheduleInput = z.infer<typeof scheduleSchema>;
@@ -220,6 +240,40 @@ async function ensureNoProfessorConflicts(
   }
 }
 
+const actorOf = (request: Express.Request) => ({
+  organizationId: request.auth!.organizationId,
+  userId: request.auth!.userId
+});
+
+/** Active enrollments per current recurring slot (capacity is evaluated per slot). */
+async function seriesOccupancy(organizationId: string, danceClass: any) {
+  await ensureScheduleRules(organizationId, [danceClass]);
+  const today = academyNow().date;
+  const [rules, enrollments] = await Promise.all([
+    loadRules(organizationId, { classIds: [danceClass._id], from: today }),
+    EnrollmentModel.find({ organizationId, classId: danceClass._id, status: "ACTIVE" })
+      .select("seriesIds scheduleKeys")
+      .lean<any[]>()
+  ]);
+  const current = new Map<string, any>();
+  for (const rule of rules) {
+    if (ruleCoversDate(rule, today) || !current.has(String(rule.seriesId))) current.set(String(rule.seriesId), rule);
+  }
+  return [...current.values()].map((rule) => ({
+    seriesId: String(rule.seriesId),
+    day: rule.day,
+    startTime: rule.startTime,
+    endTime: rule.endTime,
+    validFrom: rule.validFrom,
+    validTo: rule.validTo,
+    occupied: enrollments.filter((enrollment) =>
+      enrollment.seriesIds?.length
+        ? enrollment.seriesIds.some((id: unknown) => String(id) === String(rule.seriesId))
+        : !enrollment.scheduleKeys?.length || enrollment.scheduleKeys.includes(slotKey(rule))
+    ).length
+  }));
+}
+
 export const adminClassesRouter = Router();
 
 function populateClassQuery<T extends { populate: (...args: any[]) => T }>(query: T): T {
@@ -237,7 +291,9 @@ adminClassesRouter.get("/", async (request, response, next) => {
     if (query.q) filter.name = containsText(query.q);
     if (query.branchId) filter.branchId = query.branchId;
     if (query.professorId) filter.professorIds = query.professorId;
-    if (query.status) filter.status = query.status;
+    if (query.status) {
+      filter.status = query.status === "INACTIVE" || query.status === "ARCHIVED" ? { $in: ["INACTIVE", "ARCHIVED"] } : query.status;
+    }
 
     const items = await DanceClassModel.find(filter)
       .populate("professorIds", "displayName avatarUrl isActive disciplineIds")
@@ -294,7 +350,8 @@ adminClassesRouter.get("/:id", async (request, response, next) => {
 
     response.json({
       ...item.toObject(),
-      activeEnrollmentCount
+      activeEnrollmentCount,
+      scheduleOccupancy: await seriesOccupancy(organizationId, item.toObject())
     });
   } catch (error) {
     next(error);
@@ -313,11 +370,29 @@ adminClassesRouter.post("/", async (request, response, next) => {
       input.schedules
     );
 
+    const { startDate, endDate, defaultSpaceId, ...fields } = input;
     const item = await DanceClassModel.create({
       organizationId,
-      ...input,
+      ...fields,
+      defaultSpaceId,
       status: "ACTIVE"
     });
+
+    // Recurring schedule with validity. A plain creation starts today and has no end.
+    const today = academyNow().date;
+    if (startDate || endDate || defaultSpaceId) {
+      for (const slot of input.schedules) {
+        await createScheduleSeries(
+          actorOf(request),
+          item.id,
+          { ...slot, spaceId: defaultSpaceId },
+          startDate && startDate > today ? startDate : today,
+          endDate
+        );
+      }
+    } else {
+      await ensureScheduleRules(organizationId, [item.toObject() as any]);
+    }
 
     await AuditLogModel.create({
       organizationId,
@@ -408,16 +483,13 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
     if (input.segmentIds !== undefined) item.segmentIds = input.segmentIds.map((value) => new Types.ObjectId(value));
     if (input.levelIds !== undefined) item.levelIds = input.levelIds.map((value) => new Types.ObjectId(value));
     if (input.capacity !== undefined) {
-      const activeEnrollmentCount = await EnrollmentModel.countDocuments({
-        organizationId,
-        classId: item._id,
-        status: "ACTIVE"
-      });
+      // Capacity is per session: compare with the busiest recurring slot, not the group total.
+      const busiest = Math.max(0, ...(await seriesOccupancy(organizationId, item.toObject())).map((slot) => slot.occupied));
 
-      if (input.capacity < activeEnrollmentCount) {
+      if (input.capacity < busiest) {
         throw new AppError(
           409,
-          `El cupo no puede ser menor a los ${activeEnrollmentCount} alumnos inscriptos`,
+          `El cupo no puede ser menor a los ${busiest} alumnos inscriptos en un mismo horario`,
           "CAPACITY_BELOW_ENROLLMENTS"
         );
       }
@@ -430,11 +502,33 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
     if (input.pricePerClass !== undefined) item.pricePerClass = input.pricePerClass;
     if (input.monthlyPrice !== undefined) item.monthlyPrice = input.monthlyPrice;
     if (input.freeTrialEnabled !== undefined) item.freeTrialEnabled = input.freeTrialEnabled;
-    if (input.schedules !== undefined) item.schedules = input.schedules;
-    if (input.status !== undefined) item.status = input.status;
+    const archiving = (input.status === "INACTIVE" || input.status === "ARCHIVED") && !isArchivedStatus(item.status);
+    const unarchiving = input.status === "ACTIVE" && isArchivedStatus(item.status);
+    if (unarchiving) {
+      item.status = "ACTIVE";
+      item.archivedAt = undefined;
+    }
     if (input.publishOnWeb !== undefined) item.publishOnWeb = input.publishOnWeb;
+    if (input.defaultSpaceId !== undefined) {
+      item.defaultSpaceId = input.defaultSpaceId ? new Types.ObjectId(input.defaultSpaceId) : undefined;
+    }
 
     await item.save();
+
+    // Recurring slots change from today on through versioned rules: past sessions keep their
+    // schedule, enrollments follow their series and no ghost sessions are created.
+    if (input.schedules !== undefined && !archiving) {
+      await applyWeeklySchedules(actorOf(request), item.id, input.schedules);
+    }
+    let archive: { enrollmentsClosed: number } | undefined;
+    if (archiving) {
+      archive = await archiveGroup(actorOf(request), item.id, academyNow().date, "Clase archivada");
+    }
+    const refreshed = await DanceClassModel.findById(item._id);
+    if (refreshed) {
+      item.schedules = refreshed.schedules;
+      item.status = refreshed.status;
+    }
 
     // The class is saved first; there are no transactions here, so a failure in the next write
     // would leave ACTIVE enrollments with the old preferences until the mode is changed again.
@@ -472,7 +566,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
           status: item.status,
           publishOnWeb: item.publishOnWeb ?? true
         },
-        ...(enrollmentsReconciled !== undefined ? { enrollmentsReconciled } : {})
+        ...(enrollmentsReconciled !== undefined ? { enrollmentsReconciled } : {}),
+        ...(archive ? { enrollmentsClosed: archive.enrollmentsClosed } : {})
       }
     });
 
@@ -537,6 +632,46 @@ adminClassesRouter.delete("/:id", async (request, response, next) => {
     });
 
     response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+const pauseSchema = z.object({
+  from: calendarDateSchema,
+  to: calendarDateSchema.optional(),
+  reason: z.string().trim().max(300).optional()
+});
+
+/** Pause: no regular sessions while it lasts; history and enrollments stay. */
+adminClassesRouter.post("/:id/pause", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const input = pauseSchema.parse(request.body);
+    response.json(await pauseGroup(actorOf(request), id, input));
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminClassesRouter.post("/:id/resume", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const { date } = z.object({ date: calendarDateSchema.optional() }).parse(request.body ?? {});
+    response.json(await resumeGroup(actorOf(request), id, date ?? academyNow().date));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Archive: keeps history; ends schedules and open enrollments from the given day. */
+adminClassesRouter.post("/:id/archive", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const input = z
+      .object({ date: calendarDateSchema.optional(), reason: z.string().trim().max(300).optional() })
+      .parse(request.body ?? {});
+    response.json(await archiveGroup(actorOf(request), id, input.date ?? academyNow().date, input.reason || "Clase archivada"));
   } catch (error) {
     next(error);
   }

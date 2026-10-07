@@ -31,7 +31,10 @@ export interface Payment {
   paidAt?: Date;
   paymentMethod?: PaymentMethod;
   receiptNumber?: string;
+  /** Public link of proofs uploaded before proofs became private. Kept as history only. */
   proofUrl?: string;
+  /** Private Cloudinary asset of the proof; opened through a short-lived signed link. */
+  proof?: { publicId: string; resourceType: string; format?: string; uploadedAt: Date };
   notes?: string;
   paidByUserId?: Types.ObjectId;
   cancelledAt?: Date;
@@ -59,6 +62,12 @@ const paymentSchema = new Schema<Payment>(
     paymentMethod: { type: String, enum: PAYMENT_METHODS },
     receiptNumber: { type: String, trim: true },
     proofUrl: { type: String, trim: true },
+    proof: {
+      publicId: { type: String },
+      resourceType: { type: String },
+      format: { type: String },
+      uploadedAt: { type: Date }
+    },
     notes: { type: String, trim: true, maxlength: 1000 },
     paidByUserId: { type: Schema.Types.ObjectId, ref: "User" },
     cancelledAt: { type: Date },

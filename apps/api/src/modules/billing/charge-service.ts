@@ -10,14 +10,13 @@ import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { billingModeOn, enrollmentPeriods, isEnrollmentValidOn } from "../enrollments/enrollment-validity";
 import { ClassSessionModel } from "../sessions/class-session.model";
-import { SessionBookingModel } from "../sessions/session-booking.model";
 import { loadRoster } from "../sessions/roster-service";
 import { HolidayModel } from "../scheduling/holiday.model";
 import { loadRules } from "../scheduling/schedule-service";
 import { planOccurrences } from "../scheduling/session-generator";
 import { BillingPeriodModel } from "./billing-period.model";
 import { ChargeModel, classChargeKey, classDayChargeKey, monthlyChargeKey } from "./charge.model";
-import { hasMonthlyCoverage, sessionLineage } from "./coverage-service";
+import { coveringSessions, hasMonthlyCoverage } from "./coverage-service";
 import { unmirroredLegacyPayments } from "./legacy-adapter";
 
 export interface Actor {
@@ -359,17 +358,7 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
     }
   }
 
-  const { lineage: chain, rootSessionId, rootDate } = await sessionLineage(session._id);
-  const transfers = await SessionBookingModel.find({
-    organizationId: actor.organizationId,
-    sessionId: session._id,
-    studentId,
-    status: "BOOKED",
-    sourceSessionId: { $exists: true }
-  })
-    .select("sourceSessionId")
-    .lean<any[]>();
-  const lineage = [...chain, ...transfers.map((item) => item.sourceSessionId as Types.ObjectId)];
+  const { lineage, rootSessionId, rootDate } = await coveringSessions(actor.organizationId, session._id);
   const existing = await ChargeModel.findOne({
     organizationId: actor.organizationId,
     studentId,

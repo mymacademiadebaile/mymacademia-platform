@@ -6,7 +6,10 @@ import { academyNow, addDays, dateRange } from "../../common/dates";
 import { minutesBetween, weekBounds } from "../../common/schedule";
 import { objectIdSchema } from "../admin/admin.schemas";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
-import { PaymentModel } from "../payments/payment.model";
+import { toPesos } from "../../common/money";
+import { chargeState } from "../billing/balance-service";
+import { ChargeModel } from "../billing/charge.model";
+import { legacyPaymentToChargeView, unmirroredLegacyPayments, type ChargeView } from "../billing/legacy-adapter";
 import {
   ATTENDANCE_STATUSES,
   ClassAttendanceModel
@@ -449,16 +452,25 @@ professorOperationsRouter.get("/students/:id", async (request, response, next) =
     const classNames = new Map(classes.map((item) => [String(item._id), item.name as string]));
 
     const [payments, sessions] = await Promise.all([
-      PaymentModel.find({
-        organizationId: context.organizationId,
-        studentId: student._id,
-        classId: { $in: classIds },
-        status: { $ne: "CANCELLED" }
-      })
-        .sort({ classDate: -1, dueDate: -1 })
-        .limit(60)
-        .select("classId paymentType classDate period concept amount status dueDate")
-        .lean<any[]>(),
+      // Only the charges of the professor's own classes; same rules as the admin account view.
+      Promise.all([
+        ChargeModel.find({
+          organizationId: context.organizationId,
+          studentId: student._id,
+          classId: { $in: classIds },
+          status: { $ne: "VOID" }
+        }).lean<ChargeView[]>(),
+        unmirroredLegacyPayments({
+          organizationId: context.organizationId,
+          studentId: student._id,
+          classId: { $in: classIds },
+          status: { $ne: "CANCELLED" }
+        })
+      ]).then(([charges, legacy]) =>
+        [...charges, ...legacy.map(legacyPaymentToChargeView)]
+          .sort((a, b) => (b.serviceDate ?? b.dueDate).localeCompare(a.serviceDate ?? a.dueDate))
+          .slice(0, 60)
+      ),
       ClassSessionModel.find({
         organizationId: context.organizationId,
         classId: { $in: classIds },
@@ -503,19 +515,20 @@ professorOperationsRouter.get("/students/:id", async (request, response, next) =
       },
       enrollments: overview?.enrollments ?? [],
       financialStatus: overview?.financialStatus ?? "FREE",
-      payments: payments.map((payment) => ({
-        id: String(payment._id),
-        classId: String(payment.classId),
-        className: classNames.get(String(payment.classId)) ?? "",
-        type: payment.paymentType,
-        date: payment.classDate
-          ? payment.classDate.toISOString().slice(0, 10)
-          : payment.dueDate.toISOString().slice(0, 10),
-        period: payment.period,
-        concept: payment.concept,
-        amount: payment.amount,
-        status: professorPaymentStatus(payment.paymentType, payment)
-      })),
+      payments: payments.map((charge) => {
+        const state = chargeState(charge);
+        return {
+          id: String(charge._id),
+          classId: String(charge.classId),
+          className: classNames.get(String(charge.classId)) ?? "",
+          type: charge.kind === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS",
+          date: charge.serviceDate ?? charge.dueDate,
+          period: charge.period,
+          concept: charge.concept,
+          amount: toPesos(state.owedCents),
+          status: professorPaymentStatus("PER_CLASS", state.status)
+        };
+      }),
       attendance: {
         totals: {
           classes: attendance.length,
