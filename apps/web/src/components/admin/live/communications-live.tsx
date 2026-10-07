@@ -18,7 +18,7 @@ import type { DanceClass, Paginated, Student } from "./live-types";
 import { ErrorBlock, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
 
-type EmailAudience = "ALL" | "DEBT" | "CLASS";
+type EmailAudience = "ALL" | "DEBT" | "CLASS" | "STUDENT";
 type HistoryStatus = "PENDING" | "SENT" | "FAILED" | "OPENED";
 type HistoryItem = {
   _id: string;
@@ -45,6 +45,7 @@ export function CommunicationsLive() {
   const [channel, setChannel] = useState<"EMAIL" | "WHATSAPP">("EMAIL");
   const [audience, setAudience] = useState<EmailAudience>("ALL");
   const [classId, setClassId] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [classes, setClasses] = useState<DanceClass[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -94,7 +95,7 @@ export function CommunicationsLive() {
   }, [historySearch, historyChannel, historyStatus]);
 
   const loadPreview = useCallback(async () => {
-    if (audience === "CLASS" && !classId) {
+    if ((audience === "CLASS" && !classId) || (audience === "STUDENT" && !studentId)) {
       setRecipientCount(null);
       setRecipientSample([]);
       return;
@@ -108,7 +109,8 @@ export function CommunicationsLive() {
         method: "POST",
         body: JSON.stringify({
           audience,
-          classId: audience === "CLASS" ? classId : undefined
+          classId: audience === "CLASS" ? classId : undefined,
+          studentId: audience === "STUDENT" ? studentId : undefined
         })
       });
 
@@ -118,7 +120,7 @@ export function CommunicationsLive() {
       setRecipientCount(null);
       setRecipientSample([]);
     }
-  }, [audience, classId]);
+  }, [audience, classId, studentId]);
 
   useEffect(() => {
     void loadBase();
@@ -138,9 +140,15 @@ export function CommunicationsLive() {
     [students]
   );
 
+  const studentsWithEmail = useMemo(
+    () => students.filter((student) => Boolean(student.email)),
+    [students]
+  );
+
   async function sendEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
 
     if (recipientCount === 0) {
       setError("No hay destinatarios con email para esta selección.");
@@ -166,6 +174,7 @@ export function CommunicationsLive() {
           body: JSON.stringify({
             audience,
             classId: audience === "CLASS" ? classId : undefined,
+            studentId: audience === "STUDENT" ? studentId : undefined,
             subject: form.get("subject"),
             message: form.get("message")
           })
@@ -177,7 +186,7 @@ export function CommunicationsLive() {
         description: result.sent + " enviados, " + result.failed + " fallidos sobre " + result.recipients + " destinatarios.",
         tone: result.failed > 0 ? "warning" : "success"
       });
-      event.currentTarget.reset();
+      formElement.reset();
       await Promise.all([loadHistory(), loadPreview()]);
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -284,11 +293,13 @@ export function CommunicationsLive() {
                 onChange={(event) => {
                   setAudience(event.target.value as EmailAudience);
                   if (event.target.value !== "CLASS") setClassId("");
+                  if (event.target.value !== "STUDENT") setStudentId("");
                 }}
               >
                 <option value="ALL">Todos los alumnos con email</option>
                 <option value="DEBT">Alumnos con deuda pendiente</option>
                 <option value="CLASS">Alumnos de una clase</option>
+                <option value="STUDENT">Un alumno en particular</option>
               </select>
             </label>
 
@@ -303,6 +314,24 @@ export function CommunicationsLive() {
                   <option value="">Seleccionar clase</option>
                   {classes.map((item) => (
                     <option value={item._id} key={item._id}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {audience === "STUDENT" && (
+              <label className={styles.field}>
+                <span>Alumno</span>
+                <select
+                  value={studentId}
+                  onChange={(event) => setStudentId(event.target.value)}
+                  required
+                >
+                  <option value="">Seleccionar alumno</option>
+                  {studentsWithEmail.map((item) => (
+                    <option value={item._id} key={item._id}>
+                      {item.firstName} {item.lastName} · {item.email}
+                    </option>
                   ))}
                 </select>
               </label>

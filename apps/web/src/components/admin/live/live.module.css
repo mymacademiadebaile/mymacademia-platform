@@ -271,22 +271,26 @@
   scrollbar-width: thin;
 }
 
-.settingsNav a {
+.settingsNav button {
   min-height: 38px;
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  border: 0;
   border-radius: 9px;
+  background: transparent;
   color: #685e70;
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
+  cursor: pointer;
   transition: background .15s ease, color .15s ease;
 }
 
-.settingsNav a:hover { background: #f4eff9; color: #5b21b6; }
-.settingsNav a:focus-visible { outline: 2px solid #6d28d9; outline-offset: -2px; }
+.settingsNav button:hover { background: #f4eff9; color: #5b21b6; }
+.settingsNav button[aria-selected="true"] { background: #ede5f7; color: #4c1d95; }
+.settingsNav button:focus-visible { outline: 2px solid #6d28d9; outline-offset: -2px; }
 
 .settingsForm {
   display: grid;

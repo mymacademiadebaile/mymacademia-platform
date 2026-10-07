@@ -10,10 +10,24 @@
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
   padding: 28px 32px;
   color: #fff;
-  background: linear-gradient(135deg, var(--pf-violet-strong), var(--pf-violet) 60%, var(--pf-violet-mid));
+  background: var(--pf-violet-strong);
   box-shadow: var(--pf-shadow);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: -132px;
+  top: -174px;
+  border: 46px solid rgba(196, 181, 253, 0.17);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .heroEmpty {
@@ -24,32 +38,31 @@
 .heroMain {
   min-width: 0;
   flex: 1 1 420px;
-}
-
-.heroEyebrow {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  opacity: 0.85;
+  position: relative;
+  z-index: 1;
 }
 
 .heroTime {
   display: flex;
   align-items: baseline;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 6px;
 }
 
 .heroTime strong {
+  order: 2;
   font-size: clamp(40px, 5vw, 56px);
   line-height: 1;
   letter-spacing: -0.04em;
 }
 
 .heroTime span {
-  font-size: 16px;
-  opacity: 0.9;
+  order: 1;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .hero h2 {
@@ -95,6 +108,8 @@
   color: var(--pf-violet-strong);
   font-size: 16px;
   font-weight: 800;
+  position: relative;
+  z-index: 1;
 }
 
 .heroCta:hover {

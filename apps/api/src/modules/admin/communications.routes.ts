@@ -10,14 +10,23 @@ import { StudentModel } from "../students/student.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 
 const audienceSchema = z.object({
-  audience: z.enum(["ALL", "DEBT", "CLASS"]),
-  classId: objectIdSchema.optional()
+  audience: z.enum(["ALL", "DEBT", "CLASS", "STUDENT"]),
+  classId: objectIdSchema.optional(),
+  studentId: objectIdSchema.optional()
 }).superRefine((value, context) => {
   if (value.audience === "CLASS" && !value.classId) {
     context.addIssue({
       code: "custom",
       path: ["classId"],
       message: "classId is required for CLASS audience"
+    });
+  }
+
+  if (value.audience === "STUDENT" && !value.studentId) {
+    context.addIssue({
+      code: "custom",
+      path: ["studentId"],
+      message: "studentId is required for STUDENT audience"
     });
   }
 });
@@ -41,8 +50,9 @@ const historyQuerySchema = pageQuerySchema.extend({
 
 async function resolveAudienceStudents(
   organizationId: string,
-  audience: "ALL" | "DEBT" | "CLASS",
-  classId?: string
+  audience: "ALL" | "DEBT" | "CLASS" | "STUDENT",
+  classId?: string,
+  studentId?: string
 ) {
   let studentIds: string[] | undefined;
 
@@ -61,6 +71,10 @@ async function resolveAudienceStudents(
     })).map((id) => id.toString());
   }
 
+  if (audience === "STUDENT" && studentId) {
+    studentIds = [studentId];
+  }
+
   const filter: Record<string, unknown> = {
     organizationId,
     isActive: true,
@@ -76,7 +90,7 @@ async function resolveAudienceStudents(
     .sort({ lastName: 1, firstName: 1 });
 }
 
-function audienceNotificationType(audience: "ALL" | "DEBT" | "CLASS") {
+function audienceNotificationType(audience: "ALL" | "DEBT" | "CLASS" | "STUDENT") {
   return audience === "DEBT"
     ? "DEBT_REMINDER"
     : audience === "CLASS"
@@ -92,7 +106,8 @@ adminCommunicationsRouter.post("/preview", async (request, response, next) => {
     const students = await resolveAudienceStudents(
       request.auth!.organizationId,
       input.audience,
-      input.classId
+      input.classId,
+      input.studentId
     );
 
     response.json({
@@ -154,7 +169,8 @@ adminCommunicationsRouter.post("/email", async (request, response, next) => {
     const students = await resolveAudienceStudents(
       organizationId,
       input.audience,
-      input.classId
+      input.classId,
+      input.studentId
     );
 
     let sent = 0;
@@ -213,6 +229,7 @@ adminCommunicationsRouter.post("/email", async (request, response, next) => {
       metadata: {
         audience: input.audience,
         classId: input.classId,
+        studentId: input.studentId,
         recipients: students.length,
         sent,
         failed,

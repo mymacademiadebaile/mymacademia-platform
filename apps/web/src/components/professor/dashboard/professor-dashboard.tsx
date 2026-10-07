@@ -46,10 +46,9 @@ function NextClassHero({ session, today }: { session: SessionItem | null; today:
   return (
     <section className={styles.hero} aria-label="Próxima clase">
       <div className={styles.heroMain}>
-        <span className={styles.heroEyebrow}>PRÓXIMA CLASE</span>
         <div className={styles.heroTime}>
-          <strong>{session.startTime}</strong>
           <span>{isToday ? "Hoy" : formatLongDate(session.date)}</span>
+          <strong>{session.startTime}</strong>
         </div>
         <h2>{session.class.name}</h2>
         <p className={styles.heroSub}>

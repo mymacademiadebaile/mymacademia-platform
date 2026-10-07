@@ -47,6 +47,7 @@ type SettingsData = {
 
 type AcademySpaceImageSlot = "tall" | "wide" | "detail";
 type LandingImage = { url: string; width?: number; height?: number };
+type SettingsTab = "academy" | "inquiries" | "operation" | "channels" | "landing" | "branches" | "catalogs";
 
 const ACADEMY_SPACE_IMAGES: Record<AcademySpaceImageSlot, {
   title: string;
@@ -83,6 +84,7 @@ export function SettingsLive() {
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [branchSaving, setBranchSaving] = useState(false);
   const [landingImageBusy, setLandingImageBusy] = useState<AcademySpaceImageSlot | null>(null);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("academy");
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -262,18 +264,18 @@ export function SettingsLive() {
 
       {data && (
         <>
-          <nav className={styles.settingsNav} aria-label="Secciones de configuración">
-            <a href="#academy-settings"><Building2 size={16} /> Academia</a>
-            <a href="#inquiries-settings"><MessageCircle size={16} /> Consultas</a>
-            <a href="#operation-settings"><Settings2 size={16} /> Operación</a>
-            <a href="#channels-settings"><Share2 size={16} /> Canales</a>
-            <a href="#landing-images-title"><ImagePlus size={16} /> Landing</a>
-            <a href="#branches-settings"><MapPin size={16} /> Sedes</a>
-            <a href="#catalogs-settings"><BookOpenCheck size={16} /> Catálogos</a>
+          <nav className={styles.settingsNav} aria-label="Secciones de configuración" role="tablist">
+            <button type="button" role="tab" id="academy-tab" aria-controls="academy-settings" aria-selected={activeSettingsTab === "academy"} onClick={() => setActiveSettingsTab("academy")}><Building2 size={16} /> Academia</button>
+            <button type="button" role="tab" id="inquiries-tab" aria-controls="inquiries-settings" aria-selected={activeSettingsTab === "inquiries"} onClick={() => setActiveSettingsTab("inquiries")}><MessageCircle size={16} /> Consultas</button>
+            <button type="button" role="tab" id="operation-tab" aria-controls="operation-settings" aria-selected={activeSettingsTab === "operation"} onClick={() => setActiveSettingsTab("operation")}><Settings2 size={16} /> Operación</button>
+            <button type="button" role="tab" id="channels-tab" aria-controls="channels-settings" aria-selected={activeSettingsTab === "channels"} onClick={() => setActiveSettingsTab("channels")}><Share2 size={16} /> Canales</button>
+            <button type="button" role="tab" id="landing-tab" aria-controls="landing-settings" aria-selected={activeSettingsTab === "landing"} onClick={() => setActiveSettingsTab("landing")}><ImagePlus size={16} /> Landing</button>
+            <button type="button" role="tab" id="branches-tab" aria-controls="branches-settings" aria-selected={activeSettingsTab === "branches"} onClick={() => setActiveSettingsTab("branches")}><MapPin size={16} /> Sedes</button>
+            <button type="button" role="tab" id="catalogs-tab" aria-controls="catalogs-settings" aria-selected={activeSettingsTab === "catalogs"} onClick={() => setActiveSettingsTab("catalogs")}><BookOpenCheck size={16} /> Catálogos</button>
           </nav>
 
           <form className={styles.settingsForm} onSubmit={save}>
-            <section className={styles.settingsGroup} id="academy-settings" aria-labelledby="academy-settings-title">
+            <section className={styles.settingsGroup} id="academy-settings" role="tabpanel" aria-labelledby="academy-tab" hidden={activeSettingsTab !== "academy"}>
               <div className={styles.settingsGroupHeader}>
                 <span className={styles.settingsGroupIcon}><Building2 size={19} /></span>
                 <div>
@@ -297,7 +299,7 @@ export function SettingsLive() {
               </div>
             </section>
 
-            <section className={styles.settingsGroup} id="inquiries-settings" aria-labelledby="inquiries-settings-title">
+            <section className={styles.settingsGroup} id="inquiries-settings" role="tabpanel" aria-labelledby="inquiries-tab" hidden={activeSettingsTab !== "inquiries"}>
               <div className={styles.settingsGroupHeader}>
                 <span className={styles.settingsGroupIcon}><MessageCircle size={19} /></span>
                 <div>
@@ -324,7 +326,7 @@ export function SettingsLive() {
               <p className={styles.settingsHint}>Los profesores no reciben contactos públicos de forma directa.</p>
             </section>
 
-            <section className={styles.settingsGroup} id="operation-settings" aria-labelledby="operation-settings-title">
+            <section className={styles.settingsGroup} id="operation-settings" role="tabpanel" aria-labelledby="operation-tab" hidden={activeSettingsTab !== "operation"}>
               <div className={styles.settingsGroupHeader}>
                 <span className={styles.settingsGroupIcon}><Settings2 size={19} /></span>
                 <div>
@@ -348,7 +350,7 @@ export function SettingsLive() {
               </div>
             </section>
 
-            <section className={styles.settingsGroup} id="channels-settings" aria-labelledby="channels-settings-title">
+            <section className={styles.settingsGroup} id="channels-settings" role="tabpanel" aria-labelledby="channels-tab" hidden={activeSettingsTab !== "channels"}>
               <div className={styles.settingsGroupHeader}>
                 <span className={styles.settingsGroupIcon}><Share2 size={19} /></span>
                 <div>
@@ -384,7 +386,7 @@ export function SettingsLive() {
               </div>
             </section>
 
-            <div className={styles.settingsSaveBar}>
+            <div className={styles.settingsSaveBar} hidden={!(["academy", "inquiries", "operation", "channels"] as SettingsTab[]).includes(activeSettingsTab)}>
               <span>
                 <strong>Guardá los cambios de configuración</strong>
                 <small>Podés modificar distintos grupos antes de confirmar.</small>
@@ -396,7 +398,7 @@ export function SettingsLive() {
             </div>
           </form>
 
-          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} aria-labelledby="landing-images-title">
+          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} id="landing-settings" role="tabpanel" aria-labelledby="landing-tab" hidden={activeSettingsTab !== "landing"}>
             <div className={styles.sectionTitleRow}>
               <div>
                 <span className={styles.cardLabel}>LANDING PÚBLICA · 06</span>
@@ -456,14 +458,14 @@ export function SettingsLive() {
             </p>
           </section>
 
-          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} id="branches-settings">
+          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} id="branches-settings" role="tabpanel" aria-labelledby="branches-tab" hidden={activeSettingsTab !== "branches"}>
             <div className={styles.sectionTitleRow}>
               <div>
                 <span className={styles.cardLabel}>SEDES</span>
                 <h3>Sedes de la academia</h3>
                 <p>Administrá ubicaciones actuales y futuras sin cambiar código.</p>
               </div>
-              <button className={styles.primary} onClick={openNewBranch}>
+              <button type="button" className={styles.primary} onClick={openNewBranch}>
                 <Plus size={16} /> Nueva sede
               </button>
             </div>
@@ -492,7 +494,7 @@ export function SettingsLive() {
             </div>
           </section>
 
-          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} id="catalogs-settings">
+          <section className={`${styles.historySection} ${styles.settingsStandaloneSection}`} id="catalogs-settings" role="tabpanel" aria-labelledby="catalogs-tab" hidden={activeSettingsTab !== "catalogs"}>
             <div className={styles.sectionTitleRow}>
               <div>
                 <span className={styles.cardLabel}>CONFIGURACIÓN ACADÉMICA</span>
