@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type {
   BillingMode,
@@ -97,12 +98,6 @@ function preferenceLabel(preference?: BillingPreference) {
   if (preference === "MONTHLY") return "Mensual";
   if (preference === "PER_CLASS") return "Por clase";
   return "Sin cargo";
-}
-
-function localDateValue() {
-  const date = new Date();
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
 }
 
 export function ClassDetailLive({ id }: { id: string }) {
@@ -689,9 +684,9 @@ export function ClassDetailLive({ id }: { id: string }) {
           </Field>
         )}
         {chargePaymentType === "PER_CLASS" ? (
-          <Field label="Fecha de la clase"><input name="classDate" type="date" defaultValue={localDateValue()} required /></Field>
+          <Field label="Fecha de la clase"><input name="classDate" type="date" defaultValue={todayInArgentina()} required /></Field>
         ) : (
-          <Field label="Período"><input name="period" type="month" defaultValue={localDateValue().slice(0, 7)} required /></Field>
+          <Field label="Período"><input name="period" type="month" defaultValue={todayInArgentina().slice(0, 7)} required /></Field>
         )}
         <Field label="Importe">
           <input value={chargeAmount || ""} onChange={(event) => setChargeAmount(Number(event.target.value))} type="number" min="1" step="0.01" required />
@@ -704,7 +699,7 @@ export function ClassDetailLive({ id }: { id: string }) {
             <option value="OTHER">Otro</option>
           </select>
         </Field>
-        <Field label="Fecha de pago"><input name="paidAt" type="date" defaultValue={localDateValue()} /></Field>
+        <Field label="Fecha de pago"><input name="paidAt" type="date" defaultValue={todayInArgentina()} /></Field>
         <Field label="Notas" wide><textarea name="notes" rows={3} /></Field>
       </LiveModal>
 

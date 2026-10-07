@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { NotificationLogModel } from "../notifications/notification-log.model";
 import { PaymentModel } from "../payments/payment.model";
+import { overduePaymentFilter } from "../payments/payment-status";
 
 const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20)
@@ -20,13 +21,7 @@ adminNotificationsRouter.get("/", async (request, response, next) => {
         .populate("studentId", "firstName lastName")
         .sort({ createdAt: -1 })
         .limit(limit),
-      PaymentModel.find({
-        organizationId,
-        $or: [
-          { status: "OVERDUE" },
-          { status: "PENDING", dueDate: { $lt: now } }
-        ]
-      }).select("amount"),
+      PaymentModel.find({ organizationId, ...overduePaymentFilter(now) }).select("amount"),
       NotificationLogModel.countDocuments({
         organizationId,
         status: "FAILED"

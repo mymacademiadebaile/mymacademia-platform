@@ -1,11 +1,12 @@
 import { Router } from "express";
+import { containsText } from "../../common/regex";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import { sendEmail } from "../../services/mailer";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { NotificationLogModel } from "../notifications/notification-log.model";
-import { PaymentModel } from "../payments/payment.model";
+import { studentIdsWithOverdueDebt } from "../billing/balance-service";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 
@@ -57,10 +58,7 @@ async function resolveAudienceStudents(
   let studentIds: string[] | undefined;
 
   if (audience === "DEBT") {
-    studentIds = (await PaymentModel.distinct("studentId", {
-      organizationId,
-      status: { $in: ["PENDING", "OVERDUE"] }
-    })).map((id) => id.toString());
+    studentIds = (await studentIdsWithOverdueDebt(organizationId)).map((id) => String(id));
   }
 
   if (audience === "CLASS" && classId) {
@@ -134,9 +132,9 @@ adminCommunicationsRouter.get("/history", async (request, response, next) => {
     if (query.type) filter.type = query.type;
     if (query.q) {
       filter.$or = [
-        { destination: { $regex: query.q, $options: "i" } },
-        { subject: { $regex: query.q, $options: "i" } },
-        { message: { $regex: query.q, $options: "i" } }
+        { destination: containsText(query.q) },
+        { subject: containsText(query.q) },
+        { message: containsText(query.q) }
       ];
     }
 

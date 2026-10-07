@@ -1,4 +1,5 @@
 import { PAYMENT_TYPES } from "@mym/shared";
+import { containsText } from "../../common/regex";
 import ExcelJS from "exceljs";
 import { Router } from "express";
 import multer from "multer";
@@ -6,6 +7,7 @@ import PDFDocument from "pdfkit";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
+import { ACADEMY_TIME_ZONE, toDateOnly } from "../../common/dates";
 import { uploadBuffer } from "../../services/cloudinary";
 import { sendEmail } from "../../services/mailer";
 import { AuditLogModel } from "../audit/audit-log.model";
@@ -27,7 +29,17 @@ import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { OrganizationModel } from "../core/organization.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { sessionEnrollmentIds } from "../sessions/session-booking-service";
-import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
+import {
+  dateOnlyInputSchema,
+  objectIdSchema,
+  pageQuerySchema,
+  receivedAtInputSchema
+} from "./admin.schemas";
+import {
+  effectivePaymentStatus,
+  notYetDuePaymentFilter,
+  overduePaymentFilter
+} from "../payments/payment-status";
 
 const createPaymentSchema = z.object({
   branchId: objectIdSchema.optional(),
@@ -39,7 +51,7 @@ const createPaymentSchema = z.object({
   concept: z.string().trim().min(2).max(120),
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "El período debe tener formato YYYY-MM").optional(),
   amount: z.number().positive().max(100_000_000),
-  dueDate: z.coerce.date(),
+  dueDate: dateOnlyInputSchema,
   notes: z.string().trim().max(1000).optional().or(z.literal(""))
 }).superRefine((value, context) => {
   if (value.paymentType === "PER_CLASS" && !value.classDate) {
@@ -60,9 +72,9 @@ const quickChargeSchema = z.object({
   sessionId: objectIdSchema.optional(),
   classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
-  amount: z.number().positive().optional(),
+  amount: z.number().positive().max(100_000_000).optional(),
   paymentMethod: z.enum(PAYMENT_METHODS).default("OTHER"),
-  paidAt: z.coerce.date().optional(),
+  paidAt: receivedAtInputSchema.optional(),
   notes: z.string().trim().max(1000).optional().or(z.literal(""))
 }).superRefine((value, context) => {
   if (value.paymentType === "PER_CLASS" && !value.classDate) {
@@ -74,7 +86,7 @@ const quickChargeSchema = z.object({
 });
 const markPaidSchema = z.object({
   paymentMethod: z.enum(PAYMENT_METHODS).default("OTHER"),
-  paidAt: z.coerce.date().optional()
+  paidAt: receivedAtInputSchema.optional()
 });
 
 const cancelSchema = z.object({
@@ -95,21 +107,20 @@ const upload = multer({
   fileFilter: (_request, file, callback) => {
     const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
     if (!allowed.includes(file.mimetype)) {
-      callback(new Error("UNSUPPORTED_PROOF_TYPE"));
+      callback(new AppError(415, "El comprobante debe ser una imagen o un PDF", "UNSUPPORTED_PROOF_TYPE"));
       return;
     }
     callback(null, true);
   }
 });
 
-function effectiveStatus(payment: {
-  status: string;
-  dueDate: Date;
-}) {
-  if (payment.status === "PENDING" && payment.dueDate.getTime() < Date.now()) {
-    return "OVERDUE";
+const effectiveStatus = effectivePaymentStatus;
+
+/** Money cannot be received in the future; a small skew covers clocks of different devices. */
+function assertNotFutureReceipt(receivedAt: Date) {
+  if (receivedAt.getTime() > Date.now() + 5 * 60_000) {
+    throw new AppError(422, "La fecha de cobro no puede ser futura", "FUTURE_PAYMENT_DATE");
   }
-  return payment.status;
 }
 
 /** A per-class charge issued from a session must belong to that exact booked occurrence. */
@@ -153,13 +164,9 @@ async function buildPaymentFilter(
   if (query.paymentType) filter.paymentType = query.paymentType;
 
   if (query.status === "OVERDUE") {
-    filter.$or = [
-      { status: "OVERDUE" },
-      { status: "PENDING", dueDate: { $lt: new Date() } }
-    ];
+    Object.assign(filter, overduePaymentFilter());
   } else if (query.status === "PENDING") {
-    filter.status = "PENDING";
-    filter.dueDate = { $gte: new Date() };
+    Object.assign(filter, notYetDuePaymentFilter());
   } else if (query.status) {
     filter.status = query.status;
   }
@@ -168,10 +175,10 @@ async function buildPaymentFilter(
     const studentIds = await StudentModel.find({
       organizationId,
       $or: [
-        { firstName: { $regex: query.q, $options: "i" } },
-        { lastName: { $regex: query.q, $options: "i" } },
-        { email: { $regex: query.q, $options: "i" } },
-        { phone: { $regex: query.q, $options: "i" } }
+        { firstName: containsText(query.q) },
+        { lastName: containsText(query.q) },
+        { email: containsText(query.q) },
+        { phone: containsText(query.q) }
       ]
     }).distinct("_id");
 
@@ -180,8 +187,8 @@ async function buildPaymentFilter(
       {
         $or: [
           { studentId: { $in: studentIds } },
-          { concept: { $regex: query.q, $options: "i" } },
-          { receiptNumber: { $regex: query.q, $options: "i" } }
+          { concept: containsText(query.q) },
+          { receiptNumber: containsText(query.q) }
         ]
       }
     ];
@@ -239,8 +246,10 @@ adminPaymentsRouter.get("/summary", async (request, response, next) => {
     const summary = payments.reduce(
       (result, payment) => {
         const status = effectiveStatus(payment);
-        result.total += payment.amount;
-        result.count += 1;
+        if (status !== "CANCELLED") {
+          result.total += payment.amount;
+          result.count += 1;
+        }
 
         if (status === "PAID") {
           result.paidAmount += payment.amount;
@@ -387,7 +396,7 @@ adminPaymentsRouter.get("/:id/receipt.pdf", async (request, response, next) => {
     document.fillColor("#111111").moveDown(1.5);
 
     document.fontSize(10).text(`Recibo: ${payment.receiptNumber ?? "—"}`);
-    document.text(`Fecha: ${(payment.paidAt ?? new Date()).toLocaleDateString("es-AR")}`);
+    document.text(`Fecha: ${(payment.paidAt ?? new Date()).toLocaleDateString("es-AR", { timeZone: ACADEMY_TIME_ZONE })}`);
     document.moveDown();
     document.text(`Alumno: ${student.firstName} ${student.lastName}`);
     if (student.email) document.text(`Email: ${student.email}`);
@@ -452,8 +461,9 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       period
     });
 
-    const receiptNumber = await nextReceiptNumber(new Types.ObjectId(organizationId));
     const paidAt = input.paidAt ?? new Date();
+    assertNotFutureReceipt(paidAt);
+    const receiptNumber = await nextReceiptNumber(new Types.ObjectId(organizationId));
     const payment = await PaymentModel.create({
       organizationId,
       branchId: student.branchId,
@@ -465,7 +475,7 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       concept: input.paymentType === "PER_CLASS" ? "Clase · " + danceClass.name : "Mensualidad · " + danceClass.name,
       period,
       amount,
-      dueDate: classDate ?? paidAt,
+      dueDate: classDate ?? toDateOnly(paidAt),
       status: "PAID",
       paidAt,
       paymentMethod: input.paymentMethod,
@@ -595,6 +605,8 @@ adminPaymentsRouter.post("/:id/mark-paid", async (request, response, next) => {
       response.json(payment);
       return;
     }
+
+    if (input.paidAt) assertNotFutureReceipt(input.paidAt);
 
     // A receipt number is consumed before the conditional update. If another request wins the
     // transition, that number stays unused (a gap), which is preferable to a duplicate receipt.

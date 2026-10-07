@@ -5,10 +5,12 @@ import { z } from "zod";
 import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { PaymentModel } from "../payments/payment.model";
+import { effectivePaymentStatus } from "../payments/payment-status";
 import { ProfessorModel } from "../professors/professor.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
+import { academyRangeBounds } from "../../common/dates";
 import { objectIdSchema } from "./admin.schemas";
 
 const calendarDateSchema = z.string()
@@ -130,24 +132,19 @@ function rangeFor(query: z.infer<typeof reportQuerySchema>): DateRange {
   const period = query.period ?? currentPeriod();
   const from = query.from ?? `${period}-01`;
   const to = query.to ?? `${period}-${String(daysInMonth(period)).padStart(2, "0")}`;
-  const endExclusive = new Date(`${to}T00:00:00.000Z`);
-  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  // Instants (paidAt, createdAt) belong to the Argentina calendar day they happened on, so a
+  // payment at 22:30 on the last day of the month never lands in the next month.
+  const bounds = academyRangeBounds(from, to);
 
   return {
     from,
     to,
-    start: new Date(`${from}T00:00:00.000Z`),
-    endExclusive,
+    start: bounds.start,
+    endExclusive: bounds.end,
     periods: monthPeriodsBetween(from, to)
   };
 }
 
-function effectivePaymentStatus(payment: { status: string; dueDate: Date }) {
-  if (payment.status === "PENDING" && payment.dueDate.getTime() < Date.now()) {
-    return "OVERDUE";
-  }
-  return payment.status;
-}
 
 function emptyFinancialSummary(): FinancialSummary {
   return {

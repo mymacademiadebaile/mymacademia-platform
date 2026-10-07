@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { PaymentModel } from "../payments/payment.model";
+import { notYetDuePaymentFilter, overduePaymentFilter } from "../payments/payment-status";
 import { ProfessorModel } from "../professors/professor.model";
 import { StudentModel } from "../students/student.model";
 
@@ -27,12 +28,8 @@ adminSummaryRouter.get("/", async (request, response, next) => {
       ProfessorModel.countDocuments({ organizationId, isActive: true }),
       DanceClassModel.countDocuments({ organizationId, status: "ACTIVE" }),
       EnrollmentModel.countDocuments({ organizationId, status: "ACTIVE" }),
-      PaymentModel.countDocuments({ organizationId, status: "PENDING" }),
-      PaymentModel.countDocuments({
-        organizationId,
-        status: { $in: ["PENDING", "OVERDUE"] },
-        dueDate: { $lt: now }
-      }),
+      PaymentModel.countDocuments({ organizationId, ...notYetDuePaymentFilter(now) }),
+      PaymentModel.countDocuments({ organizationId, ...overduePaymentFilter(now) }),
       PaymentModel.aggregate([
         { $match: { organizationId: organizationObjectId, status: "PAID" } },
         { $group: { _id: null, total: { $sum: "$amount" } } }

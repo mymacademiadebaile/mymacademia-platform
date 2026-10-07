@@ -10,6 +10,7 @@ import {
 import { AuditLogModel } from "../audit/audit-log.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { PaymentModel } from "../payments/payment.model";
+import { effectivePaymentStatus } from "../payments/payment-status";
 import { TrialBookingModel } from "../trials/trial-booking.model";
 import {
   ATTENDANCE_STATUSES,
@@ -45,12 +46,7 @@ interface SessionLike {
   status: string;
 }
 
-export function effectivePaymentStatus(payment: { status: string; dueDate: Date }) {
-  if (payment.status === "PENDING" && payment.dueDate.getTime() < Date.now()) {
-    return "OVERDUE";
-  }
-  return payment.status;
-}
+export { effectivePaymentStatus };
 
 /** Which billing rule applies to an enrollment. Single source of truth for Admin and Professor. */
 export function resolvedBillingPreference(

@@ -353,6 +353,12 @@ describe("professor portal: dashboard and calendar", () => {
       normalizedName: "bachata"
     });
     await DanceClassModel.updateOne({ _id: ids.perClass }, { disciplineIds: [discipline._id] });
+    // Classes created "now" have no sessions earlier this week. Backdate them so the weekly count
+    // does not depend on the weekday the suite runs on.
+    await DanceClassModel.collection.updateMany(
+      { organizationId: ids.org },
+      { $set: { createdAt: new Date("2020-01-01T12:00:00.000Z") } }
+    );
 
     const response = await get("/dashboard");
     expect(response.status).toBe(200);

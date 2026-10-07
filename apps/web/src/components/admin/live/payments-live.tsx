@@ -13,6 +13,7 @@ import {
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
+import { todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type {
   BillingPreference,
@@ -68,12 +69,6 @@ function methodLabel(method?: PaymentMethod) {
     CARD: "Tarjeta",
     OTHER: "Otro"
   }[method ?? "OTHER"];
-}
-
-function localDateValue() {
-  const date = new Date();
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
 }
 
 function billingMode(danceClass?: DanceClass) {
@@ -434,11 +429,11 @@ export function PaymentsLive() {
 
       {selectedPaymentType === "PER_CLASS" ? (
         <Field label="Fecha de la clase">
-          <input name="classDate" type="date" defaultValue={localDateValue()} required />
+          <input name="classDate" type="date" defaultValue={todayInArgentina()} required />
         </Field>
       ) : (
         <Field label="Período">
-          <input name="period" type="month" defaultValue={localDateValue().slice(0, 7)} required />
+          <input name="period" type="month" defaultValue={todayInArgentina().slice(0, 7)} required />
         </Field>
       )}
 
@@ -464,12 +459,12 @@ export function PaymentsLive() {
             </select>
           </Field>
           <Field label="Fecha de pago">
-            <input name="paidAt" type="date" defaultValue={localDateValue()} />
+            <input name="paidAt" type="date" defaultValue={todayInArgentina()} />
           </Field>
         </>
       ) : (
         <Field label="Vencimiento">
-          <input name="dueDate" type="date" defaultValue={localDateValue()} required />
+          <input name="dueDate" type="date" defaultValue={todayInArgentina()} required />
         </Field>
       )}
 
@@ -631,7 +626,7 @@ export function PaymentsLive() {
             <option value="OTHER">Otro</option>
           </select>
         </Field>
-        <Field label="Fecha de pago"><input name="paidAt" type="date" defaultValue={localDateValue()} /></Field>
+        <Field label="Fecha de pago"><input name="paidAt" type="date" defaultValue={todayInArgentina()} /></Field>
         {paying?.paymentMethod && <div className={styles.modalHint}>Medio anterior: {methodLabel(paying.paymentMethod)}</div>}
       </LiveModal>
 

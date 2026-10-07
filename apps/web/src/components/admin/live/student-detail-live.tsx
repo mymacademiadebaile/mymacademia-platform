@@ -14,6 +14,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { formatDateOnly, todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type {
   BillingPreference,
@@ -87,15 +88,9 @@ function billingPreferenceLabel(
 
 function paymentReference(payment: Payment) {
   if ((payment.paymentType ?? "MONTHLY") === "PER_CLASS" && payment.classDate) {
-    return new Date(payment.classDate).toLocaleDateString("es-AR");
+    return formatDateOnly(payment.classDate);
   }
   return payment.period;
-}
-
-function localDateValue() {
-  const date = new Date();
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
 }
 
 const dayLabels: Record<string, string> = {
@@ -423,7 +418,7 @@ export function StudentDetailLive({ id }: { id: string }) {
             <div><dt>Sede</dt><dd>{branches.find((branch) => branch._id === student.branchId)?.name ?? "—"}</dd></div>
             <div><dt>Email</dt><dd>{student.email || "—"}</dd></div>
             <div><dt>Teléfono</dt><dd>{student.phone || "—"}</dd></div>
-            <div><dt>Nacimiento</dt><dd>{student.birthDate ? new Date(student.birthDate).toLocaleDateString("es-AR") : "—"}</dd></div>
+            <div><dt>Nacimiento</dt><dd>{formatDateOnly(student.birthDate)}</dd></div>
             <div><dt>Responsable</dt><dd>{student.guardianName || "—"}</dd></div>
             <div><dt>Tel. responsable</dt><dd>{student.guardianPhone || "—"}</dd></div>
             <div className={styles.notes}><dt>Notas</dt><dd>{student.notes || "Sin notas"}</dd></div>
@@ -484,7 +479,7 @@ export function StudentDetailLive({ id }: { id: string }) {
                     <small>{(payment.paymentType ?? "MONTHLY") === "PER_CLASS" ? "Por clase" : "Mensual"}</small>
                   </span>
                   <span>{paymentReference(payment)}</span>
-                  <span>{new Date(payment.dueDate).toLocaleDateString("es-AR")}</span>
+                  <span>{formatDateOnly(payment.dueDate)}</span>
                   <span>$ {payment.amount.toLocaleString("es-AR")}</span>
                   <span className={status === "PAID" ? styles.statusPaid : status === "OVERDUE" ? styles.statusOverdue : styles.statusPending}>
                     {status === "PAID" ? "Pagado" : status === "OVERDUE" ? "Vencido" : "Pendiente"}
@@ -615,7 +610,7 @@ export function StudentDetailLive({ id }: { id: string }) {
           </select>
         </Field>
         <Field label="Fecha de pago">
-          <input name="paidAt" type="date" defaultValue={localDateValue()} />
+          <input name="paidAt" type="date" defaultValue={todayInArgentina()} />
         </Field>
       </LiveModal>
     </>

@@ -1,4 +1,5 @@
 import { BILLING_MODES, WEEK_DAYS } from "@mym/shared";
+import { containsText } from "../../common/regex";
 import { Router } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -233,7 +234,7 @@ adminClassesRouter.get("/", async (request, response, next) => {
     const organizationId = request.auth!.organizationId;
     const filter: Record<string, unknown> = { organizationId };
 
-    if (query.q) filter.name = { $regex: query.q, $options: "i" };
+    if (query.q) filter.name = containsText(query.q);
     if (query.branchId) filter.branchId = query.branchId;
     if (query.professorId) filter.professorIds = query.professorId;
     if (query.status) filter.status = query.status;

@@ -142,4 +142,24 @@ export async function assertNoActiveDuplicate(input: {
   }
 
   if (await PaymentModel.exists(filter)) throw duplicateChargeError(input.paymentType);
+
+  // A monthly fee already covers every class of its month: charging a class of that month too
+  // would bill the student twice for the same session.
+  if (input.paymentType === "PER_CLASS") {
+    const coveredByMonthly = await PaymentModel.exists({
+      organizationId: input.organizationId,
+      studentId: input.studentId,
+      classId: input.classId,
+      paymentType: "MONTHLY",
+      period: input.period,
+      status: { $ne: "CANCELLED" }
+    });
+    if (coveredByMonthly) {
+      throw new AppError(
+        409,
+        "El alumno ya tiene la mensualidad de ese mes, que incluye esta clase",
+        "COVERED_BY_MONTHLY"
+      );
+    }
+  }
 }

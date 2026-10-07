@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { containsText } from "../../common/regex";
 import { Router } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -139,16 +140,16 @@ adminProfessorsRouter.get("/", async (request, response, next) => {
         organizationId,
         role: "PROFESSOR",
         $or: [
-          { firstName: { $regex: query.q, $options: "i" } },
-          { lastName: { $regex: query.q, $options: "i" } },
-          { email: { $regex: query.q, $options: "i" } }
+          { firstName: containsText(query.q) },
+          { lastName: containsText(query.q) },
+          { email: containsText(query.q) }
         ]
       };
 
       if (query.branchId) userFilter.branchIds = query.branchId;
 
       const matchingUserIds = await UserModel.find(userFilter).distinct("_id");
-      const displayNameMatch = { displayName: { $regex: query.q, $options: "i" } };
+      const displayNameMatch = { displayName: containsText(query.q) };
       filter.$or = matchingUserIds.length
         ? [{ userId: { $in: matchingUserIds } }, displayNameMatch]
         : [displayNameMatch];

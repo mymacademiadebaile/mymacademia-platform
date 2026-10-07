@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { containsText } from "../../common/regex";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
@@ -6,6 +7,8 @@ import { AuditLogModel } from "../audit/audit-log.model";
 import { BranchModel } from "../core/branch.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { PaymentModel } from "../payments/payment.model";
+import { effectivePaymentStatus } from "../payments/payment-status";
+import { studentIdsWithOverdueDebt } from "../billing/balance-service";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 
@@ -46,6 +49,12 @@ async function assertAssignableBranch(organizationId: string, branchId: string) 
   }
 }
 
+function intersectIds(lists: unknown[][]) {
+  const [first, ...rest] = lists.map((list) => list.map(String));
+  const kept = first.filter((id) => rest.every((list) => list.includes(id)));
+  return kept.map((id) => new Types.ObjectId(id));
+}
+
 export const adminStudentsRouter = Router();
 
 adminStudentsRouter.get("/", async (request, response, next) => {
@@ -56,10 +65,10 @@ adminStudentsRouter.get("/", async (request, response, next) => {
 
     if (query.q) {
       filter.$or = [
-        { firstName: { $regex: query.q, $options: "i" } },
-        { lastName: { $regex: query.q, $options: "i" } },
-        { email: { $regex: query.q, $options: "i" } },
-        { phone: { $regex: query.q, $options: "i" } }
+        { firstName: containsText(query.q) },
+        { lastName: containsText(query.q) },
+        { email: containsText(query.q) },
+        { phone: containsText(query.q) }
       ];
     }
 
@@ -71,26 +80,25 @@ adminStudentsRouter.get("/", async (request, response, next) => {
       filter.isActive = query.isActive === "true";
     }
 
-    if (query.classId) {
-      const enrolledStudentIds = await EnrollmentModel.distinct("studentId", {
-        organizationId,
-        classId: query.classId,
-        status: "ACTIVE"
-      });
+    // Every id restriction is intersected: "debtors of class X" must not widen to every debtor.
+    const idRestrictions: unknown[][] = [];
 
-      filter._id = { $in: enrolledStudentIds };
+    if (query.classId) {
+      idRestrictions.push(
+        await EnrollmentModel.distinct("studentId", {
+          organizationId,
+          classId: query.classId,
+          status: "ACTIVE"
+        })
+      );
     }
 
     if (query.debt === "true") {
-      const studentIdsWithDebt = await PaymentModel.distinct("studentId", {
-        organizationId,
-        $or: [
-          { status: "OVERDUE" },
-          { status: "PENDING", dueDate: { $lt: new Date() } }
-        ]
-      });
+      idRestrictions.push(await studentIdsWithOverdueDebt(organizationId));
+    }
 
-      filter._id = { $in: studentIdsWithDebt };
+    if (idRestrictions.length) {
+      filter._id = { $in: intersectIds(idRestrictions) };
     }
 
     const [items, total] = await Promise.all([
@@ -143,19 +151,16 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
       }).sort({ dueDate: -1 })
     ]);
 
-    const now = new Date();
     const financial = payments.reduce(
       (summary, payment) => {
-        if (payment.status === "PAID") {
+        const status = effectivePaymentStatus(payment);
+        if (status === "PAID") {
           summary.paidAmount += payment.amount;
           summary.paidCount += 1;
-        } else if (
-          payment.status === "OVERDUE" ||
-          (payment.status === "PENDING" && payment.dueDate < now)
-        ) {
+        } else if (status === "OVERDUE") {
           summary.overdueAmount += payment.amount;
           summary.overdueCount += 1;
-        } else if (payment.status === "PENDING") {
+        } else if (status === "PENDING") {
           summary.pendingAmount += payment.amount;
           summary.pendingCount += 1;
         }

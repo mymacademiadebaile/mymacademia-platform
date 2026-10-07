@@ -16,6 +16,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
@@ -557,7 +558,7 @@ export function SessionLive({ id }: { id: string }) {
           </select>
         </Field>
         <Field label="Fecha de pago">
-          <input name="paidAt" type="date" defaultValue={data.sessionDate} />
+          <input name="paidAt" type="date" defaultValue={todayInArgentina()} max={todayInArgentina()} />
         </Field>
       </LiveModal>
     </>

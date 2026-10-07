@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { containsText } from "../../common/regex";
 import { Router } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -96,9 +97,9 @@ adminUsersRouter.get("/", async (request, response, next) => {
     if (query.isActive) filter.isActive = query.isActive === "true";
     if (query.q) {
       filter.$or = [
-        { firstName: { $regex: query.q, $options: "i" } },
-        { lastName: { $regex: query.q, $options: "i" } },
-        { email: { $regex: query.q, $options: "i" } }
+        { firstName: containsText(query.q) },
+        { lastName: containsText(query.q) },
+        { email: containsText(query.q) }
       ];
     }
 

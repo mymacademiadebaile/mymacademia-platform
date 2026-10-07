@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { containsText } from "../../common/regex";
 import { z } from "zod";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { pageQuerySchema } from "./admin.schemas";
@@ -17,7 +18,7 @@ adminAuditRouter.get("/", async (request, response, next) => {
     const filter: Record<string, unknown> = { organizationId };
 
     if (query.action) {
-      filter.action = { $regex: query.action, $options: "i" };
+      filter.action = containsText(query.action);
     }
 
     if (query.entityType) {
@@ -26,8 +27,8 @@ adminAuditRouter.get("/", async (request, response, next) => {
 
     if (query.q) {
       filter.$or = [
-        { action: { $regex: query.q, $options: "i" } },
-        { entityType: { $regex: query.q, $options: "i" } }
+        { action: containsText(query.q) },
+        { entityType: containsText(query.q) }
       ];
     }
 
