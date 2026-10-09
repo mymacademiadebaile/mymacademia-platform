@@ -1,70 +1,65 @@
 "use client";
 
-import { CheckCircle2, FileText, RefreshCcw } from "lucide-react";
+import { CheckCircle2, CircleDollarSign, FileText, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
-import { addDays, formatDateOnly, todayInArgentina } from "@/lib/dates";
+import { formatDateOnly, todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "../live/live-common";
-import { PaymentsLive } from "../live/payments-live";
+import { fetchAllPaginated } from "../live/live-common";
+import type { Student } from "../live/live-types";
 import liveStyles from "../live/live.module.css";
 import styles from "../scheduling/calendar.module.css";
-import { METHOD_LABEL, formatMoney } from "../scheduling/scheduling-types";
-import { CHARGE_KIND_LABEL, CHARGE_STATUS_LABEL, type ChargeView, type CollectionView } from "./billing-types";
+import { METHOD_LABEL, formatMoney, newIdempotencyKey, type CollectionMethod } from "../scheduling/scheduling-types";
+import { CHARGE_STATUS_LABEL, type ChargeView, type CollectionView } from "./billing-types";
+import billingStyles from "./billing-live.module.css";
 
-type Tab = "charges" | "monthly" | "collections" | "cash" | "review" | "legacy";
+type Tab = "charges" | "monthly" | "collections" | "review";
 
 const TAB_LABEL: Record<Tab, string> = {
-  charges: "Cargos",
+  charges: "Por cobrar",
   monthly: "Mensualidades",
-  collections: "Cobros",
-  cash: "Caja",
-  review: "Revisión",
-  legacy: "Sistema anterior"
+  collections: "Historial",
+  review: "Revisión"
 };
-
-function statusClass(status: ChargeView["status"]) {
-  if (status === "PAID") return styles.badgeOk;
-  if (status === "OVERDUE") return styles.badgeDanger;
-  if (status === "VOID") return styles.badgeOff;
-  return styles.badgeWarn;
-}
 
 export function BillingLive() {
   const [tab, setTab] = useState<Tab>("charges");
+
   return (
-    <>
-      <PageHeader
-        eyebrow="CAJA Y DEUDAS"
-        title="Pagos"
-        description="Lo que deben los alumnos, lo que ingresó y lo que salió. Para cobrar una clase usá el calendario o la ficha del alumno."
-      />
-      <div className={styles.toolbar}>
-        <div className={styles.viewSwitch} role="tablist" aria-label="Secciones de pagos">
-          {(Object.keys(TAB_LABEL) as Tab[]).map((item) => (
-            <button key={item} role="tab" aria-selected={tab === item} aria-pressed={tab === item} onClick={() => setTab(item)}>
+    <section className={billingStyles.page}>
+      <header className={billingStyles.header}>
+        <h1>Cobros</h1>
+        <p>Consultá lo pendiente, registrá el pago y entregá el recibo. Las mensualidades vigentes se preparan al abrir este mes.</p>
+      </header>
+
+      <div className={billingStyles.navigation}>
+        <div className={billingStyles.tabs} role="tablist" aria-label="Secciones de cobros">
+          {(["charges", "collections"] as const).map((item) => (
+            <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => setTab(item)}>
               {TAB_LABEL[item]}
             </button>
           ))}
         </div>
       </div>
+
       {tab === "charges" && <ChargesTab />}
-      {tab === "monthly" && <MonthlyTab />}
       {tab === "collections" && <CollectionsTab />}
-      {tab === "cash" && <CashTab />}
-      {tab === "review" && <ReviewTab />}
-      {tab === "legacy" && <PaymentsLive />}
-    </>
+    </section>
   );
 }
 
 function ChargesTab() {
+  const { toast } = useAdminFeedback();
   const [period, setPeriod] = useState(todayInArgentina().slice(0, 7));
   const [status, setStatus] = useState("OPEN");
   const [data, setData] = useState<{ items: ChargeView[]; total: number } | null>(null);
   const [error, setError] = useState("");
+  const [collecting, setCollecting] = useState<ChargeView | null>(null);
+  const [manualChargeOpen, setManualChargeOpen] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
@@ -82,33 +77,100 @@ function ChargesTab() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!manualChargeOpen || students.length) return;
+    void fetchAllPaginated<Student>("/admin/students?isActive=true")
+      .then(setStudents)
+      .catch(() => toast({ title: "No se pudo cargar la lista de alumnos", tone: "error" }));
+  }, [manualChargeOpen, students.length, toast]);
+
   const total = (data?.items ?? []).reduce((sum, item) => sum + item.balance, 0);
+
+  async function collect(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!collecting?.student) return;
+
+    const form = new FormData(event.currentTarget);
+    const amount = Number(form.get("amount"));
+    setBusy(true);
+    try {
+      await apiFetch("/admin/billing/collections", {
+        method: "POST",
+        body: JSON.stringify({
+          studentId: collecting.student.id,
+          amount,
+          method: form.get("method"),
+          allocations: [{ chargeId: collecting.id, amount }],
+          idempotencyKey: newIdempotencyKey()
+        })
+      });
+      setCollecting(null);
+      toast({ title: "Cobro registrado", tone: "success" });
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo registrar el cobro", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createManualCharge(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const dueDate = String(form.get("dueDate"));
+    setBusy(true);
+    try {
+      await apiFetch("/admin/billing/charges", {
+        method: "POST",
+        body: JSON.stringify({
+          studentId: form.get("studentId"),
+          kind: "OTHER",
+          concept: form.get("concept"),
+          amount: Number(form.get("amount")),
+          dueDate,
+          period: dueDate.slice(0, 7)
+        })
+      });
+      setManualChargeOpen(false);
+      toast({ title: "Importe agregado", description: "Ya aparece en Por cobrar.", tone: "success" });
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo agregar el importe", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <>
-      <div className={styles.filters}>
-        <input type="month" aria-label="Período" value={period} onChange={(event) => setPeriod(event.target.value)} />
-        <select aria-label="Estado" value={status} onChange={(event) => setStatus(event.target.value)}>
-          <option value="OPEN">Con saldo pendiente</option>
-          <option value="OVERDUE">Vencidos</option>
-          <option value="PARTIAL">Pago parcial</option>
-          <option value="PAID">Pagados</option>
-          <option value="VOID">Anulados</option>
-          <option value="">Todos</option>
-        </select>
-        <span className={styles.sessionMeta} style={{ alignSelf: "center" }}>
-          {data ? `${data.total} cargos · saldo ${formatMoney(total)}` : ""}
-        </span>
+      <div className={billingStyles.controls}>
+        <label>
+          <span>Mes</span>
+          <input type="month" aria-label="Período" value={period} onChange={(event) => setPeriod(event.target.value)} />
+        </label>
+        <label>
+          <span>Ver</span>
+          <select aria-label="Estado" value={status} onChange={(event) => setStatus(event.target.value)}>
+            <option value="OPEN">Pendientes</option>
+            <option value="OVERDUE">Vencidos</option>
+          </select>
+        </label>
+        <p>{data ? `${data.total} ${data.total === 1 ? "pago pendiente" : "pagos pendientes"} · ${formatMoney(total)}` : ""}</p>
+        <button className={billingStyles.manualButton} type="button" onClick={() => setManualChargeOpen(true)}>
+          Agregar importe
+        </button>
       </div>
-      {error ? (
-        <ErrorBlock message={error} onRetry={() => void load()} />
-      ) : !data ? (
-        <LoadingBlock />
-      ) : (
-        <div className={liveStyles.listCard}>
+
+      <section className={billingStyles.list} aria-live="polite">
+        {error ? (
+          <ErrorBlock message={error} onRetry={() => void load()} />
+        ) : !data ? (
+          <LoadingBlock />
+        ) : (
+          <>
           {data.items.map((charge) => (
-            <div key={charge.id} className={liveStyles.listRow}>
-              <div className={liveStyles.rowBody}>
+            <article key={charge.id} className={billingStyles.chargeRow}>
+              <div>
                 <strong>
                   {charge.student ? (
                     <Link href={"/admin/students/" + charge.student.id}>
@@ -116,24 +178,72 @@ function ChargesTab() {
                     </Link>
                   ) : (
                     "Alumno"
-                  )}{" "}
-                  · {charge.concept}
+                  )}
                 </strong>
-                <small>
-                  {CHARGE_KIND_LABEL[charge.kind]} · vence {formatDateOnly(charge.dueDate)} · {formatMoney(charge.owed)}
-                  {charge.paid > 0 && charge.balance > 0 ? " · pagado " + formatMoney(charge.paid) : ""}
-                  {charge.legacy ? " · sistema anterior" : ""}
-                </small>
+                <p>{charge.concept} · vence {formatDateOnly(charge.dueDate)}</p>
               </div>
-              <span className={`${styles.badge} ${statusClass(charge.status)}`}>
-                {CHARGE_STATUS_LABEL[charge.status]}
-                {charge.balance > 0 && charge.status !== "VOID" ? " · " + formatMoney(charge.balance) : ""}
-              </span>
-            </div>
+              <div className={billingStyles.amount}>
+                <strong>{formatMoney(charge.balance)}</strong>
+                <span>{CHARGE_STATUS_LABEL[charge.status]}</span>
+              </div>
+              {charge.student && charge.balance > 0 && charge.status !== "VOID" ? (
+                <button type="button" onClick={() => setCollecting(charge)}><CircleDollarSign size={16} /> Cobrar</button>
+              ) : null}
+            </article>
           ))}
-          {!data.items.length && <p className={styles.emptyDay}>No hay cargos con estos filtros.</p>}
-        </div>
-      )}
+          {!data.items.length && <p className={billingStyles.empty}>No hay pagos {status === "OVERDUE" ? "vencidos" : "pendientes"} este mes.</p>}
+          </>
+        )}
+      </section>
+
+      <LiveModal
+        open={Boolean(collecting)}
+        title="Registrar cobro"
+        description={collecting?.student ? `${collecting.student.firstName} ${collecting.student.lastName} · ${collecting.concept}` : ""}
+        submitting={busy}
+        submitLabel="Confirmar cobro"
+        onClose={() => setCollecting(null)}
+        onSubmit={collect}
+      >
+        <Field label="Importe">
+          <input name="amount" type="number" min="0.01" max={collecting?.balance} step="0.01" defaultValue={collecting?.balance ?? ""} required />
+        </Field>
+        <Field label="Medio de pago">
+          <select name="method" defaultValue="CASH">
+            {(Object.keys(METHOD_LABEL) as CollectionMethod[]).map((method) => (
+              <option key={method} value={method}>{METHOD_LABEL[method]}</option>
+            ))}
+          </select>
+        </Field>
+      </LiveModal>
+
+      <LiveModal
+        open={manualChargeOpen}
+        title="Agregar importe"
+        description="Usalo sólo para un concepto excepcional, como un recargo o una clase anterior."
+        submitting={busy}
+        submitLabel="Agregar a Por cobrar"
+        onClose={() => setManualChargeOpen(false)}
+        onSubmit={createManualCharge}
+      >
+        <Field label="Alumno" wide>
+          <select name="studentId" required defaultValue="">
+            <option value="" disabled>Seleccionar alumno</option>
+            {students.map((student) => (
+              <option key={student._id} value={student._id}>{student.lastName}, {student.firstName}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Concepto" wide>
+          <input name="concept" required minLength={2} maxLength={160} placeholder="Ej.: Clase anterior" />
+        </Field>
+        <Field label="Importe">
+          <input name="amount" type="number" min="0.01" step="0.01" required />
+        </Field>
+        <Field label="Vencimiento">
+          <input name="dueDate" type="date" defaultValue={todayInArgentina()} required />
+        </Field>
+      </LiveModal>
     </>
   );
 }
@@ -275,9 +385,11 @@ function MonthlyTab() {
 }
 
 function CollectionsTab() {
-  const [from, setFrom] = useState(addDays(todayInArgentina(), -30));
-  const [to, setTo] = useState(todayInArgentina());
+  const [period, setPeriod] = useState(todayInArgentina().slice(0, 7));
   const [data, setData] = useState<{ items: CollectionView[]; total: number } | null>(null);
+  const [year, month] = period.split("-").map(Number);
+  const from = `${period}-01`;
+  const to = new Date(year, month, 0).toISOString().slice(0, 10);
 
   useEffect(() => {
     setData(null);
@@ -286,107 +398,34 @@ function CollectionsTab() {
 
   return (
     <>
-      <div className={styles.filters}>
-        <input type="date" aria-label="Desde" value={from} onChange={(event) => setFrom(event.target.value)} />
-        <input type="date" aria-label="Hasta" value={to} onChange={(event) => setTo(event.target.value)} />
+      <div className={billingStyles.controls}>
+        <label>
+          <span>Mes</span>
+          <input type="month" aria-label="Mes" value={period} onChange={(event) => setPeriod(event.target.value)} />
+        </label>
       </div>
       {!data ? (
         <LoadingBlock />
       ) : (
-        <div className={liveStyles.listCard}>
+        <div className={billingStyles.list}>
           {data.items.map((item) => (
-            <div key={item.id} className={liveStyles.listRow}>
-              <div className={liveStyles.rowBody}>
+            <article key={item.id} className={billingStyles.collectionRow}>
+              <div>
                 <strong>
                   <Link href={"/admin/students/" + item.studentId}>
                     {item.student ? `${item.student.firstName} ${item.student.lastName}` : "Alumno"}
-                  </Link>{" "}
-                  · {formatMoney(item.amount)}
+                  </Link>
                 </strong>
-                <small>
-                  {formatDateOnly(item.accountingDate)} · {METHOD_LABEL[item.method]} · {item.receiptNumber ?? "sin recibo"}
-                  {item.credit > 0 ? " · a favor " + formatMoney(item.credit) : ""}
-                  {item.refunded > 0 ? " · devuelto " + formatMoney(item.refunded) : ""}
-                </small>
+                <p>{formatDateOnly(item.accountingDate)} · {METHOD_LABEL[item.method]}</p>
               </div>
+              <strong className={billingStyles.amount}>{formatMoney(item.amount)}</strong>
               <a className={styles.toggle} href={apiUrl("/admin/billing/collections/" + item.id + "/receipt.pdf")} target="_blank" rel="noopener">
                 <FileText size={12} /> Recibo
               </a>
-            </div>
+            </article>
           ))}
-          {!data.items.length && <p className={styles.emptyDay}>No hay cobros en el período.</p>}
+          {!data.items.length && <p className={billingStyles.empty}>No hay cobros registrados este mes.</p>}
         </div>
-      )}
-    </>
-  );
-}
-
-type CashReport = {
-  collected: number;
-  refunded: number;
-  net: number;
-  byDay: Array<{ date: string; collected: number; refunded: number; net: number }>;
-  byMethod: Array<{ method: keyof typeof METHOD_LABEL; collected: number; refunded: number; net: number }>;
-};
-
-function CashTab() {
-  const [from, setFrom] = useState(todayInArgentina().slice(0, 7) + "-01");
-  const [to, setTo] = useState(todayInArgentina());
-  const [data, setData] = useState<CashReport | null>(null);
-
-  useEffect(() => {
-    setData(null);
-    void apiFetch<CashReport>(`/admin/billing/cash?from=${from}&to=${to}`).then(setData).catch(() => setData(null));
-  }, [from, to]);
-
-  return (
-    <>
-      <div className={styles.filters}>
-        <input type="date" aria-label="Desde" value={from} onChange={(event) => setFrom(event.target.value)} />
-        <input type="date" aria-label="Hasta" value={to} onChange={(event) => setTo(event.target.value)} />
-      </div>
-      <p className={styles.sessionMeta}>
-        Cada cobro cuenta el día que ingresó el dinero y cada devolución el día que salió: los días cerrados no cambian. Incluye solo movimientos del sistema nuevo.
-      </p>
-      {!data ? (
-        <LoadingBlock />
-      ) : (
-        <>
-          <div className={styles.infoGrid} style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", margin: "12px 0" }}>
-            <div>
-              <span>Ingresos</span>
-              <strong>{formatMoney(data.collected)}</strong>
-            </div>
-            <div>
-              <span>Devoluciones</span>
-              <strong>{formatMoney(data.refunded)}</strong>
-            </div>
-            <div>
-              <span>Neto</span>
-              <strong>{formatMoney(data.net)}</strong>
-            </div>
-            {data.byMethod.map((item) => (
-              <div key={item.method}>
-                <span>{METHOD_LABEL[item.method] ?? item.method}</span>
-                <strong>{formatMoney(item.net)}</strong>
-              </div>
-            ))}
-          </div>
-          <div className={liveStyles.listCard}>
-            {data.byDay.map((day) => (
-              <div key={day.date} className={liveStyles.listRow}>
-                <div className={liveStyles.rowBody}>
-                  <strong>{formatDateOnly(day.date, { weekday: "long", day: "numeric", month: "long" })}</strong>
-                  <small>
-                    Ingresos {formatMoney(day.collected)} · devoluciones {formatMoney(day.refunded)}
-                  </small>
-                </div>
-                <strong>{formatMoney(day.net)}</strong>
-              </div>
-            ))}
-            {!data.byDay.length && <p className={styles.emptyDay}>Sin movimientos en el período.</p>}
-          </div>
-        </>
       )}
     </>
   );

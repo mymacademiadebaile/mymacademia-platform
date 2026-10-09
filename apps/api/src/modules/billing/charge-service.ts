@@ -48,12 +48,15 @@ export function monthlyDueDate(period: string, dueDay: number, joinedOn?: string
 
 /** List price of a monthly fee or class fee for an enrollment (commercial conditions first). */
 export function priceCents(
-  danceClass: { monthlyPrice?: number; pricePerClass?: number },
-  enrollment: { priceOverride?: { monthlyCents?: number; perClassCents?: number } } | undefined,
+  danceClass: { monthlyPrice?: number; monthlyPrice4?: number; monthlyPrice8?: number; pricePerClass?: number },
+  enrollment: { monthlyPlan?: 4 | 8; priceOverride?: { monthlyCents?: number; perClassCents?: number } } | undefined,
   kind: "MONTHLY_FEE" | "CLASS_FEE"
 ) {
   if (kind === "MONTHLY_FEE") {
-    return enrollment?.priceOverride?.monthlyCents ?? toCents(danceClass.monthlyPrice ?? 0);
+    const packagePrice = enrollment?.monthlyPlan === 8
+      ? danceClass.monthlyPrice8
+      : danceClass.monthlyPrice4;
+    return enrollment?.priceOverride?.monthlyCents ?? toCents(packagePrice ?? danceClass.monthlyPrice ?? 0);
   }
   return enrollment?.priceOverride?.perClassCents ?? toCents(danceClass.pricePerClass ?? 0);
 }
@@ -127,6 +130,7 @@ export async function planMonthlyCharge(
   const listCents = priceCents(danceClass, enrollment, "MONTHLY_FEE");
   let amountCents = listCents;
   let policy: MidMonthPolicy | undefined;
+  const settings = await billingSettings(organizationId);
 
   // Only a partial first month needs a decision; later months are always full. The decision
   // taken when the student enrolled applies to the join month; a mode switch asks again.
@@ -145,7 +149,7 @@ export async function planMonthlyCharge(
   }
   if (listCents <= 0) return { skip: "ZERO_PRICE" };
 
-  const dueDay = options.dueDay ?? (await billingSettings(organizationId)).monthlyDueDay;
+  const dueDay = options.dueDay ?? settings.monthlyDueDay;
   return {
     charge: {
       organizationId: new Types.ObjectId(organizationId),

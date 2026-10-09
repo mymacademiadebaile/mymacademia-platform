@@ -1,0 +1,132 @@
+.page { max-width: 1120px; }
+
+.header { margin: 4px 0 26px; }
+.header h1 {
+  margin: 0;
+  color: #201827;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.header p {
+  max-width: 58ch;
+  margin: 10px 0 0;
+  color: #695f70;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e7e0eb;
+}
+.tabs { display: inline-flex; gap: 4px; }
+.tabs button, .optionsButton, .options button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #665d6c;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+.tabs button { padding: 0 12px; }
+.tabs button[aria-selected="true"] { background: #5b21b6; color: #fff; }
+.optionsButton { padding: 0 4px; text-decoration: underline; text-underline-offset: 3px; }
+.options { display: flex; flex-wrap: wrap; gap: 8px; margin: -8px 0 20px; }
+.options button {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid #dfd6e5;
+  background: #fff;
+  color: #514757;
+  font-size: 11px;
+}
+
+.controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.controls label { display: grid; gap: 5px; }
+.controls label span { color: #746a7a; font-size: 11px; font-weight: 800; }
+.controls input, .controls select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid #ddd5e3;
+  border-radius: 10px;
+  background: #fff;
+  color: #332b39;
+  font-size: 13px;
+}
+.controls p { margin: 0 0 11px 2px; color: #756a7b; font-size: 12px; font-variant-numeric: tabular-nums; }
+.manualButton {
+  min-height: 40px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 1px solid #d9c9ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #5b21b6;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+}
+.manualButton:hover { border-color: #a78bfa; background: #faf8ff; }
+
+.list { overflow: hidden; border: 1px solid #e4dce9; border-radius: 14px; background: #fff; }
+.chargeRow, .collectionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  min-height: 76px;
+  padding: 12px 16px;
+  border-top: 1px solid #eee8f1;
+}
+.chargeRow:first-child, .collectionRow:first-child { border-top: 0; }
+.chargeRow strong, .collectionRow strong { color: #2b2231; font-size: 14px; }
+.chargeRow a, .collectionRow a { color: inherit; text-decoration: none; }
+.chargeRow a:hover, .collectionRow a:hover { color: #5b21b6; text-decoration: underline; text-underline-offset: 3px; }
+.chargeRow p, .collectionRow p { margin: 4px 0 0; color: #746a7a; font-size: 12px; }
+.amount {
+  display: grid;
+  gap: 3px;
+  min-width: 108px;
+  color: #2b2231;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.amount span { color: #8a5a09; font-size: 10px; font-weight: 800; }
+.chargeRow > button {
+  min-height: 38px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 10px;
+  background: #5b21b6;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+}
+.chargeRow > button:hover { background: #4c1d95; }
+.empty { margin: 0; padding: 28px 16px; color: #746a7a; font-size: 13px; text-align: center; }
+.tabs button:focus-visible, .optionsButton:focus-visible, .options button:focus-visible, .chargeRow > button:focus-visible, .controls input:focus-visible, .controls select:focus-visible, .manualButton:focus-visible {
+  outline: 2px solid #6d28d9;
+  outline-offset: 2px;
+}
+
+@media (max-width: 620px) {
+  .header { margin-bottom: 20px; }
+  .navigation { align-items: flex-start; }
+  .tabs button { padding: 0 9px; }
+  .chargeRow, .collectionRow { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .chargeRow > button, .collectionRow > a { grid-column: 1 / -1; width: fit-content; }
+  .amount { min-width: 0; }
+  .manualButton { margin-left: 0; }
+}

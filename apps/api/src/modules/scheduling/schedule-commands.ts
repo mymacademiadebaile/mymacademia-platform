@@ -153,13 +153,19 @@ export async function createScheduleSeries(
   classId: string,
   slot: SlotInput,
   validFrom: string,
-  validTo?: string
+  validTo?: string,
+  options?: { bootstrapLegacySchedules?: boolean }
 ) {
   assertNotRetroactive(validFrom);
   if (validTo && validTo < validFrom) throw new AppError(422, "La vigencia termina antes de empezar", "INVALID_VALIDITY");
   await ensureLocks(actor.organizationId, [RULES_LOCK_KEY]);
   const danceClass = await loadGroup(actor.organizationId, classId);
-  await ensureScheduleRules(actor.organizationId, [danceClass]);
+  // A newly-created class already has its weekly slots in the legacy cache.  When the
+  // caller is about to create the first canonical rules for those slots, bootstrapping
+  // that cache would create a duplicate rule and make the class conflict with itself.
+  if (options?.bootstrapLegacySchedules !== false) {
+    await ensureScheduleRules(actor.organizationId, [danceClass]);
+  }
 
   const rule = await withTransaction(async (dbSession) => {
     await touchLocks(actor.organizationId, [RULES_LOCK_KEY], dbSession);

@@ -1,5 +1,5 @@
-import { ClassesLive } from "@/components/admin/live/classes-live";
+import { redirect } from "next/navigation";
 
 export default function ClassesPage() {
-  return <ClassesLive />;
+  redirect("/admin/calendar");
 }

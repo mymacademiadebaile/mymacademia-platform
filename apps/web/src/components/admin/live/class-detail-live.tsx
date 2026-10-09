@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CircleDollarSign,
   Clock3,
+  Copy,
   Gift,
   Plus,
   Power,
@@ -49,6 +50,7 @@ type Enrollment = {
   studentId: Student;
   enrolledAt: string;
   billingPreference?: BillingPreference;
+  monthlyPlan?: 4 | 8;
 };
 
 type TrialBooking = {
@@ -83,8 +85,23 @@ function billingLabel(danceClass: DanceClass) {
   const mode = normalizedMode(danceClass);
   if (mode === "FREE") return "Sin cargo";
   if (mode === "PER_CLASS") return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " por clase";
-  if (mode === "MONTHLY") return "$ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " mensual";
-  return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " por clase o $ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " mensual";
+  if (mode === "MONTHLY") return monthlyPlansLabel(danceClass);
+  return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " por clase o " + monthlyPlansLabel(danceClass);
+}
+
+function monthlyPlansAvailable(danceClass: DanceClass) {
+  return danceClass.monthlyPrice4 !== undefined || danceClass.monthlyPrice8 !== undefined;
+}
+
+function monthlyPriceFor(danceClass: DanceClass, plan: 4 | 8 = 4) {
+  return plan === 8
+    ? danceClass.monthlyPrice8 ?? danceClass.monthlyPrice ?? 0
+    : danceClass.monthlyPrice4 ?? danceClass.monthlyPrice ?? 0;
+}
+
+function monthlyPlansLabel(danceClass: DanceClass) {
+  if (!monthlyPlansAvailable(danceClass)) return "$ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " mensual";
+  return "$ " + monthlyPriceFor(danceClass, 4).toLocaleString("es-AR") + " / 4 clases · $ " + monthlyPriceFor(danceClass, 8).toLocaleString("es-AR") + " / 8 clases";
 }
 
 function preferenceForClass(danceClass: DanceClass): BillingPreference | undefined {
@@ -115,6 +132,7 @@ export function ClassDetailLive({ id }: { id: string }) {
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
   const [studentId, setStudentId] = useState("");
   const [billingPreference, setBillingPreference] = useState<BillingPreference>("PER_CLASS");
+  const [monthlyPlan, setMonthlyPlan] = useState<4 | 8>(4);
   const [startDate, setStartDate] = useState(todayInArgentina());
   const [joinPolicy, setJoinPolicy] = useState<"" | "FULL" | "PRORATED" | "CUSTOM">("");
   const [joinCustomAmount, setJoinCustomAmount] = useState("");
@@ -150,6 +168,7 @@ export function ClassDetailLive({ id }: { id: string }) {
       setProfessors(professorList.filter((item) => item.isActive));
       setCatalogs(catalogList.filter((item) => item.isActive));
       setBillingPreference(preferenceForClass(classData) ?? "PER_CLASS");
+      setMonthlyPlan(4);
     } catch (requestError) {
       setError(apiMessage(requestError));
     }
@@ -210,6 +229,7 @@ export function ClassDetailLive({ id }: { id: string }) {
           classId: id,
           studentId,
           billingPreference: normalizedMode(danceClass) === "FREE" ? undefined : billingPreference,
+          monthlyPlan: effectiveMode === "MONTHLY" ? monthlyPlan : undefined,
           startDate,
           seriesIds: selectedSeries.length ? selectedSeries : undefined,
           joinPolicy: midMonth ? joinPolicy : undefined,
@@ -217,6 +237,7 @@ export function ClassDetailLive({ id }: { id: string }) {
         })
       });
       setStudentId("");
+      setMonthlyPlan(4);
       setJoinPolicy("");
       setJoinCustomAmount("");
       toast(
@@ -287,13 +308,13 @@ export function ClassDetailLive({ id }: { id: string }) {
     const paymentType = enrollment.billingPreference ?? preferenceForClass(danceClass) ?? "PER_CLASS";
     setChargingEnrollment(enrollment);
     setChargePaymentType(paymentType);
-    setChargeAmount(paymentType === "MONTHLY" ? danceClass.monthlyPrice ?? 0 : danceClass.pricePerClass ?? 0);
+    setChargeAmount(paymentType === "MONTHLY" ? monthlyPriceFor(danceClass, enrollment.monthlyPlan) : danceClass.pricePerClass ?? 0);
   }
 
   function changeChargePaymentType(paymentType: BillingPreference) {
     if (!danceClass) return;
     setChargePaymentType(paymentType);
-    setChargeAmount(paymentType === "MONTHLY" ? danceClass.monthlyPrice ?? 0 : danceClass.pricePerClass ?? 0);
+    setChargeAmount(paymentType === "MONTHLY" ? monthlyPriceFor(danceClass) : danceClass.pricePerClass ?? 0);
   }
 
   async function registerCharge(event: FormEvent<HTMLFormElement>) {
@@ -412,7 +433,8 @@ export function ClassDetailLive({ id }: { id: string }) {
           capacity: Number(form.get("capacity")),
           billingMode: editBillingMode,
           pricePerClass: Number(form.get("pricePerClass") || 0),
-          monthlyPrice: Number(form.get("monthlyPrice") || 0),
+          monthlyPrice4: form.get("monthlyPrice4") === null ? undefined : Number(form.get("monthlyPrice4") || 0),
+          monthlyPrice8: form.get("monthlyPrice8") === null ? undefined : Number(form.get("monthlyPrice8") || 0),
           freeTrialEnabled: form.get("freeTrialEnabled") === "on",
           schedules: editSchedules
         })
@@ -433,11 +455,11 @@ export function ClassDetailLive({ id }: { id: string }) {
     if (!danceClass) return;
     const nextActive = danceClass.status === "INACTIVE" || danceClass.status === "ARCHIVED";
     const approved = await confirm({
-      title: nextActive ? "Reactivar clase" : "Archivar clase",
+      title: nextActive ? "Reactivar clase" : "Inactivar clase",
       description: nextActive
         ? "La clase vuelve a aceptar inscripciones. Cargá sus horarios para que se generen clases."
         : "Desde hoy no se generan más clases y se cierran las inscripciones vigentes. Asistencias, pagos y deudas se conservan.",
-      confirmLabel: nextActive ? "Reactivar" : "Archivar",
+      confirmLabel: nextActive ? "Reactivar" : "Inactivar",
       tone: nextActive ? "default" : "danger"
     });
     if (!approved) return;
@@ -448,7 +470,7 @@ export function ClassDetailLive({ id }: { id: string }) {
         method: "PATCH",
         body: JSON.stringify({ status: nextActive ? "ACTIVE" : "ARCHIVED" })
       });
-      toast(nextActive ? "Clase reactivada" : "Clase archivada");
+      toast(nextActive ? "Clase reactivada" : "Clase inactivada");
       await load();
     } catch (requestError) {
       toast({ title: "No se pudo cambiar el estado", description: apiMessage(requestError), tone: "error" });
@@ -462,7 +484,7 @@ export function ClassDetailLive({ id }: { id: string }) {
 
     const approved = await confirm({
       title: "Eliminar clase definitivamente",
-      description: `Se eliminará ${danceClass.name} de forma permanente. Solo se puede borrar si no tiene inscripciones, pagos, sesiones ni pruebas registradas.`,
+      description: `Se eliminará ${danceClass.name} de forma permanente. Solo se puede borrar si no tiene actividad registrada, como alumnos, cobros, pruebas o clases ya realizadas.`,
       confirmLabel: "Eliminar definitivamente",
       tone: "danger"
     });
@@ -472,7 +494,7 @@ export function ClassDetailLive({ id }: { id: string }) {
     try {
       await apiFetch<void>("/admin/classes/" + id, { method: "DELETE" });
       toast("Clase eliminada definitivamente");
-      router.push("/admin/classes");
+      router.push("/admin/calendar");
     } catch (requestError) {
       toast({
         title: "No se pudo eliminar la clase",
@@ -500,6 +522,16 @@ export function ClassDetailLive({ id }: { id: string }) {
     }
   }
 
+  async function copyClassId() {
+    if (!danceClass) return;
+    try {
+      await navigator.clipboard.writeText(danceClass._id);
+      toast("ID de la clase copiado");
+    } catch {
+      toast({ title: "No se pudo copiar el ID", description: "Seleccioná el identificador para copiarlo manualmente.", tone: "error" });
+    }
+  }
+
   if (!danceClass || !enrollments) {
     return error ? <ErrorBlock message={error} onRetry={() => void load()} /> : <LoadingBlock />;
   }
@@ -512,7 +544,7 @@ export function ClassDetailLive({ id }: { id: string }) {
 
   return (
     <>
-      <Link href="/admin/classes" className={styles.back}><ArrowLeft size={15} /> Volver a clases</Link>
+      <Link href="/admin/calendar" className={styles.back}><ArrowLeft size={15} /> Volver al calendario</Link>
 
       <PageHeader
         eyebrow="GESTIÓN DE CLASE"
@@ -525,15 +557,22 @@ export function ClassDetailLive({ id }: { id: string }) {
       <section className={styles.hero}>
         <div>
           <span className={danceClass.status === "ACTIVE" ? styles.active : styles.inactive}>
-            {danceClass.status === "ACTIVE" ? "Clase activa" : danceClass.status === "PAUSED" ? "Clase en pausa" : "Clase archivada"}
+            {danceClass.status === "ACTIVE" ? "Clase activa" : danceClass.status === "PAUSED" ? "Clase en pausa" : "Clase inactiva"}
           </span>
-          <h2>{danceClass.name}</h2>
+          <div className={styles.classTitleRow}>
+            <h2>{danceClass.name}</h2>
+            <button className={styles.classId} type="button" onClick={() => void copyClassId()} title="Copiar ID de la clase" aria-label="Copiar ID de la clase">
+              <span>ID</span>
+              <code>{danceClass._id}</code>
+              <Copy size={13} aria-hidden="true" />
+            </button>
+          </div>
           <p>{danceClass.professorIds.map(refName).join(", ")} · {billingLabel(danceClass)}{danceClass.freeTrialEnabled ? " · Prueba disponible" : ""}</p>
         </div>
         <div className={styles.heroActions}>
           <button onClick={openEdit}>Editar clase</button>
           <button className={styles.dangerAction} disabled={busy} onClick={() => void toggleStatus()}>
-            <Power size={15} /> {danceClass.status === "INACTIVE" || danceClass.status === "ARCHIVED" ? "Reactivar" : "Archivar"}
+            <Power size={15} /> {danceClass.status === "INACTIVE" || danceClass.status === "ARCHIVED" ? "Reactivar" : "Inactivar"}
           </button>
           <button className={styles.dangerAction} disabled={busy} onClick={() => void deleteClass()}>
             <Trash2 size={15} /> Eliminar
@@ -594,7 +633,7 @@ export function ClassDetailLive({ id }: { id: string }) {
             {mode === "BOTH" && (
               <select value={billingPreference} onChange={(event) => setBillingPreference(event.target.value as BillingPreference)}>
                 <option value="PER_CLASS">Por clase · {"$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR")}</option>
-                <option value="MONTHLY">Mensual · {"$ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR")}</option>
+                <option value="MONTHLY">Mensual · {monthlyPlansLabel(danceClass)}</option>
               </select>
             )}
             <input type="date" aria-label="Fecha de inicio" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
@@ -602,6 +641,14 @@ export function ClassDetailLive({ id }: { id: string }) {
               <Plus size={15} /> Inscribir
             </button>
           </div>
+          {(normalizedMode(danceClass) === "BOTH" ? billingPreference : preferenceForClass(danceClass)) === "MONTHLY" && monthlyPlansAvailable(danceClass) && (
+            <div className={styles.enrollBox}>
+              <select value={monthlyPlan} onChange={(event) => setMonthlyPlan(Number(event.target.value) as 4 | 8)} aria-label="Plan mensual">
+                <option value={4}>Plan de 4 clases · {"$ " + monthlyPriceFor(danceClass, 4).toLocaleString("es-AR")}</option>
+                <option value={8}>Plan de 8 clases · {"$ " + monthlyPriceFor(danceClass, 8).toLocaleString("es-AR")}</option>
+              </select>
+            </div>
+          )}
           {(danceClass.scheduleOccupancy?.length ?? 0) > 1 && (
             <div className={styles.enrollBox}>
               {danceClass.scheduleOccupancy!.map((slot) => (
@@ -696,7 +743,7 @@ export function ClassDetailLive({ id }: { id: string }) {
                   <span>{enrollment.studentId.firstName[0]}{enrollment.studentId.lastName[0]}</span>
                   <span>
                     <strong>{enrollment.studentId.firstName} {enrollment.studentId.lastName}</strong>
-                    <small>{preferenceLabel(enrollment.billingPreference ?? preferenceForClass(danceClass))} · {enrollment.studentId.phone || enrollment.studentId.email || "Sin contacto"}</small>
+                    <small>{preferenceLabel(enrollment.billingPreference ?? preferenceForClass(danceClass))}{enrollment.billingPreference === "MONTHLY" && enrollment.monthlyPlan ? " · " + enrollment.monthlyPlan + " clases" : ""} · {enrollment.studentId.phone || enrollment.studentId.email || "Sin contacto"}</small>
                   </span>
                 </Link>
                 {mode === "BOTH" && (
@@ -791,9 +838,14 @@ export function ClassDetailLive({ id }: { id: string }) {
           </Field>
         )}
         {(editBillingMode === "MONTHLY" || editBillingMode === "BOTH") && (
-          <Field label="Precio mensual (ARS)">
-            <input name="monthlyPrice" type="number" min={1} step="1" defaultValue={danceClass.monthlyPrice ?? 0} required />
-          </Field>
+          <>
+            <Field label="Mensual · 4 clases (ARS)">
+              <input name="monthlyPrice4" type="number" min={1} step="1" defaultValue={monthlyPriceFor(danceClass, 4)} required />
+            </Field>
+            <Field label="Mensual · 8 clases (ARS)">
+              <input name="monthlyPrice8" type="number" min={1} step="1" defaultValue={monthlyPriceFor(danceClass, 8)} required />
+            </Field>
+          </>
         )}
         <Field label="Clase de prueba" wide>
           <label className={styles.switchRow}>

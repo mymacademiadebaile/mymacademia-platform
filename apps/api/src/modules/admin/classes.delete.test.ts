@@ -11,6 +11,9 @@ import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { StudentModel } from "../students/student.model";
+import { ClassSessionModel } from "../sessions/class-session.model";
+import { ClassScheduleModel } from "../scheduling/class-schedule.model";
+import { academyNow, addDays } from "../../common/dates";
 
 let mongod: MongoMemoryServer;
 const app = createApp();
@@ -66,6 +69,36 @@ describe("DELETE /admin/classes/:id", () => {
       organizationId,
       metadata: expect.objectContaining({ name: danceClass.name })
     });
+  });
+
+  it("removes a new class together with its automatically generated future sessions", async () => {
+    const danceClass = await createClass();
+    const sessionDate = addDays(academyNow().date, 7);
+    await ClassScheduleModel.create({
+      organizationId,
+      branchId,
+      classId: danceClass._id,
+      seriesId: new Types.ObjectId(),
+      day: "TUESDAY",
+      startTime: "18:00",
+      endTime: "19:00",
+      validFrom: academyNow().date
+    });
+    await ClassSessionModel.create({
+      organizationId,
+      branchId,
+      classId: danceClass._id,
+      sessionDate,
+      startTime: "18:00",
+      endTime: "19:00"
+    });
+
+    const response = await deleteClass(danceClass._id);
+
+    expect(response.status).toBe(204);
+    expect(await DanceClassModel.findById(danceClass._id)).toBeNull();
+    expect(await ClassScheduleModel.countDocuments({ classId: danceClass._id })).toBe(0);
+    expect(await ClassSessionModel.countDocuments({ classId: danceClass._id })).toBe(0);
   });
 
   it("protects a class that already has enrollment history", async () => {

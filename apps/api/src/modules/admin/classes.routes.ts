@@ -1,19 +1,23 @@
 import { BILLING_MODES, WEEK_DAYS } from "@mym/shared";
 import { containsText } from "../../common/regex";
 import { Router } from "express";
-import { Types } from "mongoose";
+import { Types, type HydratedDocument } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { UserModel } from "../auth/user.model";
+import { ChargeModel } from "../billing/charge.model";
 import { CatalogItemModel } from "../catalogs/catalog.model";
-import { DanceClassModel } from "../classes/class.model";
+import { DanceClassModel, type DanceClass } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { enrollmentReconciliation } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { PaymentModel } from "../payments/payment.model";
 import { ProfessorModel } from "../professors/professor.model";
+import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
+import { SessionBookingModel } from "../sessions/session-booking.model";
+import { ClassScheduleModel } from "../scheduling/class-schedule.model";
 import { TrialBookingModel } from "../trials/trial-booking.model";
 import { academyNow } from "../../common/dates";
 import { isArchivedStatus } from "../classes/class.model";
@@ -25,6 +29,7 @@ import {
   resumeGroup
 } from "../scheduling/schedule-commands";
 import { ensureScheduleRules, loadRules, ruleCoversDate, slotKey } from "../scheduling/schedule-service";
+import { assertNoConflicts, assertUsableSpace, findRuleConflicts } from "../scheduling/conflict-service";
 import { calendarDateSchema, objectIdSchema } from "./admin.schemas";
 
 const scheduleSchema = z.object({
@@ -47,6 +52,8 @@ const classBodySchema = z.object({
   billingMode: z.enum(BILLING_MODES).default("PER_CLASS"),
   pricePerClass: z.number().min(0).max(100000000).default(0),
   monthlyPrice: z.number().min(0).max(100000000).default(0),
+  monthlyPrice4: z.number().min(0).max(100000000).optional(),
+  monthlyPrice8: z.number().min(0).max(100000000).optional(),
   freeTrialEnabled: z.boolean().default(false),
   schedules: z.array(scheduleSchema).min(1).max(14),
   /** First day of the recurring schedule (default today). */
@@ -58,6 +65,14 @@ const classBodySchema = z.object({
 }).superRefine((value, context) => {
   if (value.startDate && value.endDate && value.endDate < value.startDate) {
     context.addIssue({ code: "custom", path: ["endDate"], message: "La fecha de fin debe ser posterior al inicio" });
+  }
+  if (["MONTHLY", "BOTH"].includes(value.billingMode)) {
+    if (!value.monthlyPrice4 || value.monthlyPrice4 <= 0) {
+      context.addIssue({ code: "custom", path: ["monthlyPrice4"], message: "Indicá el precio del plan mensual de 4 clases" });
+    }
+    if (!value.monthlyPrice8 || value.monthlyPrice8 <= 0) {
+      context.addIssue({ code: "custom", path: ["monthlyPrice8"], message: "Indicá el precio del plan mensual de 8 clases" });
+    }
   }
   const keys = new Set<string>();
 
@@ -71,6 +86,21 @@ const classBodySchema = z.object({
       });
     }
     keys.add(key);
+
+    const overlapsAnotherSlot = value.schedules.some(
+      (other, otherIndex) =>
+        otherIndex !== index &&
+        other.day === schedule.day &&
+        other.startTime < schedule.endTime &&
+        schedule.startTime < other.endTime
+    );
+    if (overlapsAnotherSlot) {
+      context.addIssue({
+        code: "custom",
+        path: ["schedules", index],
+        message: "Los horarios de la misma clase no pueden superponerse"
+      });
+    }
   });
 });
 
@@ -85,6 +115,8 @@ const updateDanceClassSchema = z.object({
   billingMode: z.enum(BILLING_MODES).optional(),
   pricePerClass: z.number().min(0).max(100000000).optional(),
   monthlyPrice: z.number().min(0).max(100000000).optional(),
+  monthlyPrice4: z.number().min(0).max(100000000).nullable().optional(),
+  monthlyPrice8: z.number().min(0).max(100000000).nullable().optional(),
   freeTrialEnabled: z.boolean().optional(),
   schedules: z.array(scheduleSchema).min(1).max(14).optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "ARCHIVED"]).optional(),
@@ -370,29 +402,83 @@ adminClassesRouter.post("/", async (request, response, next) => {
       input.schedules
     );
 
-    const { startDate, endDate, defaultSpaceId, ...fields } = input;
-    const item = await DanceClassModel.create({
-      organizationId,
-      ...fields,
-      defaultSpaceId,
-      status: "ACTIVE"
-    });
-
-    // Recurring schedule with validity. A plain creation starts today and has no end.
+    const { startDate, endDate, defaultSpaceId, monthlyPrice4, monthlyPrice8, ...fields } = input;
     const today = academyNow().date;
-    if (startDate || endDate || defaultSpaceId) {
-      for (const slot of input.schedules) {
-        await createScheduleSeries(
-          actorOf(request),
-          item.id,
-          { ...slot, spaceId: defaultSpaceId },
-          startDate && startDate > today ? startDate : today,
-          endDate
-        );
-      }
-    } else {
-      await ensureScheduleRules(organizationId, [item.toObject() as any]);
+    const validFrom = startDate && startDate > today ? startDate : today;
+
+    // Older groups are lazily migrated to rules.  Do that before checking a new
+    // group so the validation sees both the professor and the physical pista.
+    const activeGroups = await DanceClassModel.find({
+      organizationId,
+      status: "ACTIVE",
+      "schedules.0": { $exists: true }
+    })
+      .select("_id organizationId branchId schedules createdAt")
+      .lean<any[]>();
+    await ensureScheduleRules(organizationId, activeGroups);
+
+    if (defaultSpaceId) {
+      await assertUsableSpace(organizationId, defaultSpaceId, new Types.ObjectId(input.branchId));
     }
+    for (const slot of input.schedules) {
+      assertNoConflicts(
+        await findRuleConflicts(organizationId, {
+          day: slot.day,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          validFrom,
+          validTo: endDate,
+          spaceId: defaultSpaceId,
+          professorIds: input.professorIds
+        })
+      );
+    }
+
+    let item: HydratedDocument<DanceClass> | undefined;
+    try {
+      item = await DanceClassModel.create({
+        organizationId,
+        ...fields,
+        ...(["MONTHLY", "BOTH"].includes(input.billingMode)
+          ? { monthlyPrice: monthlyPrice4 ?? fields.monthlyPrice, monthlyPrice4, monthlyPrice8 }
+          : {}),
+        defaultSpaceId,
+        status: "ACTIVE"
+      });
+
+      // Recurring schedule with validity. A plain creation starts today and has no end.
+      if (startDate || endDate || defaultSpaceId) {
+        for (const slot of input.schedules) {
+          await createScheduleSeries(
+            actorOf(request),
+            item.id,
+            { ...slot, spaceId: defaultSpaceId },
+            validFrom,
+            endDate,
+            // `item.schedules` is the cache that was just submitted.  Do not bootstrap
+            // it before creating this first real rule or the group would conflict with
+            // its own newly-created schedule.
+            { bootstrapLegacySchedules: false }
+          );
+        }
+      } else {
+        await ensureScheduleRules(organizationId, [item.toObject() as any]);
+      }
+    } catch (error) {
+      // A failed creation must never leave a group that is invisible to the user but
+      // blocks the same professor or pista on a later attempt.
+      if (item) {
+        await Promise.all([
+          ClassSessionModel.deleteMany({ organizationId, classId: item._id }),
+          ClassScheduleModel.deleteMany({ organizationId, classId: item._id }),
+          AuditLogModel.deleteMany({ organizationId, entityId: item._id, action: "SCHEDULE_SERIES_CREATED" })
+        ]).catch(() => undefined);
+        await DanceClassModel.deleteOne({ _id: item._id, organizationId }).catch(() => undefined);
+      }
+      throw error;
+    }
+
+    if (!item) throw new AppError(500, "No se pudo crear la clase", "CLASS_CREATE_FAILED");
 
     await AuditLogModel.create({
       organizationId,
@@ -470,6 +556,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
       billingMode: item.billingMode ?? "MONTHLY",
       pricePerClass: item.pricePerClass ?? 0,
       monthlyPrice: item.monthlyPrice ?? 0,
+      monthlyPrice4: item.monthlyPrice4 ?? null,
+      monthlyPrice8: item.monthlyPrice8 ?? null,
       freeTrialEnabled: item.freeTrialEnabled ?? false,
       schedules: item.schedules,
       status: item.status,
@@ -501,6 +589,11 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
     if (input.billingMode !== undefined) item.billingMode = input.billingMode;
     if (input.pricePerClass !== undefined) item.pricePerClass = input.pricePerClass;
     if (input.monthlyPrice !== undefined) item.monthlyPrice = input.monthlyPrice;
+    if (input.monthlyPrice4 !== undefined) {
+      item.monthlyPrice4 = input.monthlyPrice4 ?? undefined;
+      if (input.monthlyPrice4 !== null) item.monthlyPrice = input.monthlyPrice4;
+    }
+    if (input.monthlyPrice8 !== undefined) item.monthlyPrice8 = input.monthlyPrice8 ?? undefined;
     if (input.freeTrialEnabled !== undefined) item.freeTrialEnabled = input.freeTrialEnabled;
     const archiving = (input.status === "INACTIVE" || input.status === "ARCHIVED") && !isArchivedStatus(item.status);
     const unarchiving = input.status === "ACTIVE" && isArchivedStatus(item.status);
@@ -561,6 +654,8 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
           billingMode: item.billingMode ?? "MONTHLY",
           pricePerClass: item.pricePerClass ?? 0,
           monthlyPrice: item.monthlyPrice ?? 0,
+          monthlyPrice4: item.monthlyPrice4 ?? null,
+          monthlyPrice8: item.monthlyPrice8 ?? null,
           freeTrialEnabled: item.freeTrialEnabled ?? false,
           schedules: item.schedules,
           status: item.status,
@@ -588,34 +683,53 @@ adminClassesRouter.delete("/:id", async (request, response, next) => {
       throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
     }
 
-    // A class can be safely removed only before it has generated academic or
-    // financial history. Keeping these records prevents broken references and
-    // preserves the academy's audit trail.
-    const [enrollmentCount, paymentCount, sessionCount, trialCount] = await Promise.all([
+    // Future sessions are generated automatically when a class is created; they are planning
+    // data, not history. A new class must remain removable until it has real activity.
+    const now = academyNow();
+    const sessions = await ClassSessionModel.find({ organizationId, classId: item._id })
+      .select("_id sessionDate startTime status")
+      .lean();
+    const sessionIds = sessions.map((session) => session._id);
+    const pastOrStartedSessions = sessions.filter(
+      (session) =>
+        session.sessionDate < now.date ||
+        (session.sessionDate === now.date && session.startTime <= now.time) ||
+        ["IN_PROGRESS", "COMPLETED"].includes(session.status)
+    );
+
+    const [enrollmentCount, paymentCount, chargeCount, trialCount, attendanceCount, bookingCount] = await Promise.all([
       EnrollmentModel.countDocuments({ organizationId, classId: item._id }),
       PaymentModel.countDocuments({ organizationId, classId: item._id }),
-      ClassSessionModel.countDocuments({ organizationId, classId: item._id }),
-      TrialBookingModel.countDocuments({ organizationId, classId: item._id })
+      ChargeModel.countDocuments({ organizationId, classId: item._id }),
+      TrialBookingModel.countDocuments({ organizationId, classId: item._id }),
+      sessionIds.length ? ClassAttendanceModel.countDocuments({ organizationId, sessionId: { $in: sessionIds } }) : 0,
+      sessionIds.length ? SessionBookingModel.countDocuments({ organizationId, sessionId: { $in: sessionIds } }) : 0
     ]);
 
     const dependencies = [
-      [enrollmentCount, "inscripción"],
-      [paymentCount, "pago"],
-      [sessionCount, "sesión"],
-      [trialCount, "prueba"]
+      [enrollmentCount, "inscripción", "inscripciones"],
+      [paymentCount, "pago", "pagos"],
+      [chargeCount, "cargo", "cargos"],
+      [trialCount, "prueba", "pruebas"],
+      [pastOrStartedSessions.length, "sesión anterior", "sesiones anteriores"],
+      [attendanceCount + bookingCount, "registro de alumno en una sesión", "registros de alumnos en sesiones"]
     ] as const;
     const history = dependencies
       .filter(([count]) => count > 0)
-      .map(([count, label]) => `${count} ${label}${count === 1 ? "" : "s"}`);
+      .map(([count, singular, plural]) => `${count} ${count === 1 ? singular : plural}`);
 
     if (history.length > 0) {
       throw new AppError(
         409,
-        `No se puede eliminar la clase porque tiene historial asociado: ${history.join(", ")}. Podés inactivarla para conservar ese historial.`,
+        `No se puede eliminar la clase porque tiene historial asociado: ${history.join(", ")}. Usá “Inactivar clase” para retirarla de la operación futura y conservar ese historial.`,
         "CLASS_HAS_HISTORY"
       );
     }
 
+    // There is no academic activity, so discard the generated planning records together with
+    // the class. Removing rules first prevents a concurrent generator from recreating sessions.
+    await ClassScheduleModel.deleteMany({ organizationId, classId: item._id });
+    if (sessionIds.length) await ClassSessionModel.deleteMany({ organizationId, _id: { $in: sessionIds } });
     await item.deleteOne();
 
     await AuditLogModel.create({

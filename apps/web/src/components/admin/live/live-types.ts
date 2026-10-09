@@ -80,6 +80,8 @@ export type DanceClass = {
   billingMode?: BillingMode;
   pricePerClass?: number;
   monthlyPrice: number;
+  monthlyPrice4?: number;
+  monthlyPrice8?: number;
   freeTrialEnabled: boolean;
   activeEnrollmentCount?: number;
   schedules: Array<{

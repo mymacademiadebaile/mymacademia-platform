@@ -14,7 +14,8 @@ import { ATTENDANCE_STATUSES } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { SessionBookingModel } from "../sessions/session-booking.model";
 import { assertCancellationWindow } from "../sessions/session-booking-service";
-import { loadSessionParticipants, setSessionAttendance } from "../sessions/session-service";
+import { loadSessionParticipants, resolvedBillingPreference, setSessionAttendance } from "../sessions/session-service";
+import { billingModeOn } from "../enrollments/enrollment-validity";
 import {
   assertSeatAvailable,
   ensureLocks,
@@ -266,7 +267,26 @@ adminSessionsRouter.patch("/:id/attendance/:studentId", async (request, response
     }
 
     const attendance = await setSessionAttendance(organizationId, session, studentId, status, request.auth!.userId);
-    response.json(attendance);
+
+    // A per-class obligation begins with confirmed attendance, never merely with enrollment.
+    // Monthly and free students keep their usual coverage and trials remain free.
+    let chargeCreated = false;
+    if (status === "PRESENT" && attendance.participantType !== "TRIAL") {
+      const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId }).lean<any>();
+      const enrollment = attendance.enrollmentId
+        ? await EnrollmentModel.findOne({ _id: attendance.enrollmentId, organizationId }).lean<any>()
+        : null;
+      const billingType = danceClass
+        ? resolvedBillingPreference(danceClass, enrollment ? billingModeOn(enrollment, session.sessionDate) : "PER_CLASS")
+        : "FREE";
+
+      if (billingType === "PER_CLASS") {
+        const result = await ensureClassCharge(actorOf(request), id, studentId);
+        chargeCreated = Boolean(!result.covered && result.created);
+      }
+    }
+
+    response.json({ ...attendance.toObject(), chargeCreated });
   } catch (error) {
     next(error);
   }

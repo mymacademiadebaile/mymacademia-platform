@@ -4,6 +4,8 @@ import {
   ArrowLeft,
   CalendarDays,
   CircleDollarSign,
+  Download,
+  FileText,
   Mail,
   MessageCircle,
   Plus,
@@ -13,9 +15,8 @@ import {
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
-import { apiFetch, apiMessage } from "@/lib/api";
+import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
 import { formatDateOnly, todayInArgentina } from "@/lib/dates";
-import { StudentAccountPanel } from "../billing/student-account-panel";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type {
   BillingPreference,
@@ -87,6 +88,16 @@ function billingPreferenceLabel(
   return preference === "MONTHLY" ? "Mensual" : "Por clase";
 }
 
+function monthlyPlansAvailable(danceClass?: DanceClass) {
+  return danceClass?.monthlyPrice4 !== undefined || danceClass?.monthlyPrice8 !== undefined;
+}
+
+function monthlyPriceFor(danceClass: DanceClass, plan: 4 | 8) {
+  return plan === 8
+    ? danceClass.monthlyPrice8 ?? danceClass.monthlyPrice ?? 0
+    : danceClass.monthlyPrice4 ?? danceClass.monthlyPrice ?? 0;
+}
+
 function paymentReference(payment: Payment) {
   if ((payment.paymentType ?? "MONTHLY") === "PER_CLASS" && payment.classDate) {
     return formatDateOnly(payment.classDate);
@@ -118,6 +129,7 @@ export function StudentDetailLive({ id }: { id: string }) {
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedBillingPreference, setSelectedBillingPreference] =
     useState<BillingPreference>("PER_CLASS");
+  const [selectedMonthlyPlan, setSelectedMonthlyPlan] = useState<4 | 8>(4);
   const [selectedScheduleKeys, setSelectedScheduleKeys] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -168,6 +180,7 @@ export function StudentDetailLive({ id }: { id: string }) {
   function openEnrollmentModal() {
     setSelectedClassId("");
     setSelectedBillingPreference("PER_CLASS");
+    setSelectedMonthlyPlan(4);
     setSelectedScheduleKeys([]);
     setEnrollModal(true);
   }
@@ -176,6 +189,7 @@ export function StudentDetailLive({ id }: { id: string }) {
     const danceClass = availableClasses.find((item) => item._id === classId);
     setSelectedClassId(classId);
     setSelectedBillingPreference(defaultBillingPreference(danceClass));
+    setSelectedMonthlyPlan(4);
     setSelectedScheduleKeys(danceClass?.schedules[0] ? [scheduleKey(danceClass.schedules[0])] : []);
   }
 
@@ -261,6 +275,7 @@ export function StudentDetailLive({ id }: { id: string }) {
             classBillingMode(selectedClass) === "FREE"
               ? undefined
               : selectedBillingPreference,
+          monthlyPlan: selectedBillingPreference === "MONTHLY" ? selectedMonthlyPlan : undefined,
           scheduleKeys: selectedScheduleKeys
         })
       });
@@ -357,6 +372,51 @@ export function StudentDetailLive({ id }: { id: string }) {
     }
   }
 
+  async function emailReceipt(paymentId: string) {
+    setBusy(true);
+    setError("");
+
+    try {
+      await apiFetch(`/admin/payments/${paymentId}/receipt/email`, { method: "POST" });
+      toast("Recibo enviado por email");
+    } catch (requestError) {
+      const message = apiMessage(requestError);
+      setError(message);
+      toast({ title: "No se pudo enviar el recibo", description: message, tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function downloadReceipt(payment: Payment) {
+    const link = document.createElement("a");
+    link.href = apiUrl(`/admin/payments/${payment._id}/receipt.pdf?download=1`);
+    link.download = `${payment.receiptNumber ?? "recibo"}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function shareReceiptWhatsApp(payment: Payment) {
+    if (!data?.student.phone) return;
+
+    const phone = data.student.phone.replace(/\D/g, "");
+    const text = `Hola ${data.student.firstName}, te compartimos el recibo ${payment.receiptNumber ?? "de pago"} por $ ${payment.amount.toLocaleString("es-AR")} correspondiente a ${payment.concept}.`;
+    const chat = window.open(
+      `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`,
+      "_blank"
+    );
+    if (chat) chat.opener = null;
+
+    downloadReceipt(payment);
+    toast({
+      title: chat ? "WhatsApp Web abierto" : "Recibo descargado",
+      description: chat
+        ? "El PDF se descargó para que lo adjuntes en el chat abierto."
+        : "Permití las ventanas emergentes para abrir WhatsApp Web y adjuntá este PDF al chat."
+    });
+  }
+
   if (!data) {
     return error ? <ErrorBlock message={error} onRetry={() => void load()} /> : <LoadingBlock />;
   }
@@ -409,8 +469,6 @@ export function StudentDetailLive({ id }: { id: string }) {
         <article data-tone="danger"><span>Vencido</span><strong>$ {financial.overdueAmount.toLocaleString("es-AR")}</strong><small>{financial.overdueCount} pagos</small></article>
         <article><span>Clases activas</span><strong>{activeEnrollments.length}</strong><small>inscripciones actuales</small></article>
       </div>
-
-      <StudentAccountPanel studentId={id} onChanged={() => void load()} />
 
       <div className={styles.grid}>
         <section className={styles.card}>
@@ -470,7 +528,7 @@ export function StudentDetailLive({ id }: { id: string }) {
 
           <div className={styles.paymentTable}>
             <div className={styles.paymentHead}>
-              <span>Concepto</span><span>Fecha / período</span><span>Vencimiento</span><span>Importe</span><span>Estado</span><span />
+              <span>Concepto</span><span>Fecha / período</span><span>Vencimiento</span><span>Importe</span><span>Estado</span><span>Acciones</span>
             </div>
             {data.payments.length === 0 && <p className={styles.empty}>Todavía no tiene pagos registrados.</p>}
             {data.payments.map((payment) => {
@@ -493,6 +551,34 @@ export function StudentDetailLive({ id }: { id: string }) {
                     )}
                     {status !== "PAID" && status !== "CANCELLED" && student.email && (
                       <button disabled={busy} onClick={() => void remind(payment._id)}>Recordar</button>
+                    )}
+                    {status === "PAID" && (
+                      <>
+                        <a
+                          href={apiUrl(`/admin/payments/${payment._id}/receipt.pdf`)}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Ver recibo"
+                        >
+                          <FileText size={13} /> Ver recibo
+                        </a>
+                        <a
+                          href={apiUrl(`/admin/payments/${payment._id}/receipt.pdf?download=1`)}
+                          title="Descargar recibo"
+                        >
+                          <Download size={13} /> Descargar
+                        </a>
+                        {student.email && (
+                          <button disabled={busy} onClick={() => void emailReceipt(payment._id)} title={`Enviar recibo a ${student.email}`}>
+                            <Mail size={13} /> Email
+                          </button>
+                        )}
+                        {student.phone && (
+                          <button onClick={() => shareReceiptWhatsApp(payment)} title="Abrir WhatsApp Web y descargar el recibo para adjuntarlo">
+                            <MessageCircle size={13} /> WhatsApp
+                          </button>
+                        )}
+                      </>
                     )}
                   </span>
                 </div>
@@ -569,6 +655,15 @@ export function StudentDetailLive({ id }: { id: string }) {
           <div className={styles.modalHint}>
             Modalidad de esta clase: {billingPreferenceLabel(selectedClass, selectedBillingPreference)}.
           </div>
+        )}
+
+        {selectedClass && selectedBillingPreference === "MONTHLY" && monthlyPlansAvailable(selectedClass) && (
+          <Field label="Plan mensual" wide>
+            <select value={selectedMonthlyPlan} onChange={(event) => setSelectedMonthlyPlan(Number(event.target.value) as 4 | 8)}>
+              <option value={4}>4 clases · {"$ " + monthlyPriceFor(selectedClass, 4).toLocaleString("es-AR")}</option>
+              <option value={8}>8 clases · {"$ " + monthlyPriceFor(selectedClass, 8).toLocaleString("es-AR")}</option>
+            </select>
+          </Field>
         )}
 
         {selectedClass && (

@@ -23,6 +23,7 @@ import { StudentModel } from "../students/student.model";
 import { calendarDateSchema, objectIdSchema } from "./admin.schemas";
 
 const billingPreferenceSchema = z.enum(["PER_CLASS", "MONTHLY"]);
+const monthlyPlanSchema = z.union([z.literal(4), z.literal(8)]);
 const priceOverrideSchema = z.object({
   monthly: z.number().min(0).max(100_000_000).optional().nullable(),
   perClass: z.number().min(0).max(100_000_000).optional().nullable(),
@@ -33,6 +34,7 @@ const createEnrollmentSchema = z.object({
   classId: objectIdSchema,
   studentId: objectIdSchema,
   billingPreference: billingPreferenceSchema.optional(),
+  monthlyPlan: monthlyPlanSchema.optional(),
   /** Legacy slot keys ("DAY:HH:MM:HH:MM"); `seriesIds` is preferred. */
   scheduleKeys: z.array(z.string().min(1).max(64)).min(1).max(14).optional(),
   seriesIds: z.array(objectIdSchema).min(1).max(14).optional(),
@@ -177,10 +179,14 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
       await assertSeriesCapacity(organizationId, danceClass, seriesIds, rules, dbSession, existing?._id);
 
       const billingPreference = resolveBillingPreference(danceClass.billingMode, input.billingPreference, existing?.billingPreference);
+      const monthlyPlan = billingPreference === "MONTHLY" && input.monthlyPlan !== undefined
+        ? input.monthlyPlan
+        : undefined;
       const conditions = {
         branchId: danceClass.branchId,
         seriesIds,
         scheduleKeys: keysOf(rules, seriesIds),
+        ...(monthlyPlan ? { monthlyPlan } : {}),
         ...(input.priceOverride ? { priceOverride: priceOverrideCents(input.priceOverride) } : {}),
         ...(input.joinPolicy ? { joinPolicy: input.joinPolicy } : {}),
         ...(input.joinCustomAmount !== undefined ? { joinCustomCents: toCents(input.joinCustomAmount) } : {})
@@ -212,7 +218,7 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
           action: existing ? "ENROLLMENT_REACTIVATED" : "ENROLLMENT_CREATED",
           entityType: "Enrollment",
           entityId: saved._id,
-          metadata: { classId: danceClass._id, studentId: student._id, startDate, billingPreference, seriesIds, joinPolicy: input.joinPolicy }
+          metadata: { classId: danceClass._id, studentId: student._id, startDate, billingPreference, monthlyPlan, seriesIds, joinPolicy: input.joinPolicy }
         }],
         { session: dbSession }
       );

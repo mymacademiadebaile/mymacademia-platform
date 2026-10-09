@@ -301,9 +301,9 @@
 
 .paymentHead,
 .paymentRow {
-  min-width: 820px;
+  min-width: 930px;
   display: grid;
-  grid-template-columns: 1.25fr .8fr .9fr .8fr .7fr 1.1fr;
+  grid-template-columns: 1.2fr .75fr .85fr .72fr .65fr 1.65fr;
   gap: 10px;
   align-items: center;
 }
@@ -351,9 +351,11 @@
 .rowActions {
   display: flex;
   gap: 5px;
+  flex-wrap: wrap;
 }
 
-.rowActions button {
+.rowActions button,
+.rowActions a {
   min-height: 30px;
   padding: 0 7px;
   border: 1px solid #e6deeb;
@@ -363,7 +365,14 @@
   font-size: 9px;
   font-weight: 800;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
 }
+
+.rowActions button:hover,
+.rowActions a:hover { background: #faf8ff; border-color: #c4b5fd; }
 
 @media (max-width: 1000px) {
   .financialGrid {

@@ -37,6 +37,8 @@ export interface Enrollment {
   studentId: Types.ObjectId;
   /** Current billing mode. History lives in `billingChanges`. */
   billingPreference?: PaymentType;
+  /** Selected monthly package when the class offers 4- and 8-class alternatives. */
+  monthlyPlan?: 4 | 8;
   billingChanges: BillingChange[];
   /**
    * Legacy recurring slot selection ("DAY:HH:MM:HH:MM"). Empty means every slot.
@@ -81,6 +83,7 @@ const enrollmentSchema = new Schema<Enrollment>(
     classId: { type: Schema.Types.ObjectId, ref: "DanceClass", required: true, index: true },
     studentId: { type: Schema.Types.ObjectId, ref: "Student", required: true, index: true },
     billingPreference: { type: String, enum: PAYMENT_TYPES },
+    monthlyPlan: { type: Number, enum: [4, 8] },
     billingChanges: { type: [billingChangeSchema], default: [] },
     scheduleKeys: { type: [String], default: [] },
     seriesIds: { type: [Schema.Types.ObjectId], default: [] },

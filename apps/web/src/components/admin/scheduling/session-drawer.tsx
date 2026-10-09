@@ -344,6 +344,9 @@ export function SessionDrawer({
                 <Link className={styles.actionButton} href={"/admin/sessions/" + sessionId}>
                   <ExternalLink size={14} /> Ver completa
                 </Link>
+                <Link className={styles.actionButton} href={"/admin/classes/" + data.class.id}>
+                  <Pencil size={14} /> Gestionar clase
+                </Link>
               </div>
 
               <div className={styles.infoGrid}>

@@ -39,6 +39,55 @@
   font-size: 23px;
 }
 
+.classTitleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+}
+
+.classTitleRow h2 {
+  margin-bottom: 3px;
+}
+
+.classId {
+  min-height: 27px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 8px;
+  background: rgba(17,8,29,.24);
+  color: #f2eaff;
+  cursor: pointer;
+}
+
+.classId span {
+  color: #d8c6ef;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.classId code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.classId svg {
+  color: #e9ddff;
+}
+
+.classId:hover {
+  background: rgba(255,255,255,.16);
+}
+
+.classId:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
 .hero p {
   margin: 0;
   color: #ddd2e8;
@@ -406,6 +455,10 @@
   .heroActions {
     width: 100%;
     margin-left: 0;
+  }
+
+  .classId code {
+    font-size: 9px;
   }
 
   .stats {

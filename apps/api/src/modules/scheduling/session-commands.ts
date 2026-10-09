@@ -259,7 +259,12 @@ export async function rescheduleSession(actor: Actor, sessionId: string, input: 
   }
   const preview = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean<any>();
   if (!preview) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
-  const lockKeys = [calendarLockKey(preview.sessionDate), calendarLockKey(input.date), sessionLockKey(sessionId)];
+  const lockKeys = [
+    calendarLockKey(preview.sessionDate),
+    calendarLockKey(input.date),
+    sessionLockKey(sessionId),
+    ...(preview.rescheduledFromSessionId ? [sessionLockKey(String(preview.rescheduledFromSessionId))] : [])
+  ];
   await ensureLocks(actor.organizationId, lockKeys);
 
   const result = await withTransaction(async (dbSession) => {
@@ -270,6 +275,59 @@ export async function rescheduleSession(actor: Actor, sessionId: string, input: 
     const spaceId = input.spaceId === undefined ? session.spaceId : input.spaceId ? new Types.ObjectId(input.spaceId) : undefined;
     if (spaceId) await assertUsableSpace(actor.organizationId, spaceId, danceClass.branchId, dbSession);
     const professorIds = session.professorIds;
+
+    // A drag can bring a rescheduled class back to the exact slot it came from. In that
+    // case recover the original occurrence instead of attempting to create a duplicate
+    // session for that same regular slot.
+    const original = session.rescheduledFromSessionId
+      ? await ClassSessionModel.findOne({ _id: session.rescheduledFromSessionId, organizationId: actor.organizationId }).session(dbSession ?? null)
+      : null;
+    const returnsToOriginal =
+      original &&
+      original.status === "RESCHEDULED" &&
+      String(original.rescheduledToSessionId) === String(session._id) &&
+      original.sessionDate === input.date &&
+      original.startTime === input.startTime &&
+      original.endTime === input.endTime;
+
+    if (returnsToOriginal) {
+      assertNoConflicts(
+        await findSessionConflicts(
+          actor.organizationId,
+          {
+            date: input.date,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            spaceId,
+            professorIds: teachingProfessors(session, danceClass),
+            excludeSessionIds: [session._id, original._id]
+          },
+          dbSession
+        )
+      );
+
+      const reason = "Reprogramación revertida al horario original";
+      const fromReplacement = session.status as SessionStatus;
+      session.status = "CANCELLED";
+      session.statusReason = reason;
+      session.slotKey = undefined;
+      session.statusHistory.push(statusChange(fromReplacement, "CANCELLED", reason, actor.userId) as never);
+      await session.save({ session: dbSession });
+
+      original.status = "SCHEDULED";
+      original.statusReason = undefined;
+      original.rescheduledToSessionId = undefined;
+      original.slotKey = slotKeyOf(original);
+      original.statusHistory.push(statusChange("RESCHEDULED", "SCHEDULED", reason, actor.userId) as never);
+      await original.save({ session: dbSession }).catch(rethrowSlotTaken);
+
+      await audit(actor, "CLASS_SESSION_RESCHEDULE_REVERTED", original._id, {
+        restoredFromSessionId: session._id,
+        date: original.sessionDate,
+        startTime: original.startTime
+      }, dbSession);
+      return { original, replacement: original };
+    }
 
     assertNoConflicts(
       await findSessionConflicts(

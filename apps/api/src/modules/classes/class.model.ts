@@ -41,7 +41,10 @@ export interface DanceClass {
   capacity: number;
   billingMode: BillingMode;
   pricePerClass: number;
+  /** Legacy monthly price, kept for classes and enrollments created before 4/8 monthly plans. */
   monthlyPrice: number;
+  monthlyPrice4?: number;
+  monthlyPrice8?: number;
   freeTrialEnabled: boolean;
   schedules: ClassSchedule[];
   status: ClassStatus;
@@ -91,6 +94,8 @@ const danceClassSchema = new Schema<DanceClass>(
     billingMode: { type: String, enum: BILLING_MODES, default: "PER_CLASS", index: true },
     pricePerClass: { type: Number, default: 0, min: 0 },
     monthlyPrice: { type: Number, default: 0, min: 0 },
+    monthlyPrice4: { type: Number, min: 0 },
+    monthlyPrice8: { type: Number, min: 0 },
     freeTrialEnabled: { type: Boolean, default: false },
     schedules: { type: [scheduleSchema], default: [] },
     status: { type: String, enum: CLASS_STATUSES, default: "ACTIVE" },

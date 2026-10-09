@@ -154,7 +154,43 @@ afterAll(async () => {
   await database.stop();
 });
 
+describe("weekly calendar", () => {
+  it("keeps every consecutive Saturday slot visible", async () => {
+    const danceClass = await group({
+      slots: [
+        { day: "SATURDAY", startTime: "16:00", endTime: "17:00" },
+        { day: "SATURDAY", startTime: "17:00", endTime: "18:00" },
+        { day: "SATURDAY", startTime: "18:00", endTime: "19:00" }
+      ]
+    });
+
+    const sessions = await sessionsOf(danceClass._id, "2026-10-10", "2026-10-10");
+
+    expect(sessions.map((session) => [session.startTime, session.endTime])).toEqual([
+      ["16:00", "17:00"],
+      ["17:00", "18:00"],
+      ["18:00", "19:00"]
+    ]);
+  });
+});
+
 describe("1-2. monthly fee: same price whatever the number of sessions, no attendance limit", () => {
+  it("creates the current monthly fee when the administrator opens pending payments", async () => {
+    const danceClass = await group({ billingMode: "MONTHLY", slots: [{ day: "TUESDAY", startTime: "19:00", endTime: "20:00" }] });
+    const juan = await student("Pendiente");
+    await enroll(danceClass._id, juan._id, "MONTHLY");
+
+    expect(await ChargeModel.countDocuments({ studentId: juan._id, kind: "MONTHLY_FEE", period: "2026-10" })).toBe(0);
+
+    const response = await admin(request(app).get("/api/admin/billing/charges?period=2026-10&status=OPEN"));
+
+    expect(response.status).toBe(200);
+    expect(response.body.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ studentId: String(juan._id), classId: String(danceClass._id), kind: "MONTHLY_FEE", status: "PENDING" })
+    ]));
+    expect(await ChargeModel.countDocuments({ studentId: juan._id, kind: "MONTHLY_FEE", period: "2026-10" })).toBe(1);
+  });
+
   it("covers the 4 or 5 Tuesdays of a month and the 9 Monday+Thursday sessions of October", async () => {
     const tuesday = await group({ billingMode: "MONTHLY", slots: [{ day: "TUESDAY", startTime: "19:00", endTime: "20:00" }] });
     const twice = await group({
@@ -348,6 +384,33 @@ describe("8-9. changing one session or the following ones", () => {
 });
 
 describe("10-11. suspension, reschedule and makeup without a second charge", () => {
+  it("restores the original session when a reprogrammed class returns to its original slot", async () => {
+    const danceClass = await group({ billingMode: "PER_CLASS", slots: [{ day: "SATURDAY", startTime: "14:00", endTime: "16:00" }] });
+    const [saturday] = await sessionsOf(danceClass._id, "2026-10-10", "2026-10-10");
+
+    const { replacement } = await rescheduleSession(actor(), String(saturday._id), {
+      date: "2026-10-08",
+      startTime: "14:00",
+      endTime: "16:00",
+      reason: "Cambio de día"
+    });
+    const restored = await rescheduleSession(actor(), String(replacement._id), {
+      date: "2026-10-10",
+      startTime: "14:00",
+      endTime: "16:00",
+      reason: "Volver al horario original"
+    });
+
+    expect(String(restored.replacement._id)).toBe(String(saturday._id));
+    expect((await ClassSessionModel.findById(saturday._id).lean())?.status).toBe("SCHEDULED");
+    expect((await ClassSessionModel.findById(replacement._id).lean())?.status).toBe("CANCELLED");
+    expect(await ClassSessionModel.countDocuments({ classId: danceClass._id, sessionDate: "2026-10-10", startTime: "14:00" })).toBe(1);
+
+    const calendar = await admin(request(app).get("/api/admin/calendar?from=2026-10-08&to=2026-10-10"));
+    expect(calendar.body.items.map((item: { id: string }) => item.id)).toContain(String(saturday._id));
+    expect(calendar.body.items.map((item: { id: string }) => item.id)).not.toContain(String(replacement._id));
+  });
+
   it("moves the roster and the payment to the new date", async () => {
     const danceClass = await group({ billingMode: "PER_CLASS", slots: [{ day: "FRIDAY", startTime: "19:00", endTime: "20:00" }] });
     const lu = await student("Lu");

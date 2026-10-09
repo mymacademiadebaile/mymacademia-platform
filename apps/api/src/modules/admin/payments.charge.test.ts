@@ -435,6 +435,19 @@ describe("POST /admin/payments/quick-charge: shared rules", () => {
     expect(response.body.receiptNumber).toBeTruthy();
   });
 
+  it("generates the PDF receipt for a paid payment", async () => {
+    const ctx = await setup("PER_CLASS");
+    const charge = await quick(ctx, { paymentType: "PER_CLASS", classDate: "2026-09-29" });
+
+    const receipt = await auth(request(app).get(`/api/admin/payments/${charge.body._id}/receipt.pdf?download=1`));
+
+    expect(receipt.status).toBe(200);
+    expect(receipt.headers["content-type"]).toContain("application/pdf");
+    expect(receipt.headers["content-disposition"]).toContain("attachment");
+    expect(Buffer.isBuffer(receipt.body)).toBe(true);
+    expect(receipt.body.subarray(0, 4).toString()).toBe("%PDF");
+  });
+
   it("MONTHLY charges the monthly price", async () => {
     const ctx = await setup("MONTHLY");
 

@@ -28,6 +28,11 @@ export interface SendEmailInput {
   subject: string;
   text: string;
   html?: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }>;
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {
@@ -38,6 +43,7 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
     to: input.to,
     subject: input.subject,
     text: input.text,
-    html: input.html ?? emailTemplate(input)
+    html: input.html ?? emailTemplate(input),
+    attachments: input.attachments
   });
 }

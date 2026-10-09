@@ -258,7 +258,7 @@ adminCalendarRouter.get("/", async (request, response, next) => {
     if (query.classId) classFilter._id = query.classId;
     if (query.disciplineId) classFilter.disciplineIds = new Types.ObjectId(query.disciplineId);
     const classes = await DanceClassModel.find(classFilter)
-      .select("name branchId capacity billingMode pricePerClass monthlyPrice professorIds disciplineIds levelIds status")
+      .select("name branchId capacity billingMode pricePerClass monthlyPrice professorIds disciplineIds levelIds defaultSpaceId status")
       .populate("disciplineIds levelIds", "name")
       .lean<any[]>();
     const classById = new Map(classes.map((item) => [String(item._id), item]));
@@ -269,7 +269,12 @@ adminCalendarRouter.get("/", async (request, response, next) => {
       classId: { $in: classes.map((item) => item._id) }
     };
     if (query.status) sessionFilter.status = query.status;
-    else sessionFilter.status = { $ne: "RESCHEDULED" };
+    // A reprogrammed occurrence is historical context, not an operational class to
+    // manage from the calendar. The only visible card is the currently scheduled one.
+    sessionFilter.$nor = [
+      { status: "RESCHEDULED" },
+      { status: "CANCELLED", origin: "RESCHEDULED" }
+    ];
     if (query.spaceId) sessionFilter.spaceId = new Types.ObjectId(query.spaceId);
     let sessions = await ClassSessionModel.find(sessionFilter).sort({ sessionDate: 1, startTime: 1 }).lean<any[]>();
 
@@ -278,7 +283,8 @@ adminCalendarRouter.get("/", async (request, response, next) => {
     if (query.professorId) sessions = sessions.filter((session) => effectiveProfessors(session).includes(query.professorId!));
 
     const professorIds = [...new Set(sessions.flatMap(effectiveProfessors))];
-    const spaceIds = [...new Set(sessions.map((item) => item.spaceId).filter(Boolean).map(String))];
+    const effectiveSpaceId = (session: any) => session.spaceId ?? classById.get(String(session.classId))?.defaultSpaceId;
+    const spaceIds = [...new Set(sessions.map(effectiveSpaceId).filter(Boolean).map(String))];
     const [professors, spaces, counts] = await Promise.all([
       ProfessorModel.find({ organizationId, _id: { $in: professorIds } }).select("displayName avatarUrl").lean<any[]>(),
       DanceSpaceModel.find({ organizationId, _id: { $in: spaceIds } }).select("name").lean<any[]>(),
@@ -316,7 +322,9 @@ adminCalendarRouter.get("/", async (request, response, next) => {
             .map((id: string) => professorById.get(id))
             .filter(Boolean)
             .map((item: any) => ({ id: String(item._id), displayName: item.displayName, avatarUrl: item.avatarUrl })),
-          space: session.spaceId ? { id: String(session.spaceId), name: spaceById.get(String(session.spaceId))?.name ?? "" } : null,
+          space: effectiveSpaceId(session)
+            ? { id: String(effectiveSpaceId(session)), name: spaceById.get(String(effectiveSpaceId(session)))?.name ?? "" }
+            : null,
           enrolledCount: counts.get(String(session._id)) ?? 0
         };
       })

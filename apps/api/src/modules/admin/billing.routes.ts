@@ -163,6 +163,14 @@ adminBillingRouter.get("/charges", async (request, response, next) => {
     const query = chargeListSchema.parse(request.query);
     const organizationId = request.auth!.organizationId;
     const today = academyNow().date;
+
+    // A monthly enrollment continues until it is explicitly ended. Opening the current month's
+    // pending-payments view is the only moment we materialize its monthly obligation; no cron
+    // creates charges in advance or for a month the academy has not opened yet.
+    if (query.period === periodOf(today)) {
+      await generateMonthlyCharges(actorOf(request), query.period);
+    }
+
     const filter: Record<string, unknown> = { organizationId };
     if (query.studentId) filter.studentId = new Types.ObjectId(query.studentId);
     if (query.classId) filter.classId = new Types.ObjectId(query.classId);

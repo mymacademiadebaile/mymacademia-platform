@@ -140,7 +140,7 @@ export function GroupSchedulesPanel({
         <h3>Horarios y vigencia</h3>
         <div className={styles.actionRow}>
           <button className={styles.actionButton} onClick={() => setShowHistory((value) => !value)}>
-            {showHistory ? "Ocultar anteriores" : "Ver anteriores"}
+            {showHistory ? "Ocultar horarios finalizados" : "Ver horarios finalizados"}
           </button>
           {!archived && (
             <button className={`${styles.actionButton} ${styles.actionPrimary}`} disabled={busy} onClick={() => setModal({ kind: "add" })}>

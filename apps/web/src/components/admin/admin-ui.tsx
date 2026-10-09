@@ -28,7 +28,7 @@ export function PageHeader({
   actionLabel,
   onAction
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description: string;
   actionLabel?: string;
@@ -37,7 +37,7 @@ export function PageHeader({
   return (
     <div className={styles.pageHeader}>
       <div>
-        <span className={styles.eyebrow}>{eyebrow}</span>
+        {eyebrow && <span className={styles.eyebrow}>{eyebrow}</span>}
         <h1>{title}</h1>
         <p>{description}</p>
       </div>

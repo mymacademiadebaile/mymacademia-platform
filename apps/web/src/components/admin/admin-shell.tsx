@@ -4,7 +4,6 @@ import {
   AlertCircle,
   BarChart3,
   Bell,
-  CalendarDays,
   CalendarRange,
   CheckCircle2,
   ClipboardList,
@@ -32,10 +31,9 @@ import styles from "./admin.module.css";
 
 const navigation = [
   { href: "/admin", label: "Inicio", icon: LayoutDashboard },
+  { href: "/admin/calendar", label: "Calendario", icon: CalendarRange },
   { href: "/admin/professors", label: "Profesores", icon: Sparkles },
   { href: "/admin/students", label: "Alumnos", icon: UsersRound },
-  { href: "/admin/calendar", label: "Calendario", icon: CalendarRange },
-  { href: "/admin/classes", label: "Clases", icon: CalendarDays },
   { href: "/admin/payments", label: "Pagos", icon: CreditCard },
   { href: "/admin/communications", label: "Comunicaciones", icon: MessageCircleMore },
   { href: "/admin/reports", label: "Reportes", icon: BarChart3 },

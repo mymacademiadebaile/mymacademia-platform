@@ -40,13 +40,13 @@ const emailSchema = audienceSchema.extend({
 const whatsappSchema = z.object({
   studentId: objectIdSchema,
   message: z.string().trim().min(1).max(5000),
-  type: z.enum(["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION"]).default("PROMOTION")
+  type: z.enum(["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION", "PAYMENT_RECEIPT"]).default("PROMOTION")
 });
 
 const historyQuerySchema = pageQuerySchema.extend({
   channel: z.enum(["EMAIL", "WHATSAPP"]).optional(),
   status: z.enum(["PENDING", "SENT", "FAILED", "OPENED"]).optional(),
-  type: z.enum(["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION"]).optional()
+  type: z.enum(["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION", "PAYMENT_RECEIPT"]).optional()
 });
 
 async function resolveAudienceStudents(

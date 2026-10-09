@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { DragEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Gift, LayoutGrid, Plus, Search, Trash2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { addDays, formatDateOnly, todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { BillingMode, Branch, CatalogItem, DanceClass, Professor } from "./live-types";
 import { ErrorBlock, fetchAllPaginated, Field, LiveModal, LoadingBlock } from "./live-common";
@@ -22,6 +23,8 @@ const dayLabels: Record<string, string> = {
 };
 
 type ScheduleDraft = { day: string; startTime: string; endTime: string };
+type DraggedSchedule = { classId: string; scheduleIndex: number };
+type PendingScheduleMove = DraggedSchedule & { day: string };
 
 const calendarDayByIndex = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 const calendarWeekdayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -50,7 +53,38 @@ function billingLabel(danceClass: DanceClass) {
   return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " / clase · $ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " / mes";
 }
 
-export function ClassesLive() {
+function hourAfter(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+  if (hours >= 23) return "23:59";
+  return `${String(hours + 1).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function minutesAt(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function timeAt(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  return `${String(hours).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+function scheduleDayFor(date: string) {
+  return calendarDayByIndex[new Date(`${date}T12:00:00.000Z`).getUTCDay()];
+}
+
+function startOfWeek(date: string) {
+  const day = new Date(`${date}T12:00:00.000Z`).getUTCDay();
+  return addDays(date, -((day + 6) % 7));
+}
+
+export function ClassesLive({
+  embedded = false,
+  embeddedView = "CARDS"
+}: {
+  embedded?: boolean;
+  embeddedView?: "CARDS" | "CALENDAR";
+}) {
   const router = useRouter();
   const { toast } = useAdminFeedback();
   const [items, setItems] = useState<DanceClass[]>([]);
@@ -63,8 +97,9 @@ export function ClassesLive() {
   const [status, setStatus] = useState("ACTIVE");
   const [modal, setModal] = useState(false);
   const [view, setView] = useState<"CARDS" | "CALENDAR">("CALENDAR");
-  const [calendarMode, setCalendarMode] = useState<"WEEK" | "MONTH">("WEEK");
+  const [calendarMode, setCalendarMode] = useState<"WEEK" | "DAY" | "MONTH">("WEEK");
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+  const [calendarDate, setCalendarDate] = useState(() => todayInArgentina());
   const [billingMode, setBillingMode] = useState<BillingMode>("PER_CLASS");
   const [schedules, setSchedules] = useState<ScheduleDraft[]>([
     { day: "MONDAY", startTime: "18:00", endTime: "19:00" }
@@ -72,6 +107,13 @@ export function ClassesLive() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [draggedSchedule, setDraggedSchedule] = useState<DraggedSchedule | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [movingSchedule, setMovingSchedule] = useState<string | null>(null);
+  const [pendingScheduleMove, setPendingScheduleMove] = useState<PendingScheduleMove | null>(null);
+  const displayedView = embedded ? embeddedView : view;
+  const today = todayInArgentina();
+  const weekStart = startOfWeek(today);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -120,14 +162,78 @@ export function ClassesLive() {
     items
       .flatMap((danceClass) =>
         danceClass.schedules
-          .filter((schedule) => schedule.day === day)
-          .map((schedule) => ({ danceClass, schedule }))
+          .map((schedule, scheduleIndex) => ({ danceClass, schedule, scheduleIndex }))
+          .filter(({ schedule }) => schedule.day === day)
       )
       .sort((a, b) => a.schedule.startTime.localeCompare(b.schedule.startTime))
   ), [items]);
 
   function changeCalendarMonth(offset: number) {
     setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+  }
+
+  function startDragging(event: DragEvent<HTMLAnchorElement>, classId: string, scheduleIndex: number) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", `${classId}:${scheduleIndex}`);
+    setDraggedSchedule({ classId, scheduleIndex });
+  }
+
+  function prepareScheduleMove(event: DragEvent<HTMLDivElement>, day: string) {
+    event.preventDefault();
+    const source = draggedSchedule;
+    setDropTarget(null);
+    setDraggedSchedule(null);
+    if (!source) return;
+
+    const danceClass = items.find((item) => item._id === source.classId);
+    const schedule = danceClass?.schedules[source.scheduleIndex];
+    if (!danceClass || !schedule) return;
+    setPendingScheduleMove({ ...source, day });
+  }
+
+  async function confirmScheduleMove(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const pending = pendingScheduleMove;
+    if (!pending) return;
+    const startTime = String(new FormData(event.currentTarget).get("startTime") ?? "");
+    const danceClass = items.find((item) => item._id === pending.classId);
+    const schedule = danceClass?.schedules[pending.scheduleIndex];
+    if (!danceClass || !schedule || !startTime) return;
+    if (schedule.day === pending.day && schedule.startTime === startTime) {
+      setPendingScheduleMove(null);
+      return;
+    }
+
+    const duration = minutesAt(schedule.endTime) - minutesAt(schedule.startTime);
+    const targetEnd = minutesAt(startTime) + duration;
+    if (targetEnd > 24 * 60 - 1) {
+      toast({ title: "Ese horario termina fuera del día", tone: "error" });
+      return;
+    }
+    if (danceClass.schedules.some((item, index) => index !== pending.scheduleIndex && item.day === pending.day && item.startTime === startTime)) {
+      toast({ title: "La clase ya tiene un turno en ese horario", tone: "error" });
+      return;
+    }
+
+    const targetKey = `${danceClass._id}-${pending.scheduleIndex}`;
+    setMovingSchedule(targetKey);
+    try {
+      const updated = await apiFetch<DanceClass>(`/admin/classes/${danceClass._id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          schedules: danceClass.schedules.map((item, index) =>
+            index === pending.scheduleIndex ? { ...item, day: pending.day, startTime, endTime: timeAt(targetEnd) } : item
+          )
+        })
+      });
+      setItems((current) => current.map((item) => (item._id === updated._id ? updated : item)));
+      setPendingScheduleMove(null);
+      toast({ title: `${danceClass.name} movida a ${dayLabels[pending.day]} ${startTime}` });
+    } catch (requestError) {
+      toast({ title: "No se pudo mover la clase", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setMovingSchedule(null);
+    }
   }
 
   function updateSchedule(index: number, patch: Partial<ScheduleDraft>) {
@@ -141,7 +247,11 @@ export function ClassesLive() {
   function addSchedule() {
     setSchedules((current) => [
       ...current,
-      { day: "MONDAY", startTime: "18:00", endTime: "19:00" }
+      {
+        day: current.at(-1)?.day ?? "MONDAY",
+        startTime: current.at(-1)?.endTime ?? "18:00",
+        endTime: hourAfter(current.at(-1)?.endTime ?? "18:00")
+      }
     ]);
   }
 
@@ -190,13 +300,15 @@ export function ClassesLive() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="PLANIFICACIÓN"
-        title="Clases y horarios"
-        description="Profesores, categorías, agenda, precios y ocupación de cada clase."
-        actionLabel="Nueva clase"
-        onAction={() => setModal(true)}
-      />
+      {!embedded && (
+        <PageHeader
+          eyebrow="PLANIFICACIÓN"
+          title="Clases y horarios"
+          description="Profesores, categorías, agenda, precios y ocupación de cada clase."
+          actionLabel="Nueva clase"
+          onAction={() => setModal(true)}
+        />
+      )}
 
       <div className={styles.filterBar}>
         <div className={styles.searchInline}>
@@ -220,21 +332,24 @@ export function ClassesLive() {
       </div>
 
       <div className={styles.viewToolbar}>
-        <div>
-          <button className={view === "CARDS" ? styles.viewActive : styles.viewButton} onClick={() => setView("CARDS")}>
-            <LayoutGrid size={16} /> Tarjetas
-          </button>
-          <button className={view === "CALENDAR" ? styles.viewActive : styles.viewButton} onClick={() => setView("CALENDAR")}>
-            <CalendarDays size={16} /> Calendario
-          </button>
-        </div>
+        {!embedded && (
+          <div>
+            <button className={view === "CARDS" ? styles.viewActive : styles.viewButton} onClick={() => setView("CARDS")}>
+              <LayoutGrid size={16} /> Tarjetas
+            </button>
+            <button className={view === "CALENDAR" ? styles.viewActive : styles.viewButton} onClick={() => setView("CALENDAR")}>
+              <CalendarDays size={16} /> Calendario
+            </button>
+          </div>
+        )}
         <span>{loading && items.length ? "Actualizando..." : items.length + " clase" + (items.length === 1 ? "" : "s")}</span>
+        {embedded && <button className={styles.inlineAction} onClick={() => setModal(true)}><Plus size={15} /> Nueva clase</button>}
       </div>
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
       {loading && !items.length && <LoadingBlock />}
 
-      {(items.length > 0 || !loading) && view === "CARDS" && (
+      {(items.length > 0 || !loading) && displayedView === "CARDS" && (
         <div className={styles.liveGrid3}>
           {items.length === 0 && <div className={styles.stateBlock}>No hay clases para estos filtros.</div>}
           {items.map((danceClass) => {
@@ -272,13 +387,15 @@ export function ClassesLive() {
         </div>
       )}
 
-      {(items.length > 0 || !loading) && view === "CALENDAR" && (
+      {(items.length > 0 || !loading) && displayedView === "CALENDAR" && (
         <>
           <div className={styles.calendarControls}>
             <div className={styles.calendarModeSwitch} aria-label="Formato de calendario">
               <button className={calendarMode === "WEEK" ? styles.calendarModeActive : undefined} onClick={() => setCalendarMode("WEEK")}>Semanal</button>
+              <button className={calendarMode === "DAY" ? styles.calendarModeActive : undefined} onClick={() => setCalendarMode("DAY")}>Día</button>
               <button className={calendarMode === "MONTH" ? styles.calendarModeActive : undefined} onClick={() => setCalendarMode("MONTH")}>Mensual</button>
             </div>
+            {calendarMode === "WEEK" && <span className={styles.calendarDragHint}>Arrastrá una clase al día deseado y elegí la hora al soltarla.</span>}
             {calendarMode === "MONTH" && (
               <div className={styles.monthNavigation}>
                 <button type="button" onClick={() => changeCalendarMonth(-1)} aria-label="Mes anterior"><ChevronLeft size={17} /></button>
@@ -286,35 +403,105 @@ export function ClassesLive() {
                 <button type="button" onClick={() => changeCalendarMonth(1)} aria-label="Mes siguiente"><ChevronRight size={17} /></button>
               </div>
             )}
+            {calendarMode === "DAY" && (
+              <input
+                className={styles.dayPicker}
+                aria-label="Elegir día"
+                type="date"
+                value={calendarDate}
+                onChange={(event) => setCalendarDate(event.target.value)}
+              />
+            )}
           </div>
 
           {calendarMode === "WEEK" ? (
             <div className={styles.weekCalendarWrap}>
               <div className={styles.weekCalendar}>
-                {Object.entries(dayLabels).map(([day, label]) => {
+                {Object.entries(dayLabels).map(([day, label], index) => {
                   const entries = calendarEntriesFor(day);
+                  const date = addDays(weekStart, index);
 
                   return (
-                    <section className={styles.calendarDay} key={day}>
-                      <header><strong>{label}</strong><span>{entries.length}</span></header>
-                      <div className={styles.calendarDayBody}>
-                        {entries.length === 0 && <small className={styles.calendarEmpty}>Sin clases</small>}
-                        {entries.map(({ danceClass, schedule }, index) => (
-                          <Link href={"/admin/classes/" + danceClass._id} className={styles.calendarEvent} key={danceClass._id + "-" + schedule.startTime + "-" + index}>
-                            <time>{schedule.startTime}–{schedule.endTime}</time>
-                            <strong>{danceClass.name}</strong>
-                            <small>{danceClass.professorIds.map((item) => refName(item)).join(", ")}</small>
-                            <div><span>{danceClass.activeEnrollmentCount ?? 0}/{danceClass.capacity}</span><span>{billingLabel(danceClass)}</span></div>
-                            {danceClass.freeTrialEnabled && <em><Gift size={12} /> Prueba</em>}
-                          </Link>
-                        ))}
+                    <section className={styles.calendarDay} data-past={date < today} data-today={date === today} key={day}>
+                      <header>
+                        <div>
+                          <strong>{label}</strong>
+                          <small>{formatDateOnly(date, { day: "numeric", month: "short" })}</small>
+                        </div>
+                      </header>
+                      <div
+                        className={styles.calendarDayBody}
+                        data-drop-active={dropTarget === day}
+                        onDragEnter={(event) => {
+                          event.preventDefault();
+                          setDropTarget(day);
+                        }}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                          if (dropTarget !== day) setDropTarget(day);
+                        }}
+                        onDrop={(event) => prepareScheduleMove(event, day)}
+                      >
+                        {entries.length === 0 && <small className={styles.calendarEmpty}>Soltá una clase aquí</small>}
+                        {entries.map(({ danceClass, schedule, scheduleIndex }) => {
+                          const scheduleKey = `${danceClass._id}-${scheduleIndex}`;
+                          return (
+                            <Link
+                              href={"/admin/classes/" + danceClass._id}
+                              className={styles.calendarEvent}
+                              data-dragging={draggedSchedule?.classId === danceClass._id && draggedSchedule.scheduleIndex === scheduleIndex}
+                              data-moving={movingSchedule === scheduleKey}
+                              draggable={!movingSchedule}
+                              key={scheduleKey}
+                              onDragStart={(event) => startDragging(event, danceClass._id, scheduleIndex)}
+                              onDragEnd={() => {
+                                setDraggedSchedule(null);
+                                setDropTarget(null);
+                              }}
+                              aria-label={`${danceClass.name}, ${dayLabels[day]} de ${schedule.startTime} a ${schedule.endTime}. Arrastrá para cambiar el día y el horario.`}
+                            >
+                              <time>{schedule.startTime}–{schedule.endTime}</time>
+                              <strong>{danceClass.name}</strong>
+                              <small>{danceClass.professorIds.map((item) => refName(item)).join(", ")}</small>
+                              <div><span>{danceClass.activeEnrollmentCount ?? 0}/{danceClass.capacity}</span><span>{billingLabel(danceClass)}</span></div>
+                              {danceClass.freeTrialEnabled && <em><Gift size={12} /> Prueba</em>}
+                            </Link>
+                          );
+                        })}
                       </div>
                     </section>
                   );
                 })}
               </div>
             </div>
-          ) : (
+          ) : calendarMode === "DAY" ? (() => {
+            const day = scheduleDayFor(calendarDate);
+            const entries = calendarEntriesFor(day);
+            return (
+              <section className={styles.dailyCalendar}>
+                <header>
+                  <div>
+                    <strong>{formatDateOnly(calendarDate, { weekday: "long", day: "numeric", month: "long" })}</strong>
+                    <span>{entries.length ? `${entries.length} clase${entries.length === 1 ? "" : "s"} programada${entries.length === 1 ? "" : "s"}` : "Sin clases programadas"}</span>
+                  </div>
+                </header>
+                <div className={styles.dailyCalendarBody}>
+                  {entries.length === 0 ? (
+                    <small className={styles.calendarEmpty}>No hay clases para este día.</small>
+                  ) : entries.map(({ danceClass, schedule, scheduleIndex }) => (
+                    <Link href={"/admin/classes/" + danceClass._id} className={styles.calendarEvent} key={`${danceClass._id}-${scheduleIndex}`}>
+                      <time>{schedule.startTime}–{schedule.endTime}</time>
+                      <strong>{danceClass.name}</strong>
+                      <small>{danceClass.professorIds.map((item) => refName(item)).join(", ")}</small>
+                      <div><span>{danceClass.activeEnrollmentCount ?? 0}/{danceClass.capacity}</span><span>{billingLabel(danceClass)}</span></div>
+                      {danceClass.freeTrialEnabled && <em><Gift size={12} /> Prueba</em>}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            );
+          })() : (
             <div className={styles.monthCalendarWrap}>
               <div className={styles.monthCalendar}>
                 {calendarWeekdayLabels.map((label) => <strong className={styles.monthWeekday} key={label}>{label}</strong>)}
@@ -340,6 +527,27 @@ export function ClassesLive() {
           )}
         </>
       )}
+
+      {pendingScheduleMove && (() => {
+        const danceClass = items.find((item) => item._id === pendingScheduleMove.classId);
+        const schedule = danceClass?.schedules[pendingScheduleMove.scheduleIndex];
+        if (!danceClass || !schedule) return null;
+        return (
+          <LiveModal
+            open
+            title="Confirmar horario"
+            description={`${danceClass.name} se moverá a ${dayLabels[pendingScheduleMove.day]}. Elegí la nueva hora de inicio; se conserva la duración actual.`}
+            submitting={Boolean(movingSchedule)}
+            submitLabel="Guardar cambio"
+            onClose={() => setPendingScheduleMove(null)}
+            onSubmit={confirmScheduleMove}
+          >
+            <Field label="Hora de inicio" wide>
+              <input name="startTime" type="time" defaultValue={schedule.startTime} required autoFocus />
+            </Field>
+          </LiveModal>
+        );
+      })()}
 
       <LiveModal
         open={modal}

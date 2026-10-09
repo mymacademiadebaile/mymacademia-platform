@@ -9,6 +9,7 @@ import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
+import { ChargeModel } from "../billing/charge.model";
 import { PaymentModel } from "../payments/payment.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
@@ -132,6 +133,32 @@ afterAll(async () => {
 });
 
 describe("GET /admin/sessions/:id: historical payment coverage", () => {
+  it("creates one pending class fee only after a per-class student is marked present", async () => {
+    const ctx = await setup("PER_CLASS", "PER_CLASS");
+
+    const first = await auth(request(app).patch(`/api/admin/sessions/${ctx.session._id}/attendance/${ctx.student._id}`))
+      .send({ status: "PRESENT" });
+    const second = await auth(request(app).patch(`/api/admin/sessions/${ctx.session._id}/attendance/${ctx.student._id}`))
+      .send({ status: "PRESENT" });
+
+    expect(first.status).toBe(200);
+    expect(first.body.chargeCreated).toBe(true);
+    expect(second.status).toBe(200);
+    expect(second.body.chargeCreated).toBe(false);
+    expect(await ChargeModel.countDocuments({ organizationId: ids.org, studentId: ctx.student._id, kind: "CLASS_FEE" })).toBe(1);
+  });
+
+  it("does not create a class fee when a monthly student is marked present", async () => {
+    const ctx = await setup("MONTHLY", "MONTHLY");
+
+    const response = await auth(request(app).patch(`/api/admin/sessions/${ctx.session._id}/attendance/${ctx.student._id}`))
+      .send({ status: "PRESENT" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.chargeCreated).toBe(false);
+    expect(await ChargeModel.countDocuments({ organizationId: ids.org, studentId: ctx.student._id, kind: "CLASS_FEE" })).toBe(0);
+  });
+
   it("PER_CLASS payment keeps covering the session after switching to MONTHLY", async () => {
     const ctx = await setup("BOTH", "PER_CLASS");
     const paid = await addPayment(ctx, "PER_CLASS", SESSION_DATE, "PAID");
