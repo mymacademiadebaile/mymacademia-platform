@@ -1,3 +1,4 @@
+import { authRateLimiter } from "../../middleware/rate-limit";
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
 import { Router } from "express";
@@ -51,7 +52,7 @@ function hashResetToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-authRouter.post("/login", async (request, response, next) => {
+authRouter.post("/login", authRateLimiter, async (request, response, next) => {
   try {
     const input = loginSchema.parse(request.body);
     const result = await login(input);
@@ -111,7 +112,7 @@ authRouter.post("/refresh", async (request, response, next) => {
   }
 });
 
-authRouter.post("/forgot-password", async (request, response, next) => {
+authRouter.post("/forgot-password", authRateLimiter, async (request, response, next) => {
   try {
     const input = forgotPasswordSchema.parse(request.body);
     const user = await UserModel.findOne({
@@ -150,7 +151,7 @@ authRouter.post("/forgot-password", async (request, response, next) => {
   }
 });
 
-authRouter.post("/reset-password", async (request, response, next) => {
+authRouter.post("/reset-password", authRateLimiter, async (request, response, next) => {
   try {
     const input = resetPasswordSchema.parse(request.body);
     const tokenHash = hashResetToken(input.token);

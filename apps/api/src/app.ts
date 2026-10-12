@@ -30,7 +30,14 @@ export function createApp(options: { connectDatabaseOnRequest?: boolean } = {}) 
       credentials: true
     })
   );
-  app.use(pinoHttp());
+  app.use(
+    pinoHttp({
+      redact: {
+        paths: ["req.headers.authorization", "req.headers.cookie", "res.headers[\"set-cookie\"]"],
+        censor: "[redacted]"
+      }
+    })
+  );
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
