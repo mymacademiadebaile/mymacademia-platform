@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { BillingMode } from "@mym/shared";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -52,7 +53,7 @@ type TodaySession = {
     id: string;
     name: string;
     capacity: number;
-    billingMode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
+    billingMode: BillingMode;
     pricePerClass: number;
     monthlyPrice: number;
     professors: Array<{

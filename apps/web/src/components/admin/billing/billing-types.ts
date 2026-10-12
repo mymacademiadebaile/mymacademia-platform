@@ -1,3 +1,5 @@
+import type { ChargeKind, CollectionMethod } from "@mym/shared";
+
 export type ChargeStatus = "PAID" | "PARTIAL" | "PENDING" | "OVERDUE" | "VOID";
 
 export type ChargeView = {
@@ -6,7 +8,7 @@ export type ChargeView = {
   studentId: string;
   classId: string | null;
   enrollmentId: string | null;
-  kind: "MONTHLY_FEE" | "CLASS_FEE" | "OTHER";
+  kind: ChargeKind;
   period: string;
   sessionId: string | null;
   serviceDate: string | null;
@@ -33,7 +35,7 @@ export type CollectionView = {
   studentId: string;
   receivedAt: string;
   accountingDate: string;
-  method: "CASH" | "TRANSFER" | "CARD" | "OTHER";
+  method: CollectionMethod;
   amount: number;
   allocated: number;
   refunded: number;

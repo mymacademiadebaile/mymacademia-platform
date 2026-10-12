@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
+import type { BillingMode, PaymentType } from "@mym/shared";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
@@ -42,7 +43,7 @@ type SessionParticipant = {
   payment: {
     status: PaymentState;
     paymentId?: string;
-    paymentType?: "PER_CLASS" | "MONTHLY" | null;
+    paymentType?: PaymentType | null;
     amount: number;
     paymentMethod?: string;
     receiptNumber?: string;
@@ -60,7 +61,7 @@ type SessionDetail = {
     id: string;
     name: string;
     capacity: number;
-    billingMode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
+    billingMode: BillingMode;
     pricePerClass: number;
     monthlyPrice: number;
     professors: Array<{

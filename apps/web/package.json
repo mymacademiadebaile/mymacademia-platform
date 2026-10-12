@@ -11,6 +11,7 @@
     "test": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "@mym/shared": "workspace:*",
     "lucide-react": "^0.544.0",
     "next": "^16.4.0",
     "react": "^19.1.1",

@@ -7,15 +7,9 @@
  * emails, private phones, students, payments or enrollments.
  */
 
-/** Mirrors `WEEK_DAYS` from `@mym/shared`, kept local so the web app does not depend on it. */
-export type WeekDay =
-  | "MONDAY"
-  | "TUESDAY"
-  | "WEDNESDAY"
-  | "THURSDAY"
-  | "FRIDAY"
-  | "SATURDAY"
-  | "SUNDAY";
+import type { WeekDay } from "@mym/shared";
+
+export type { WeekDay };
 
 export interface PublicImage {
   src: string;

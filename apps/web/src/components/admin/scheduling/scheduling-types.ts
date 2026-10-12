@@ -1,9 +1,10 @@
-export type SessionStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "SUSPENDED" | "RESCHEDULED" | "CANCELLED";
-export type SessionOrigin = "REGULAR" | "EXTRA" | "RESCHEDULED";
+import type { BillingMode, CollectionMethod, PaymentType, SessionOrigin, SessionStatus } from "@mym/shared";
+
+export type { SessionStatus, SessionOrigin };
 export type CoverageStatus = "PAID" | "PARTIAL" | "PENDING" | "OVERDUE" | "NONE" | "FREE";
 export type AttendanceStatus = "EXPECTED" | "PRESENT" | "ABSENT";
 export type ParticipantType = "ENROLLMENT" | "TRIAL" | "AUTHORIZED" | "MAKEUP";
-export type CollectionMethod = "CASH" | "TRANSFER" | "CARD" | "OTHER";
+export type { CollectionMethod };
 
 export type CalendarSession = {
   id: string;
@@ -20,7 +21,7 @@ export type CalendarSession = {
     id: string;
     name: string;
     capacity: number;
-    billingMode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
+    billingMode: BillingMode;
     disciplines: Array<{ id: string; name: string }>;
     levels: Array<{ id: string; name: string }>;
   };
@@ -45,7 +46,7 @@ export type SessionParticipant = {
   billingType: "PER_CLASS" | "MONTHLY" | "FREE";
   payment: {
     status: CoverageStatus;
-    paymentType: "PER_CLASS" | "MONTHLY" | null;
+    paymentType: PaymentType | null;
     chargeId?: string;
     paymentId?: string;
     amount: number;
@@ -76,7 +77,7 @@ export type SessionDetail = {
     id: string;
     name: string;
     capacity: number;
-    billingMode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
+    billingMode: BillingMode;
     pricePerClass: number;
     monthlyPrice: number;
     professors: Array<{ id: string; displayName: string }>;

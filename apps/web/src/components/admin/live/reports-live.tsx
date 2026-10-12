@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { BillingMode, CollectionMethod, PaymentType } from "@mym/shared";
 import {
   Banknote,
   CalendarCheck2,
@@ -42,18 +43,18 @@ type ReportOverview = {
   };
   billing: {
     issued: FinancialSummary;
-    byPaymentType: Array<FinancialSummary & { paymentType: "PER_CLASS" | "MONTHLY" }>;
+    byPaymentType: Array<FinancialSummary & { paymentType: PaymentType }>;
   };
   cash: {
     collectedAmount: number;
     paidCount: number;
     byPaymentType: Array<{
-      paymentType: "PER_CLASS" | "MONTHLY";
+      paymentType: PaymentType;
       amount: number;
       count: number;
     }>;
     byMethod: Array<{
-      paymentMethod: "CASH" | "TRANSFER" | "CARD" | "OTHER";
+      paymentMethod: CollectionMethod;
       amount: number;
       count: number;
     }>;
@@ -73,7 +74,7 @@ type ReportOverview = {
   classPerformance: Array<{
     id: string;
     name: string;
-    billingMode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
+    billingMode: BillingMode;
     capacity: number;
     sessions: {
       total: number;
@@ -120,18 +121,18 @@ function money(value: number) {
   return `$ ${value.toLocaleString("es-AR")}`;
 }
 
-function paymentTypeLabel(type: "PER_CLASS" | "MONTHLY") {
+function paymentTypeLabel(type: PaymentType) {
   return type === "PER_CLASS" ? "Por clase" : "Mensual";
 }
 
-function billingModeLabel(mode: "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE") {
+function billingModeLabel(mode: BillingMode) {
   if (mode === "PER_CLASS") return "Por clase";
   if (mode === "MONTHLY") return "Mensual";
   if (mode === "BOTH") return "Ambas";
   return "Sin cargo";
 }
 
-function methodLabel(method: "CASH" | "TRANSFER" | "CARD" | "OTHER") {
+function methodLabel(method: CollectionMethod) {
   return {
     CASH: "Efectivo",
     TRANSFER: "Transferencia",

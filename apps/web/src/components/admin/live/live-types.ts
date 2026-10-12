@@ -1,5 +1,7 @@
 "use client";
 
+import type { BillingMode, CatalogType, ClassStatus, CollectionMethod, PaymentStatus, PaymentType } from "@mym/shared";
+
 export type Branch = {
   _id: string;
   name: string;
@@ -9,7 +11,7 @@ export type Branch = {
 
 export type CatalogItem = {
   _id: string;
-  type: "DISCIPLINE" | "SEGMENT" | "LEVEL";
+  type: CatalogType;
   name: string;
   isActive: boolean;
   sortOrder: number;
@@ -64,8 +66,7 @@ export type Student = {
   isActive: boolean;
 };
 
-export type BillingMode = "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
-export type PaymentType = "PER_CLASS" | "MONTHLY";
+export type { BillingMode, PaymentType };
 export type BillingPreference = PaymentType;
 
 export type DanceClass = {
@@ -89,14 +90,14 @@ export type DanceClass = {
     startTime: string;
     endTime: string;
   }>;
-  status: "ACTIVE" | "INACTIVE" | "PAUSED" | "ARCHIVED";
+  status: ClassStatus;
   publishOnWeb?: boolean;
   defaultSpaceId?: string;
   pauses?: Array<{ _id: string; from: string; to?: string; reason?: string }>;
   scheduleOccupancy?: Array<{ seriesId: string; day: string; startTime: string; endTime: string; validFrom: string; validTo?: string; occupied: number }>;
 };
 
-export type PaymentMethod = "CASH" | "TRANSFER" | "CARD" | "OTHER";
+export type PaymentMethod = CollectionMethod;
 
 export type Payment = {
   _id: string;
@@ -109,8 +110,8 @@ export type Payment = {
   period: string;
   amount: number;
   dueDate: string;
-  status: "PENDING" | "PAID" | "OVERDUE" | "CANCELLED";
-  effectiveStatus?: "PENDING" | "PAID" | "OVERDUE" | "CANCELLED";
+  status: PaymentStatus;
+  effectiveStatus?: PaymentStatus;
   paidAt?: string;
   paymentMethod?: PaymentMethod;
   receiptNumber?: string;

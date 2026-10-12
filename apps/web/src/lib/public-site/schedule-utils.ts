@@ -2,6 +2,7 @@
  * Pure helpers for the public schedule. No runtime imports so they can be unit
  * tested with `node --test` directly.
  */
+import { WEEK_DAYS } from "@mym/shared";
 import type {
   DanceStyle,
   PublicClass,
@@ -12,15 +13,7 @@ import type {
   WeekDay
 } from "./types";
 
-export const WEEK_ORDER: WeekDay[] = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY"
-];
+export const WEEK_ORDER: WeekDay[] = [...WEEK_DAYS];
 
 export const DAY_LABELS: Record<WeekDay, { long: string; short: string }> = {
   MONDAY: { long: "Lunes", short: "Lun" },

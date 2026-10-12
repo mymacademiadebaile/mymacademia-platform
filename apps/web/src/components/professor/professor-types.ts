@@ -1,9 +1,11 @@
+import type { BillingMode, PaymentType, SessionStatus } from "@mym/shared";
+
 export type NamedItem = { id: string; name: string };
 
 export type PaymentStatus = "PAID" | "PENDING" | "OVERDUE" | "FREE";
 export type AttendanceStatus = "EXPECTED" | "PRESENT" | "ABSENT";
 export type BillingType = "PER_CLASS" | "MONTHLY" | "FREE";
-export type BillingMode = "PER_CLASS" | "MONTHLY" | "BOTH" | "FREE";
+export type { BillingMode };
 export type SessionPhase = "SCHEDULED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
 
 export type Occurrence = { date: string; startTime: string; endTime: string };
@@ -44,7 +46,7 @@ export type SessionItem = {
   startTime: string;
   endTime: string;
   durationMinutes: number;
-  persistedStatus: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "SUSPENDED" | "RESCHEDULED" | "CANCELLED";
+  persistedStatus: SessionStatus;
   phase: SessionPhase;
   class: {
     id: string;
@@ -178,7 +180,7 @@ export type StudentDetailData = {
     id: string;
     classId: string;
     className: string;
-    type: "PER_CLASS" | "MONTHLY";
+    type: PaymentType;
     date: string;
     period: string;
     concept: string;
