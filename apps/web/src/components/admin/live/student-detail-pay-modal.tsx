@@ -1,24 +1,24 @@
 import type { FormEvent } from "react";
 import { todayInArgentina } from "@/lib/dates";
-import type { Payment } from "./live-types";
+import type { AccountCharge } from "./student-detail-types";
 import { Field, LiveModal } from "./live-common";
 
 export function StudentPayModal({
-  payment,
+  charge,
   busy,
   onClose,
   onSubmit
 }: {
-  payment: Payment | null;
+  charge: AccountCharge | null;
   busy: boolean;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
     <LiveModal
-      open={Boolean(payment)}
+      open={Boolean(charge)}
       title="Registrar cobro"
-      description={payment ? payment.concept + " · $ " + payment.amount.toLocaleString("es-AR") : ""}
+      description={charge ? charge.concept + " · $ " + charge.balance.toLocaleString("es-AR") : ""}
       submitting={busy}
       onClose={onClose}
       onSubmit={onSubmit}

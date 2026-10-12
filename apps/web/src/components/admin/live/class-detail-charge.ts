@@ -3,6 +3,7 @@ import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { BillingPreference, DanceClass } from "./live-types";
 import type { Enrollment } from "./class-detail-types";
+import { newIdempotencyKey } from "../scheduling/scheduling-types";
 import { monthlyPriceFor, normalizedMode, preferenceForClass } from "./class-detail-helpers";
 
 export function useClassCharge(danceClass: DanceClass | null) {
@@ -11,12 +12,15 @@ export function useClassCharge(danceClass: DanceClass | null) {
   const [chargePaymentType, setChargePaymentType] = useState<BillingPreference>("PER_CLASS");
   const [chargeAmount, setChargeAmount] = useState(0);
   const [chargeSubmitting, setChargeSubmitting] = useState(false);
+  // One key per charge dialog: a repeated submit answers with the first collection instead of charging twice.
+  const [chargeKey, setChargeKey] = useState(newIdempotencyKey);
 
   function openCharge(enrollment: Enrollment) {
     if (!danceClass || normalizedMode(danceClass) === "FREE") return;
 
     const paymentType = enrollment.billingPreference ?? preferenceForClass(danceClass) ?? "PER_CLASS";
     setChargingEnrollment(enrollment);
+    setChargeKey(newIdempotencyKey());
     setChargePaymentType(paymentType);
     setChargeAmount(paymentType === "MONTHLY" ? monthlyPriceFor(danceClass, enrollment.monthlyPlan) : danceClass.pricePerClass ?? 0);
   }
@@ -35,18 +39,18 @@ export function useClassCharge(danceClass: DanceClass | null) {
     setChargeSubmitting(true);
 
     try {
-      await apiFetch("/admin/payments/quick-charge", {
+      await apiFetch("/admin/billing/classes/" + danceClass._id + "/collect", {
         method: "POST",
         body: JSON.stringify({
           studentId: chargingEnrollment.studentId._id,
-          classId: danceClass._id,
           paymentType: chargePaymentType,
-          classDate: chargePaymentType === "PER_CLASS" ? form.get("classDate") : undefined,
+          serviceDate: chargePaymentType === "PER_CLASS" ? form.get("classDate") : undefined,
           period: chargePaymentType === "MONTHLY" ? form.get("period") : undefined,
           amount: chargeAmount,
-          paymentMethod: form.get("paymentMethod"),
-          paidAt: form.get("paidAt") || undefined,
-          notes: form.get("notes")
+          method: form.get("paymentMethod"),
+          receivedAt: form.get("paidAt") || undefined,
+          notes: form.get("notes") || undefined,
+          idempotencyKey: chargeKey
         })
       });
       setChargingEnrollment(null);

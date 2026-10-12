@@ -21,7 +21,7 @@ import { todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
-import { SESSION_STATUS_LABEL, type SessionStatus } from "../scheduling/scheduling-types";
+import { SESSION_STATUS_LABEL, newIdempotencyKey, type SessionStatus } from "../scheduling/scheduling-types";
 
 type AttendanceStatus = "EXPECTED" | "PRESENT" | "ABSENT";
 type BillingType = "PER_CLASS" | "MONTHLY" | "FREE";
@@ -43,8 +43,10 @@ type SessionParticipant = {
   payment: {
     status: PaymentState;
     paymentId?: string;
+    chargeId?: string;
     paymentType?: PaymentType | null;
     amount: number;
+    balanceAmount?: number;
     paymentMethod?: string;
     receiptNumber?: string;
   };
@@ -102,6 +104,11 @@ function paymentLabel(participant: SessionParticipant) {
   return participant.billingType === "MONTHLY" ? "Mensual pendiente" : "Pendiente de cobro";
 }
 
+/** A charge already exists (even a legacy-mirrored one): the amount to collect is its balance. */
+function hasOpenCharge(participant: SessionParticipant) {
+  return participant.payment.status !== "NONE";
+}
+
 function paymentTone(status: PaymentState) {
   if (status === "PAID" || status === "FREE") return "ok";
   if (status === "OVERDUE") return "danger";
@@ -113,6 +120,8 @@ export function SessionLive({ id }: { id: string }) {
   const [data, setData] = useState<SessionDetail | null>(null);
   const [paying, setPaying] = useState<SessionParticipant | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
+  // One key per payment dialog: a repeated submit answers with the first collection instead of charging twice.
+  const [paymentKey, setPaymentKey] = useState(newIdempotencyKey);
   const [moving, setMoving] = useState<SessionParticipant | null>(null);
   const [busyStudentId, setBusyStudentId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -194,7 +203,8 @@ export function SessionLive({ id }: { id: string }) {
 
   function openPayment(participant: SessionParticipant) {
     setPaying(participant);
-    setPaymentAmount(participant.payment.amount);
+    setPaymentKey(newIdempotencyKey());
+    setPaymentAmount(hasOpenCharge(participant) ? participant.payment.balanceAmount ?? participant.payment.amount : participant.payment.amount);
   }
 
   async function registerPayment(event: FormEvent<HTMLFormElement>) {
@@ -205,39 +215,18 @@ export function SessionLive({ id }: { id: string }) {
     setSubmitting(true);
 
     try {
-      if (paying.payment.paymentId) {
-        await apiFetch(
-          "/admin/payments/" + paying.payment.paymentId + "/mark-paid",
-          {
-            method: "POST",
-            body: JSON.stringify({
-              paymentMethod: form.get("paymentMethod"),
-              paidAt: form.get("paidAt") || undefined
-            })
-          }
-        );
-      } else {
-        await apiFetch("/admin/payments/quick-charge", {
-          method: "POST",
-          body: JSON.stringify({
-            studentId: paying.studentId,
-            classId: data.class.id,
-            paymentType: paying.billingType,
-            sessionId: paying.billingType === "PER_CLASS" ? data.id : undefined,
-            classDate:
-              paying.billingType === "PER_CLASS"
-                ? data.sessionDate
-                : undefined,
-            period:
-              paying.billingType === "MONTHLY"
-                ? data.sessionDate.slice(0, 7)
-                : undefined,
-            amount: paymentAmount,
-            paymentMethod: form.get("paymentMethod"),
-            paidAt: form.get("paidAt") || undefined
-          })
-        });
-      }
+      // The API creates the class fee (or monthly fee) when it does not exist yet and collects it.
+      const amount = hasOpenCharge(paying) || paymentAmount === paying.payment.amount ? undefined : paymentAmount;
+      await apiFetch("/admin/billing/sessions/" + data.id + "/collect", {
+        method: "POST",
+        body: JSON.stringify({
+          studentId: paying.studentId,
+          method: form.get("paymentMethod"),
+          amount,
+          receivedAt: form.get("paidAt") || undefined,
+          idempotencyKey: paymentKey
+        })
+      });
 
       toast("Cobro registrado");
       setPaying(null);
@@ -547,7 +536,7 @@ export function SessionLive({ id }: { id: string }) {
             value={paymentAmount || ""}
             onChange={(event) => setPaymentAmount(Number(event.target.value))}
             required
-            disabled={Boolean(paying?.payment.paymentId)}
+            disabled={Boolean(paying && hasOpenCharge(paying))}
           />
         </Field>
         <Field label="Medio de pago">

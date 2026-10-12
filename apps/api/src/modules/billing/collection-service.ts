@@ -83,7 +83,7 @@ export interface CollectionInput {
  * receipt number) is written in one transaction. A repeated request with the same idempotency
  * key returns the first result instead of charging twice.
  */
-export async function registerCollection(actor: Actor, input: CollectionInput) {
+export async function registerCollection(actor: Actor, input: CollectionInput, externalSession?: ClientSession) {
   if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) {
     throw new AppError(422, "El importe debe ser mayor a cero", "INVALID_AMOUNT");
   }
@@ -99,10 +99,13 @@ export async function registerCollection(actor: Actor, input: CollectionInput) {
 
   const student = await StudentModel.findOne({ _id: input.studentId, organizationId: actor.organizationId }).lean<any>();
   if (!student) throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
-  await ensureReceiptSequence(actor.organizationId);
+  // With an external transaction the caller already ensured it: touching the counter now would conflict with that transaction.
+  if (!externalSession) await ensureReceiptSequence(actor.organizationId);
 
+  // With an external session the caller owns the transaction (for example charge + collection in one step).
+  const runInTransaction: typeof withTransaction = externalSession ? (work) => work(externalSession) : withTransaction;
   try {
-    return await withTransaction(async (dbSession) => {
+    return await runInTransaction(async (dbSession) => {
       // Discount first, so the allocation sees the reduced balance.
       if (input.discount && input.discount.amountCents > 0) {
         await applyAdjustmentInSession(actor, {
@@ -200,7 +203,7 @@ export async function registerCollection(actor: Actor, input: CollectionInput) {
     });
   } catch (error) {
     // Two requests with the same idempotency key: the loser answers with the winner's result.
-    if ((error as { code?: number })?.code === 11000 && input.idempotencyKey) {
+    if (!externalSession && (error as { code?: number })?.code === 11000 && input.idempotencyKey) {
       const existing = await CollectionModel.findOne({ organizationId: actor.organizationId, idempotencyKey: input.idempotencyKey });
       if (existing) return { collection: existing, allocations: await PaymentAllocationModel.find({ collectionId: existing._id }), replayed: true };
     }

@@ -6,7 +6,9 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
-import type { BillingPreference, Branch, DanceClass, Payment, Student } from "./live-types";
+import type { StudentAccount } from "../billing/billing-types";
+import { newIdempotencyKey } from "../scheduling/scheduling-types";
+import type { BillingPreference, Branch, DanceClass, Student } from "./live-types";
 import { ErrorBlock, LoadingBlock } from "./live-common";
 import {
   billingPreferenceLabel,
@@ -14,7 +16,7 @@ import {
   defaultBillingPreference,
   scheduleKey
 } from "./student-detail-helpers";
-import type { Enrollment, StudentDetail } from "./student-detail-types";
+import type { AccountCharge, Enrollment, StudentDetail } from "./student-detail-types";
 import { StudentDetailHero } from "./student-detail-hero";
 import { StudentInfoCard } from "./student-detail-info-card";
 import { StudentEnrollmentsCard } from "./student-detail-enrollments-card";
@@ -32,7 +34,10 @@ export function StudentDetailLive({ id }: { id: string }) {
   const [classes, setClasses] = useState<DanceClass[]>([]);
   const [editing, setEditing] = useState(false);
   const [enrollModal, setEnrollModal] = useState(false);
-  const [paying, setPaying] = useState<Payment | null>(null);
+  const [account, setAccount] = useState<StudentAccount | null>(null);
+  const [paying, setPaying] = useState<AccountCharge | null>(null);
+  // One key per payment dialog: a repeated submit answers with the first collection instead of charging twice.
+  const [payKey, setPayKey] = useState(newIdempotencyKey);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedBillingPreference, setSelectedBillingPreference] =
     useState<BillingPreference>("PER_CLASS");
@@ -50,12 +55,14 @@ export function StudentDetailLive({ id }: { id: string }) {
     setError("");
 
     try {
-      const [detail, branchList, classList] = await Promise.all([
+      const [detail, accountData, branchList, classList] = await Promise.all([
         apiFetch<StudentDetail>(`/admin/students/${id}`),
+        apiFetch<StudentAccount>(`/admin/billing/students/${id}/account`),
         apiFetch<Branch[]>("/admin/branches"),
         apiFetch<DanceClass[]>("/admin/classes")
       ]);
       setData(detail);
+      setAccount(accountData);
       setBranches(branchList);
       setClasses(classList);
     } catch (requestError) {
@@ -240,6 +247,11 @@ export function StudentDetailLive({ id }: { id: string }) {
     }
   }
 
+  function openPay(charge: AccountCharge) {
+    setPayKey(newIdempotencyKey());
+    setPaying(charge);
+  }
+
   async function markPaid(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!paying) return;
@@ -249,11 +261,15 @@ export function StudentDetailLive({ id }: { id: string }) {
     setError("");
 
     try {
-      await apiFetch(`/admin/payments/${paying._id}/mark-paid`, {
+      await apiFetch("/admin/billing/collections", {
         method: "POST",
         body: JSON.stringify({
-          paymentMethod: form.get("paymentMethod"),
-          paidAt: form.get("paidAt") || undefined
+          studentId: id,
+          amount: paying.balance,
+          method: form.get("paymentMethod"),
+          receivedAt: form.get("paidAt") || undefined,
+          allocations: [{ chargeId: paying.id, amount: paying.balance }],
+          idempotencyKey: payKey
         })
       });
       setPaying(null);
@@ -273,6 +289,8 @@ export function StudentDetailLive({ id }: { id: string }) {
   }
 
   const { student, financial } = data;
+  // Only the current billing model: charges with their collections (legacy payments are not operated here).
+  const charges = (account?.charges ?? []).filter((item) => !item.legacy && item.status !== "VOID") as AccountCharge[];
 
   return (
     <>
@@ -306,12 +324,12 @@ export function StudentDetailLive({ id }: { id: string }) {
           onRemove={(enrollment) => void removeEnrollment(enrollment)}
         />
         <StudentPaymentsCard
-          payments={data.payments}
+          charges={charges}
           student={student}
           busy={busy}
-          onCharge={setPaying}
-          onRemind={(paymentId) => void remind(paymentId)}
-          onEmailReceipt={(paymentId) => void emailReceipt(paymentId)}
+          onCharge={openPay}
+          onRemind={(chargeId) => void remind(chargeId)}
+          onEmailReceipt={(collectionId) => void emailReceipt(collectionId)}
           onShareWhatsApp={shareReceiptWhatsApp}
         />
       </div>
@@ -343,7 +361,7 @@ export function StudentDetailLive({ id }: { id: string }) {
       />
 
       <StudentPayModal
-        payment={paying}
+        charge={paying}
         busy={busy}
         onClose={() => setPaying(null)}
         onSubmit={markPaid}

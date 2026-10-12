@@ -5,6 +5,7 @@ import PDFDocument from "pdfkit";
 import { Types, type HydratedDocument } from "mongoose";
 import { z } from "zod";
 import {
+  academyDateOf,
   academyNow,
   daysBetween,
   periodOf,
@@ -12,6 +13,7 @@ import {
 } from "../../common/dates";
 import { AppError } from "../../common/http/app-error";
 import { toCents, toPesos } from "../../common/money";
+import { withTransaction } from "../../common/transaction";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { chargeState, studentBalances } from "../billing/balance-service";
 import {
@@ -40,6 +42,8 @@ import { StudentModel } from "../students/student.model";
 import { privateAssetUrl, uploadPrivateBuffer } from "../../services/cloudinary";
 import { sendEmail } from "../../services/mailer";
 import { NotificationLogModel } from "../notifications/notification-log.model";
+import { duplicateChargeError, loadChargeContext } from "../payments/payment-charge";
+import { ensureReceiptSequence } from "../payments/sequence.model";
 import { formatReceiptMoney, receiptPdfBuffer, writeReceiptPdf, type ReceiptData } from "../payments/receipt-pdf";
 import { calendarDateSchema, objectIdSchema, receivedAtInputSchema } from "./admin.schemas";
 
@@ -268,6 +272,55 @@ adminBillingRouter.post("/charges/:id/void", async (request, response, next) => 
     const { reason } = z.object({ reason: z.string().trim().min(3).max(500) }).parse(request.body);
     const charge = await voidCharge(actorOf(request), id, reason);
     response.json(presentCharge(charge.toObject()));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Reminder email for one open charge (same email and log as the legacy payment reminder). */
+adminBillingRouter.post("/charges/:id/remind", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+    const charge = await ChargeModel.findOne({ _id: id, organizationId, status: "OPEN", balanceCents: { $gt: 0 } });
+    if (!charge) throw new AppError(404, "Cuota pendiente no encontrada", "PAYMENT_NOT_FOUND");
+
+    const student = await StudentModel.findOne({ _id: charge.studentId, organizationId });
+    if (!student?.email) throw new AppError(422, "El alumno no tiene email cargado", "STUDENT_WITHOUT_EMAIL");
+
+    const subject = "Recordatorio de pago - M&M Academia";
+    const message = `Hola ${student.firstName}, te recordamos que se encuentra pendiente ${charge.concept} (${charge.period}) por $ ${toPesos(charge.balanceCents).toLocaleString("es-AR")}.`;
+    const log = {
+      organizationId,
+      actorUserId: request.auth!.userId,
+      studentId: student._id,
+      channel: "EMAIL" as const,
+      type: "DEBT_REMINDER" as const,
+      destination: student.email,
+      subject,
+      message
+    };
+    try {
+      await sendEmail({ to: student.email, subject, text: message });
+      await NotificationLogModel.create({ ...log, status: "SENT", sentAt: new Date() });
+    } catch (mailError) {
+      await NotificationLogModel.create({
+        ...log,
+        status: "FAILED",
+        errorMessage: mailError instanceof Error ? mailError.message : "Unknown email error"
+      });
+      throw mailError;
+    }
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PAYMENT_REMINDER_SENT",
+      entityType: "Charge",
+      entityId: charge._id,
+      metadata: { studentId: student._id, channel: "EMAIL" }
+    });
+    response.json({ ok: true });
   } catch (error) {
     next(error);
   }
@@ -770,7 +823,133 @@ adminBillingRouter.post("/sessions/:id/collect", async (request, response, next)
 });
 
 /* ----------------------------------------------------------------------------------------- */
-/* Student account                                                                           */
+/* Class collection (collect from the class detail, with no session)                          */
+/* ----------------------------------------------------------------------------------------- */
+
+/**
+ * Creates the charge (class fee of a day or monthly fee of a period) and collects it in ONE
+ * transaction, so a failed collection never leaves an orphan charge. An open charge that already
+ * exists for that day or period is collected instead of creating a second one. The idempotency
+ * key makes a repeated request answer with the first result.
+ */
+adminBillingRouter.post("/classes/:id/collect", async (request, response, next) => {
+  try {
+    const classId = objectIdSchema.parse(request.params.id);
+    const input = z
+      .object({
+        studentId: objectIdSchema,
+        paymentType: z.enum(["PER_CLASS", "MONTHLY"]),
+        serviceDate: calendarDateSchema.optional(),
+        period: periodSchema.optional(),
+        amount: moneySchema.optional(),
+        method: z.enum(COLLECTION_METHODS),
+        receivedAt: receivedAtInputSchema.optional(),
+        notes: z.string().trim().max(1000).optional().or(z.literal("")),
+        idempotencyKey: z.string().trim().min(8).max(100)
+      })
+      .superRefine((value, context) => {
+        if (value.paymentType === "PER_CLASS" && !value.serviceDate) {
+          context.addIssue({ code: "custom", path: ["serviceDate"], message: "Indicá la fecha de la clase" });
+        }
+        if (value.paymentType === "MONTHLY" && !value.period) {
+          context.addIssue({ code: "custom", path: ["period"], message: "Indicá el período mensual" });
+        }
+      })
+      .parse(request.body);
+    const actor = actorOf(request);
+
+    const replay = async () => {
+      const existing = await CollectionModel.findOne({ organizationId: actor.organizationId, idempotencyKey: input.idempotencyKey });
+      if (!existing) return false;
+      const allocation = await PaymentAllocationModel.findOne({ collectionId: existing._id });
+      const charge = allocation ? await ChargeModel.findById(allocation.chargeId).lean<ChargeView>() : null;
+      response.json({ collection: presentCollection(existing), charge: charge ? presentCharge(charge) : null, replayed: true });
+      return true;
+    };
+    if (await replay()) return;
+
+    const { student, danceClass } = await loadChargeContext(actor.organizationId, { studentId: input.studentId, classId }, input.paymentType);
+    const kind = input.paymentType === "MONTHLY" ? "MONTHLY_FEE" : "CLASS_FEE";
+    const period = input.paymentType === "MONTHLY" ? input.period! : periodOf(input.serviceDate!);
+    const receivedAt = input.receivedAt ?? new Date();
+
+    const existingCharge = await ChargeModel.findOne({
+      organizationId: actor.organizationId,
+      studentId: student._id,
+      classId: danceClass._id,
+      kind,
+      status: { $ne: "VOID" },
+      ...(kind === "MONTHLY_FEE" ? { period } : { serviceDate: input.serviceDate })
+    }).lean<ChargeView & { status: string; balanceCents: number }>();
+    if (existingCharge && (existingCharge.status !== "OPEN" || existingCharge.balanceCents <= 0)) {
+      throw duplicateChargeError(input.paymentType);
+    }
+
+    const defaultAmount = kind === "CLASS_FEE" ? danceClass.pricePerClass ?? 0 : danceClass.monthlyPrice ?? 0;
+    const chargeCents = input.amount ?? toCents(defaultAmount);
+    if (!existingCharge && chargeCents <= 0) {
+      throw new AppError(422, "Configurá un importe mayor a cero para registrar el cobro", "INVALID_PAYMENT_AMOUNT");
+    }
+
+    // The receipt sequence must exist before the transaction starts (it is not visible to a snapshot taken earlier).
+    await ensureReceiptSequence(actor.organizationId);
+    let result;
+    try {
+      result = await withTransaction(async (dbSession) => {
+        const created = existingCharge
+          ? null
+          : await createManualCharge(
+              actor,
+              {
+                studentId: String(student._id),
+                classId: String(danceClass._id),
+                kind,
+                period,
+                serviceDate: kind === "CLASS_FEE" ? input.serviceDate : undefined,
+                concept: (kind === "CLASS_FEE" ? "Clase · " : "Mensualidad · ") + danceClass.name,
+                amountCents: chargeCents,
+                dueDate: kind === "CLASS_FEE" ? input.serviceDate! : academyDateOf(receivedAt)
+              },
+              student.branchId,
+              dbSession
+            );
+        const chargeId = String(existingCharge?._id ?? created!._id);
+        const balanceCents = existingCharge?.balanceCents ?? created!.balanceCents;
+        const collectCents = Math.min(input.amount ?? balanceCents, balanceCents);
+        try {
+          const collected = await registerCollection(
+            actor,
+            {
+              studentId: String(student._id),
+              amountCents: collectCents,
+              method: input.method,
+              receivedAt: input.receivedAt,
+              notes: input.notes || undefined,
+              allocations: [{ chargeId, amountCents: collectCents }],
+              idempotencyKey: input.idempotencyKey
+            },
+            dbSession
+          );
+          return { collected, chargeId };
+        } catch (error) {
+          // Without transactions (standalone development server) nothing rolls back by itself.
+          if (!dbSession && created) await voidCharge(actor, String(created._id), "Cobro no registrado");
+          throw error;
+        }
+      });
+    } catch (error) {
+      if ((error as { code?: number })?.code === 11000 && (await replay())) return;
+      throw error;
+    }
+    const charge = await ChargeModel.findById(result.chargeId).lean<ChargeView>();
+    response.status(201).json({ collection: presentCollection(result.collected.collection), charge: presentCharge(charge!), replayed: false });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/* ----------------------------------------------------------------------------------------- */
+/* Student account                                                                          */
 /* ----------------------------------------------------------------------------------------- */
 
 adminBillingRouter.get("/students/:id/account", async (request, response, next) => {
@@ -793,6 +972,14 @@ adminBillingRouter.get("/students/:id/account", async (request, response, next) 
     const classes = await DanceClassModel.find({ organizationId, _id: { $in: classIds } }).select("name").lean();
     const classById = new Map(classes.map((item) => [String(item._id), item.name]));
     const balance = balances.get(String(student._id))!;
+    // Latest collection that paid each charge, so the screen can offer its receipt.
+    const allocations = await PaymentAllocationModel.find({ organizationId, studentId: student._id }).sort({ createdAt: 1 }).lean();
+    const collectionById = new Map(collections.map((item) => [String(item._id), item]));
+    const lastCollectionByCharge = new Map<string, { id: string; receiptNumber: string | null }>();
+    for (const allocation of allocations) {
+      const collection = collectionById.get(String(allocation.collectionId));
+      if (collection) lastCollectionByCharge.set(String(allocation.chargeId), { id: String(collection._id), receiptNumber: collection.receiptNumber ?? null });
+    }
 
     response.json({
       student: { id: String(student._id), firstName: student.firstName, lastName: student.lastName, isActive: student.isActive },
@@ -804,7 +991,11 @@ adminBillingRouter.get("/students/:id/account", async (request, response, next) 
         credit: toPesos(balance.creditCents)
       },
       charges: [...charges, ...legacy.map(legacyPaymentToChargeView)]
-        .map((item) => ({ ...presentCharge(item, today), className: item.classId ? classById.get(String(item.classId)) ?? null : null }))
+        .map((item) => ({
+          ...presentCharge(item, today),
+          className: item.classId ? classById.get(String(item.classId)) ?? null : null,
+          lastCollection: lastCollectionByCharge.get(String(item._id)) ?? null
+        }))
         .sort((a, b) => b.dueDate.localeCompare(a.dueDate)),
       collections: collections.map(presentCollection),
       refunds: refunds.map((item) => ({

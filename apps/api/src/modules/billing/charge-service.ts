@@ -445,7 +445,8 @@ export async function createManualCharge(
     dueDate: string;
     notes?: string;
   },
-  branchId: Types.ObjectId
+  branchId: Types.ObjectId,
+  dbSession?: ClientSession
 ) {
   const chargeKey =
     input.kind === "MONTHLY_FEE" && input.classId
@@ -461,7 +462,7 @@ export async function createManualCharge(
   }
 
   try {
-    const charge = await ChargeModel.create({
+    const [charge] = await ChargeModel.create([{
       organizationId: actor.organizationId,
       branchId,
       studentId: input.studentId,
@@ -481,15 +482,18 @@ export async function createManualCharge(
       chargeKey,
       notes: input.notes,
       createdByUserId: actor.userId
-    });
-    await AuditLogModel.create({
-      organizationId: actor.organizationId,
-      actorUserId: actor.userId,
-      action: "CHARGE_CREATED",
-      entityType: "Charge",
-      entityId: charge._id,
-      metadata: { ...input }
-    });
+    }], { session: dbSession });
+    await AuditLogModel.create(
+      [{
+        organizationId: actor.organizationId,
+        actorUserId: actor.userId,
+        action: "CHARGE_CREATED",
+        entityType: "Charge",
+        entityId: charge._id,
+        metadata: { ...input }
+      }],
+      { session: dbSession }
+    );
     return charge;
   } catch (error) {
     if (isDuplicateKey(error)) throw new AppError(409, "Ya existe un cargo para ese concepto", "CHARGE_ALREADY_EXISTS");

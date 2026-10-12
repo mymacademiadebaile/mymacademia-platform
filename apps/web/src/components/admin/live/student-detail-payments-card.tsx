@@ -2,13 +2,14 @@ import { CircleDollarSign, Download, FileText, Mail, MessageCircle } from "lucid
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
 import { formatDateOnly } from "@/lib/dates";
-import type { Payment, Student } from "./live-types";
-import { paymentReference, paymentStatus } from "./student-detail-helpers";
+import type { Student } from "./live-types";
+import { CHARGE_KIND_LABEL } from "../billing/billing-types";
+import type { AccountCharge } from "./student-detail-types";
 import styles from "./student-detail-payments.module.css";
 import cardStyles from "./student-detail-cards.module.css";
 
 export function StudentPaymentsCard({
-  payments,
+  charges,
   student,
   busy,
   onCharge,
@@ -16,13 +17,13 @@ export function StudentPaymentsCard({
   onEmailReceipt,
   onShareWhatsApp
 }: {
-  payments: Payment[];
+  charges: AccountCharge[];
   student: Student;
   busy: boolean;
-  onCharge: (payment: Payment) => void;
-  onRemind: (paymentId: string) => void;
-  onEmailReceipt: (paymentId: string) => void;
-  onShareWhatsApp: (payment: Payment) => void;
+  onCharge: (charge: AccountCharge) => void;
+  onRemind: (chargeId: string) => void;
+  onEmailReceipt: (collectionId: string) => void;
+  onShareWhatsApp: (charge: AccountCharge) => void;
 }) {
   return (
     <section className={cardStyles.card + " " + cardStyles.paymentsCard}>
@@ -35,32 +36,34 @@ export function StudentPaymentsCard({
         <div className={styles.paymentHead}>
           <span>Concepto</span><span>Fecha / período</span><span>Vencimiento</span><span>Importe</span><span>Estado</span><span>Acciones</span>
         </div>
-        {payments.length === 0 && <p className={cardStyles.empty}>Todavía no tiene pagos registrados.</p>}
-        {payments.map((payment) => {
-          const status = paymentStatus(payment);
+        {charges.length === 0 && <p className={cardStyles.empty}>Todavía no tiene pagos registrados.</p>}
+        {charges.map((charge) => {
+          const status = charge.status;
+          const receipt = charge.lastCollection;
+          const open = charge.balance > 0;
           return (
-            <div className={styles.paymentRow} key={payment._id}>
+            <div className={styles.paymentRow} key={charge.id}>
               <span>
-                <strong>{payment.concept}</strong>
-                <small>{(payment.paymentType ?? "MONTHLY") === "PER_CLASS" ? "Por clase" : "Mensual"}</small>
+                <strong>{charge.concept}</strong>
+                <small>{CHARGE_KIND_LABEL[charge.kind]}</small>
               </span>
-              <span>{paymentReference(payment)}</span>
-              <span>{formatDateOnly(payment.dueDate)}</span>
-              <span>$ {payment.amount.toLocaleString("es-AR")}</span>
+              <span>{charge.kind === "CLASS_FEE" && charge.serviceDate ? formatDateOnly(charge.serviceDate) : charge.period}</span>
+              <span>{formatDateOnly(charge.dueDate)}</span>
+              <span>$ {charge.owed.toLocaleString("es-AR")}</span>
               <span className={status === "PAID" ? styles.statusPaid : status === "OVERDUE" ? styles.statusOverdue : styles.statusPending}>
-                {status === "PAID" ? "Pagado" : status === "OVERDUE" ? "Vencido" : "Pendiente"}
+                {status === "PAID" ? "Pagado" : status === "OVERDUE" ? "Vencido" : status === "PARTIAL" ? "Pago parcial" : "Pendiente"}
               </span>
               <span className={styles.rowActions}>
-                {status !== "PAID" && status !== "CANCELLED" && (
-                  <button disabled={busy} onClick={() => onCharge(payment)}>Cobrar</button>
+                {open && (
+                  <button disabled={busy} onClick={() => onCharge(charge)}>Cobrar</button>
                 )}
-                {status !== "PAID" && status !== "CANCELLED" && student.email && (
-                  <button disabled={busy} onClick={() => onRemind(payment._id)}>Recordar</button>
+                {open && student.email && (
+                  <button disabled={busy} onClick={() => onRemind(charge.id)}>Recordar</button>
                 )}
-                {status === "PAID" && (
+                {receipt && (
                   <>
                     <a
-                      href={apiUrl(`/admin/payments/${payment._id}/receipt.pdf`)}
+                      href={apiUrl(`/admin/billing/collections/${receipt.id}/receipt.pdf`)}
                       target="_blank"
                       rel="noreferrer"
                       title="Ver recibo"
@@ -68,18 +71,18 @@ export function StudentPaymentsCard({
                       <FileText size={13} /> Ver recibo
                     </a>
                     <a
-                      href={apiUrl(`/admin/payments/${payment._id}/receipt.pdf?download=1`)}
+                      href={apiUrl(`/admin/billing/collections/${receipt.id}/receipt.pdf?download=1`)}
                       title="Descargar recibo"
                     >
                       <Download size={13} /> Descargar
                     </a>
                     {student.email && (
-                      <button disabled={busy} onClick={() => onEmailReceipt(payment._id)} title={`Enviar recibo a ${student.email}`}>
+                      <button disabled={busy} onClick={() => onEmailReceipt(receipt.id)} title={`Enviar recibo a ${student.email}`}>
                         <Mail size={13} /> Email
                       </button>
                     )}
                     {student.phone && (
-                      <button onClick={() => onShareWhatsApp(payment)} title="Abrir WhatsApp Web y descargar el recibo para adjuntarlo">
+                      <button onClick={() => onShareWhatsApp(charge)} title="Abrir WhatsApp Web y descargar el recibo para adjuntarlo">
                         <MessageCircle size={13} /> WhatsApp
                       </button>
                     )}
