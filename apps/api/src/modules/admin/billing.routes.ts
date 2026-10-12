@@ -5,7 +5,6 @@ import PDFDocument from "pdfkit";
 import { Types, type HydratedDocument } from "mongoose";
 import { z } from "zod";
 import {
-  ACADEMY_TIME_ZONE,
   academyNow,
   daysBetween,
   periodOf,
@@ -39,6 +38,9 @@ import { billingModeOn } from "../enrollments/enrollment-validity";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
 import { privateAssetUrl, uploadPrivateBuffer } from "../../services/cloudinary";
+import { sendEmail } from "../../services/mailer";
+import { NotificationLogModel } from "../notifications/notification-log.model";
+import { formatReceiptMoney, receiptPdfBuffer, writeReceiptPdf, type ReceiptData } from "../payments/receipt-pdf";
 import { calendarDateSchema, objectIdSchema, receivedAtInputSchema } from "./admin.schemas";
 
 const periodSchema = z.string().regex(PERIOD_PATTERN, "El período debe tener formato YYYY-MM");
@@ -409,7 +411,7 @@ adminBillingRouter.get("/collections", async (request, response, next) => {
       CollectionModel.find(filter).sort({ receivedAt: -1 }).skip((query.page - 1) * query.limit).limit(query.limit).lean(),
       CollectionModel.countDocuments(filter)
     ]);
-    const students = await StudentModel.find({ organizationId, _id: { $in: items.map((item) => item.studentId) } }).select("firstName lastName").lean();
+    const students = await StudentModel.find({ organizationId, _id: { $in: items.map((item) => item.studentId) } }).select("firstName lastName email phone").lean();
     const studentById = new Map(students.map((item) => [String(item._id), item]));
     response.json({
       items: items.map((item) => ({
@@ -584,45 +586,107 @@ adminBillingRouter.get("/collections/:id/proof", async (request, response, next)
   }
 });
 
+async function loadCollectionReceipt(organizationId: string, id: string) {
+  const collection = await CollectionModel.findOne({ _id: id, organizationId }).lean();
+  if (!collection) throw new AppError(404, "Recibo no disponible", "RECEIPT_NOT_FOUND");
+  const [organization, student, allocations] = await Promise.all([
+    OrganizationModel.findById(organizationId).select("name email phone").lean(),
+    StudentModel.findById(collection.studentId).select("firstName lastName email phone").lean(),
+    PaymentAllocationModel.find({ collectionId: collection._id }).lean()
+  ]);
+  if (!student) throw new AppError(404, "Recibo no disponible", "RECEIPT_NOT_FOUND");
+  const charges = await ChargeModel.find({ _id: { $in: allocations.map((item) => item.chargeId) } }).select("concept period classId").lean();
+  const chargeById = new Map(charges.map((item) => [String(item._id), item]));
+  const classIds = [...new Set(charges.map((item) => item.classId).filter(Boolean).map(String))];
+  const classes = classIds.length ? await DanceClassModel.find({ _id: { $in: classIds } }).select("name").lean() : [];
+  const periods = [...new Set(charges.map((item) => item.period).filter(Boolean))] as string[];
+
+  const receipt: ReceiptData = {
+    receiptNumber: collection.receiptNumber,
+    paidAt: new Date(collection.receivedAt),
+    method: collection.method,
+    period: periods.length === 1 ? periods[0] : periods.length > 1 ? periods.join(", ") : undefined,
+    concepts: allocations.map((allocation) => ({
+      concept: chargeById.get(String(allocation.chargeId))?.concept ?? "Cargo",
+      amount: toPesos(allocation.amountCents)
+    })),
+    className: classes.length === 1 ? classes[0].name : undefined,
+    amount: toPesos(collection.amountCents),
+    credit: toPesos(availableCreditCents(collection))
+  };
+  if (!receipt.concepts.length) receipt.concepts = [{ concept: collection.notes || "Pago a cuenta" }];
+  return { collection, organization, student, receipt };
+}
+
 adminBillingRouter.get("/collections/:id/receipt.pdf", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);
-    const organizationId = request.auth!.organizationId;
-    const collection = await CollectionModel.findOne({ _id: id, organizationId }).lean();
-    if (!collection) throw new AppError(404, "Recibo no disponible", "RECEIPT_NOT_FOUND");
-    const [organization, student, allocations] = await Promise.all([
-      OrganizationModel.findById(organizationId).lean(),
-      StudentModel.findById(collection.studentId).select("firstName lastName email").lean(),
-      PaymentAllocationModel.find({ collectionId: collection._id }).lean()
-    ]);
-    const charges = await ChargeModel.find({ _id: { $in: allocations.map((item) => item.chargeId) } }).select("concept").lean();
-    const conceptById = new Map(charges.map((item) => [String(item._id), item.concept]));
-
+    const { collection, organization, student, receipt } = await loadCollectionReceipt(request.auth!.organizationId, id);
     const document = new PDFDocument({ size: "A4", margin: 54 });
     response.setHeader("Content-Type", "application/pdf");
-    response.setHeader("Content-Disposition", `inline; filename="${collection.receiptNumber ?? "recibo"}.pdf"`);
+    response.setHeader(
+      "Content-Disposition",
+      `${request.query.download === "1" ? "attachment" : "inline"}; filename="${collection.receiptNumber ?? "recibo"}.pdf"`
+    );
     document.pipe(response);
-    document.fontSize(20).text(organization?.name ?? "M&M Academia de Baile", { align: "center" });
-    document.moveDown(0.4);
-    document.fontSize(11).fillColor("#6b21a8").text("RECIBO DE PAGO", { align: "center" });
-    document.fillColor("#111111").moveDown(1.5);
-    document.fontSize(10).text(`Recibo: ${collection.receiptNumber ?? "—"}`);
-    document.text(`Fecha: ${new Date(collection.receivedAt).toLocaleDateString("es-AR", { timeZone: ACADEMY_TIME_ZONE })}`);
-    document.moveDown();
-    document.text(`Alumno: ${student?.firstName ?? ""} ${student?.lastName ?? ""}`);
-    if (student?.email) document.text(`Email: ${student.email}`);
-    document.moveDown();
-    for (const allocation of allocations) {
-      document.text(`${conceptById.get(String(allocation.chargeId)) ?? "Cargo"}: $ ${toPesos(allocation.amountCents).toLocaleString("es-AR")}`);
-    }
-    const credit = availableCreditCents(collection) + collection.refundedCents;
-    if (credit > 0) document.text(`Saldo a favor: $ ${toPesos(availableCreditCents(collection)).toLocaleString("es-AR")}`);
-    document.text(`Medio de pago: ${collection.method}`);
-    document.moveDown();
-    document.fontSize(16).text(`Total abonado: $ ${toPesos(collection.amountCents).toLocaleString("es-AR")}`);
-    document.moveDown(2);
-    document.fontSize(9).fillColor("#666666").text("Comprobante emitido por el sistema de gestión de M&M Academia de Baile.", { align: "center" });
+    writeReceiptPdf(document, receipt, organization, student);
     document.end();
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminBillingRouter.post("/collections/:id/receipt/email", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+    const { collection, organization, student, receipt } = await loadCollectionReceipt(organizationId, id);
+    if (!student.email) throw new AppError(422, "El alumno no tiene email cargado", "STUDENT_EMAIL_REQUIRED");
+
+    const receiptNumber = collection.receiptNumber ?? "sin número";
+    const subject = `Recibo de pago ${receiptNumber}`;
+    const text = `Hola ${student.firstName}, adjuntamos el recibo ${receiptNumber} por ${formatReceiptMoney(receipt.amount)}.`;
+    const log = {
+      organizationId,
+      actorUserId: request.auth!.userId,
+      studentId: student._id,
+      channel: "EMAIL" as const,
+      type: "PAYMENT_RECEIPT" as const,
+      destination: student.email,
+      subject,
+      message: text
+    };
+
+    try {
+      await sendEmail({
+        to: student.email,
+        subject,
+        text,
+        attachments: [{
+          filename: `${receiptNumber}.pdf`,
+          content: await receiptPdfBuffer(receipt, organization, student),
+          contentType: "application/pdf"
+        }]
+      });
+      await NotificationLogModel.create({ ...log, status: "SENT", sentAt: new Date() });
+    } catch (mailError) {
+      await NotificationLogModel.create({
+        ...log,
+        status: "FAILED",
+        errorMessage: mailError instanceof Error ? mailError.message : "No se pudo enviar el recibo"
+      });
+      throw mailError;
+    }
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PAYMENT_RECEIPT_EMAILED",
+      entityType: "Collection",
+      entityId: collection._id,
+      metadata: { receiptNumber, studentId: student._id, email: student.email }
+    });
+    response.json({ ok: true, receiptNumber });
   } catch (error) {
     next(error);
   }

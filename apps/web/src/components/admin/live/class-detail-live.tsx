@@ -12,6 +12,7 @@ import {
   Trash2,
   UsersRound
 } from "lucide-react";
+import type { MidMonthPolicy } from "@mym/shared";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -134,7 +135,7 @@ export function ClassDetailLive({ id }: { id: string }) {
   const [billingPreference, setBillingPreference] = useState<BillingPreference>("PER_CLASS");
   const [monthlyPlan, setMonthlyPlan] = useState<4 | 8>(4);
   const [startDate, setStartDate] = useState(todayInArgentina());
-  const [joinPolicy, setJoinPolicy] = useState<"" | "FULL" | "PRORATED" | "CUSTOM">("");
+  const [joinPolicy, setJoinPolicy] = useState<"" | MidMonthPolicy>("");
   const [joinCustomAmount, setJoinCustomAmount] = useState("");
   const [selectedSeries, setSelectedSeries] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
@@ -629,69 +630,107 @@ export function ClassDetailLive({ id }: { id: string }) {
 
         <section className={styles.card}>
           <div className={styles.cardHeader}><span>INSCRIPCIÓN</span><h3>Agregar alumno</h3></div>
-          <div className={styles.enrollBox}>
-            <select value={studentId} onChange={(event) => setStudentId(event.target.value)}>
-              <option value="">Seleccionar alumno de la sede</option>
-              {availableStudents.map((student) => (
-                <option value={student._id} key={student._id}>{student.firstName} {student.lastName}</option>
-              ))}
-            </select>
-            {mode === "BOTH" && (
-              <select value={billingPreference} onChange={(event) => setBillingPreference(event.target.value as BillingPreference)}>
-                <option value="PER_CLASS">Por clase · {"$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR")}</option>
-                <option value="MONTHLY">Mensual · {monthlyPlansLabel(danceClass)}</option>
-              </select>
-            )}
-            <input type="date" aria-label="Fecha de inicio" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-            <button disabled={!studentId || busy || !["ACTIVE", "PAUSED"].includes(danceClass.status)} onClick={() => void enroll()}>
-              <Plus size={15} /> Inscribir
-            </button>
-          </div>
-          {(normalizedMode(danceClass) === "BOTH" ? billingPreference : preferenceForClass(danceClass)) === "MONTHLY" && monthlyPlansAvailable(danceClass) && (
-            <div className={styles.enrollBox}>
-              <select value={monthlyPlan} onChange={(event) => setMonthlyPlan(Number(event.target.value) as 4 | 8)} aria-label="Plan mensual">
-                <option value={4}>Plan de 4 clases · {"$ " + monthlyPriceFor(danceClass, 4).toLocaleString("es-AR")}</option>
-                <option value={8}>Plan de 8 clases · {"$ " + monthlyPriceFor(danceClass, 8).toLocaleString("es-AR")}</option>
-              </select>
-            </div>
-          )}
-          {(danceClass.scheduleOccupancy?.length ?? 0) > 1 && (
-            <div className={styles.enrollBox}>
-              {danceClass.scheduleOccupancy!.map((slot) => (
-                <label key={slot.seriesId} className={styles.helper}>
-                  <input
-                    type="checkbox"
-                    checked={selectedSeries.includes(slot.seriesId)}
-                    onChange={(event) =>
-                      setSelectedSeries((current) =>
-                        event.target.checked ? [...current, slot.seriesId] : current.filter((item) => item !== slot.seriesId)
-                      )
-                    }
-                  />{" "}
-                  {dayLabels[slot.day] ?? slot.day} {slot.startTime} ({slot.occupied}/{danceClass.capacity})
-                </label>
-              ))}
-            </div>
-          )}
-          {(normalizedMode(danceClass) === "BOTH" ? billingPreference : preferenceForClass(danceClass)) === "MONTHLY" &&
-            startDate.slice(8, 10) !== "01" && (
-              <div className={styles.enrollBox}>
-                <select value={joinPolicy} onChange={(event) => setJoinPolicy(event.target.value as typeof joinPolicy)}>
-                  <option value="">Primer mes: elegí cómo cobrarlo</option>
-                  <option value="FULL">Cuota completa</option>
-                  <option value="PRORATED">Proporcional a las clases que quedan</option>
-                  <option value="CUSTOM">Importe personalizado</option>
-                </select>
-                {joinPolicy === "CUSTOM" && (
-                  <input type="number" min="0" step="0.01" placeholder="Importe" value={joinCustomAmount} onChange={(event) => setJoinCustomAmount(event.target.value)} />
+          {(() => {
+            const effectivePreference = normalizedMode(danceClass) === "BOTH" ? billingPreference : preferenceForClass(danceClass);
+            const isMonthly = effectivePreference === "MONTHLY";
+            const midMonthStart = isMonthly && startDate.slice(8, 10) !== "01";
+            const slots = danceClass.scheduleOccupancy ?? [];
+            let step = 0;
+            const num = () => ++step;
+            return (
+              <div className={styles.enrollSteps}>
+                <div className={styles.enrollStep}>
+                  <label className={styles.enrollLabel}><b>{num()}</b>Alumno</label>
+                  <select value={studentId} onChange={(event) => setStudentId(event.target.value)}>
+                    <option value="">Seleccionar alumno de la sede</option>
+                    {availableStudents.map((student) => (
+                      <option value={student._id} key={student._id}>{student.firstName} {student.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {mode === "BOTH" && (
+                  <div className={styles.enrollStep}>
+                    <label className={styles.enrollLabel}><b>{num()}</b>Cómo paga</label>
+                    <select value={billingPreference} onChange={(event) => setBillingPreference(event.target.value as BillingPreference)}>
+                      <option value="PER_CLASS">Por clase · {"$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR")}</option>
+                      <option value="MONTHLY">Mensual · {monthlyPlansLabel(danceClass)}</option>
+                    </select>
+                  </div>
+                )}
+
+                {isMonthly && monthlyPlansAvailable(danceClass) && (
+                  <div className={styles.enrollStep}>
+                    <label className={styles.enrollLabel}><b>{num()}</b>Plan mensual</label>
+                    <select value={monthlyPlan} onChange={(event) => setMonthlyPlan(Number(event.target.value) as 4 | 8)}>
+                      <option value={4}>Plan de 4 clases · {"$ " + monthlyPriceFor(danceClass, 4).toLocaleString("es-AR")}</option>
+                      <option value={8}>Plan de 8 clases · {"$ " + monthlyPriceFor(danceClass, 8).toLocaleString("es-AR")}</option>
+                    </select>
+                  </div>
+                )}
+
+                {slots.length > 1 && (
+                  <div className={styles.enrollStep}>
+                    <label className={styles.enrollLabel}><b>{num()}</b>Días y horarios</label>
+                    <div className={styles.slotChips}>
+                      {slots.map((slot) => {
+                        const checked = selectedSeries.includes(slot.seriesId);
+                        const full = slot.occupied >= danceClass.capacity;
+                        return (
+                          <label key={slot.seriesId} className={styles.slotChip + (checked ? " " + styles.slotChipOn : "")}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(event) =>
+                                setSelectedSeries((current) =>
+                                  event.target.checked ? [...current, slot.seriesId] : current.filter((item) => item !== slot.seriesId)
+                                )
+                              }
+                            />
+                            <strong>{dayLabels[slot.day] ?? slot.day} {slot.startTime}</strong>
+                            <small className={full ? styles.slotFull : undefined}>{slot.occupied}/{danceClass.capacity} cupos{full ? " · lleno" : ""}</small>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className={styles.helper}>
+                      {selectedSeries.length === 0 ? "Sin selección: el alumno se inscribe en todos los horarios." : `${selectedSeries.length} de ${slots.length} horarios seleccionados.`}
+                    </p>
+                  </div>
+                )}
+
+                <div className={styles.enrollStep}>
+                  <label className={styles.enrollLabel}><b>{num()}</b>Fecha de inicio</label>
+                  <input type="date" aria-label="Fecha de inicio" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+                </div>
+
+                {midMonthStart && (
+                  <div className={styles.enrollStep}>
+                    <label className={styles.enrollLabel}><b>{num()}</b>Cobro del primer mes</label>
+                    <select value={joinPolicy} onChange={(event) => setJoinPolicy(event.target.value as typeof joinPolicy)}>
+                      <option value="">Elegí cómo cobrar el primer mes</option>
+                      <option value="FULL">Cuota completa del mes</option>
+                      <option value="PRORATED">Proporcional a las clases que quedan</option>
+                      <option value="CUSTOM">Importe personalizado</option>
+                    </select>
+                    <p className={styles.helper}>El alumno entra a mitad de mes, por eso hay que definir cuánto se cobra ahora.</p>
+                    {joinPolicy === "CUSTOM" && (
+                      <input type="number" min="0" step="0.01" placeholder="Importe a cobrar ($)" value={joinCustomAmount} onChange={(event) => setJoinCustomAmount(event.target.value)} />
+                    )}
+                  </div>
+                )}
+
+                <button className={styles.enrollSubmit} disabled={!studentId || busy || !["ACTIVE", "PAUSED"].includes(danceClass.status)} onClick={() => void enroll()}>
+                  <Plus size={15} /> Inscribir alumno
+                </button>
+                {mode !== "BOTH" && (
+                  <p className={styles.helper}>
+                    Modalidad: {preferenceLabel(preferenceForClass(danceClass))}. La mensualidad no limita cuántas clases toma.
+                  </p>
                 )}
               </div>
-            )}
-          {mode !== "BOTH" && (
-            <p className={styles.helper}>
-              Modalidad: {preferenceLabel(preferenceForClass(danceClass))}. Sin selección de horarios el alumno queda en todos; la mensualidad no limita cuántas clases toma.
-            </p>
-          )}
+            );
+          })()}
         </section>
 
         {danceClass.freeTrialEnabled && (

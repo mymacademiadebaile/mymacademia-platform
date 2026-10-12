@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckCircle2, CircleDollarSign, FileText, RefreshCcw } from "lucide-react";
+import { CheckCircle2, CircleDollarSign, Download, FileText, Mail, MessageCircle, RefreshCcw, Search } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
 import { formatDateOnly, todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
@@ -170,7 +170,10 @@ function ChargesTab() {
           <>
           {data.items.map((charge) => (
             <article key={charge.id} className={billingStyles.chargeRow}>
-              <div>
+              <span className={billingStyles.avatar} aria-hidden="true">
+                {initialsOf(charge.student?.firstName, charge.student?.lastName)}
+              </span>
+              <div className={billingStyles.rowMain}>
                 <strong>
                   {charge.student ? (
                     <Link href={"/admin/students/" + charge.student.id}>
@@ -180,15 +183,18 @@ function ChargesTab() {
                     "Alumno"
                   )}
                 </strong>
-                <p>{charge.concept} · vence {formatDateOnly(charge.dueDate)}</p>
+                <p>{charge.concept}</p>
+                <small>Vence {formatDateOnly(charge.dueDate)}</small>
               </div>
               <div className={billingStyles.amount}>
                 <strong>{formatMoney(charge.balance)}</strong>
-                <span>{CHARGE_STATUS_LABEL[charge.status]}</span>
+                <span className={`${billingStyles.badge} ${charge.status === "OVERDUE" || charge.overdue ? billingStyles.badgeDanger : billingStyles.badgeWarn}`}>
+                  {CHARGE_STATUS_LABEL[charge.status]}
+                </span>
               </div>
               {charge.student && charge.balance > 0 && charge.status !== "VOID" ? (
                 <button type="button" onClick={() => setCollecting(charge)}><CircleDollarSign size={16} /> Cobrar</button>
-              ) : null}
+              ) : <span />}
             </article>
           ))}
           {!data.items.length && <p className={billingStyles.empty}>No hay pagos {status === "OVERDUE" ? "vencidos" : "pendientes"} este mes.</p>}
@@ -384,17 +390,79 @@ function MonthlyTab() {
   );
 }
 
+function initialsOf(firstName?: string, lastName?: string) {
+  return ((firstName?.[0] ?? "") + (lastName?.[0] ?? "")).toUpperCase() || "?";
+}
+
 function CollectionsTab() {
+  const { toast } = useAdminFeedback();
   const [period, setPeriod] = useState(todayInArgentina().slice(0, 7));
+  const [search, setSearch] = useState("");
+  const [busyId, setBusyId] = useState("");
   const [data, setData] = useState<{ items: CollectionView[]; total: number } | null>(null);
   const [year, month] = period.split("-").map(Number);
   const from = `${period}-01`;
-  const to = new Date(year, month, 0).toISOString().slice(0, 10);
+  const to = `${period}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, "0")}`;
 
   useEffect(() => {
     setData(null);
     void apiFetch<{ items: CollectionView[]; total: number }>(`/admin/billing/collections?from=${from}&to=${to}&limit=200`).then(setData).catch(() => setData({ items: [], total: 0 }));
   }, [from, to]);
+
+  const visible = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const items = data?.items ?? [];
+    if (!term) return items;
+    return items.filter((item) =>
+      `${item.student?.firstName ?? ""} ${item.student?.lastName ?? ""} ${item.receiptNumber ?? ""}`.toLowerCase().includes(term)
+    );
+  }, [data, search]);
+
+  const summary = useMemo(() => {
+    const byMethod = new Map<CollectionMethod, number>();
+    let total = 0;
+    for (const item of visible) {
+      total += item.amount;
+      byMethod.set(item.method, (byMethod.get(item.method) ?? 0) + item.amount);
+    }
+    return { total, byMethod: [...byMethod.entries()] };
+  }, [visible]);
+
+  async function emailReceipt(item: CollectionView) {
+    setBusyId(item.id);
+    try {
+      await apiFetch(`/admin/billing/collections/${item.id}/receipt/email`, { method: "POST" });
+      toast({ title: "Recibo enviado por email", tone: "success" });
+    } catch (requestError) {
+      toast({ title: "No se pudo enviar el recibo", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  function downloadReceipt(item: CollectionView) {
+    const link = document.createElement("a");
+    link.href = apiUrl(`/admin/billing/collections/${item.id}/receipt.pdf?download=1`);
+    link.download = `${item.receiptNumber ?? "recibo"}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function shareWhatsApp(item: CollectionView) {
+    if (!item.student?.phone) return;
+    const phone = item.student.phone.replace(/\D/g, "");
+    const text = `Hola ${item.student.firstName}, te compartimos el recibo ${item.receiptNumber ?? "de pago"} por $ ${item.amount.toLocaleString("es-AR")}.`;
+    const chat = window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`, "_blank");
+    if (chat) chat.opener = null;
+    downloadReceipt(item);
+    toast({
+      title: chat ? "WhatsApp Web abierto" : "Recibo descargado",
+      description: chat
+        ? "El PDF se descargó para que lo adjuntes en el chat abierto."
+        : "Permití las ventanas emergentes para abrir WhatsApp Web y adjuntá este PDF al chat."
+    });
+  }
 
   return (
     <>
@@ -403,29 +471,79 @@ function CollectionsTab() {
           <span>Mes</span>
           <input type="month" aria-label="Mes" value={period} onChange={(event) => setPeriod(event.target.value)} />
         </label>
+        <label className={billingStyles.searchField}>
+          <span>Alumno o recibo</span>
+          <div>
+            <Search size={15} aria-hidden="true" />
+            <input type="search" aria-label="Buscar cobro" placeholder="Buscar..." value={search} onChange={(event) => setSearch(event.target.value)} />
+          </div>
+        </label>
       </div>
+
       {!data ? (
         <LoadingBlock />
       ) : (
-        <div className={billingStyles.list}>
-          {data.items.map((item) => (
-            <article key={item.id} className={billingStyles.collectionRow}>
-              <div>
-                <strong>
-                  <Link href={"/admin/students/" + item.studentId}>
-                    {item.student ? `${item.student.firstName} ${item.student.lastName}` : "Alumno"}
-                  </Link>
-                </strong>
-                <p>{formatDateOnly(item.accountingDate)} · {METHOD_LABEL[item.method]}</p>
+        <>
+          <div className={billingStyles.summary}>
+            <div className={billingStyles.summaryMain}>
+              <span>Total cobrado</span>
+              <strong>{formatMoney(summary.total)}</strong>
+              <small>{visible.length} {visible.length === 1 ? "cobro" : "cobros"}</small>
+            </div>
+            {summary.byMethod.map(([method, amount]) => (
+              <div key={method} className={billingStyles.summaryItem}>
+                <span>{METHOD_LABEL[method]}</span>
+                <strong>{formatMoney(amount)}</strong>
               </div>
-              <strong className={billingStyles.amount}>{formatMoney(item.amount)}</strong>
-              <a className={styles.toggle} href={apiUrl("/admin/billing/collections/" + item.id + "/receipt.pdf")} target="_blank" rel="noopener">
-                <FileText size={12} /> Recibo
-              </a>
-            </article>
-          ))}
-          {!data.items.length && <p className={billingStyles.empty}>No hay cobros registrados este mes.</p>}
-        </div>
+            ))}
+          </div>
+
+          <div className={billingStyles.cards}>
+            {visible.map((item) => (
+              <article key={item.id} className={billingStyles.collectionCard}>
+                <span className={billingStyles.avatar} aria-hidden="true">
+                  {initialsOf(item.student?.firstName, item.student?.lastName)}
+                </span>
+                <div className={billingStyles.rowMain}>
+                  <strong>
+                    <Link href={"/admin/students/" + item.studentId}>
+                      {item.student ? `${item.student.firstName} ${item.student.lastName}` : "Alumno"}
+                    </Link>
+                  </strong>
+                  <p>
+                    {formatDateOnly(item.accountingDate)}
+                    <span className={`${billingStyles.badge} ${billingStyles.badgeMethod}`}>{METHOD_LABEL[item.method]}</span>
+                    {item.receiptNumber ? <span className={billingStyles.receiptNumber}>{item.receiptNumber}</span> : null}
+                  </p>
+                </div>
+                <strong className={billingStyles.collectionAmount}>{formatMoney(item.amount)}</strong>
+                <div className={billingStyles.receiptActions}>
+                  <a href={apiUrl(`/admin/billing/collections/${item.id}/receipt.pdf`)} target="_blank" rel="noopener" title="Ver recibo">
+                    <FileText size={13} /> Ver recibo
+                  </a>
+                  <a href={apiUrl(`/admin/billing/collections/${item.id}/receipt.pdf?download=1`)} title="Descargar recibo">
+                    <Download size={13} /> Descargar
+                  </a>
+                  {item.student?.email && (
+                    <button type="button" disabled={busyId === item.id} onClick={() => void emailReceipt(item)} title={`Enviar recibo a ${item.student.email}`}>
+                      <Mail size={13} /> Email
+                    </button>
+                  )}
+                  {item.student?.phone && (
+                    <button type="button" onClick={() => shareWhatsApp(item)} title="Abrir WhatsApp Web y descargar el recibo para adjuntarlo">
+                      <MessageCircle size={13} /> WhatsApp
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+            {!visible.length && (
+              <p className={billingStyles.empty}>
+                {search ? "No hay cobros que coincidan con la búsqueda." : "No hay cobros registrados este mes."}
+              </p>
+            )}
+          </div>
+        </>
       )}
     </>
   );

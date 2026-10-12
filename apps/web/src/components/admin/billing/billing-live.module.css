@@ -79,7 +79,7 @@
 .list { overflow: hidden; border: 1px solid #e4dce9; border-radius: 14px; background: #fff; }
 .chargeRow, .collectionRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 18px;
   min-height: 76px;
@@ -99,7 +99,6 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.amount span { color: #8a5a09; font-size: 10px; font-weight: 800; }
 .chargeRow > button {
   min-height: 38px;
   padding: 0 12px;
@@ -121,12 +120,97 @@
   outline-offset: 2px;
 }
 
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}
+.rowMain { min-width: 0; }
+.rowMain small { display: block; margin-top: 3px; color: #8a8090; font-size: 11px; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.badgeWarn { background: #fef3c7; color: #8a5a09; }
+.badgeDanger { background: #fee2e2; color: #b42318; }
+.badgeMethod { margin-left: 8px; background: #f1ecf7; color: #5b21b6; }
+.receiptNumber { margin-left: 8px; color: #8a8090; font-size: 11px; font-variant-numeric: tabular-nums; }
+
+.searchField div { position: relative; display: flex; align-items: center; }
+.searchField svg { position: absolute; left: 11px; color: #8a8090; pointer-events: none; }
+.searchField input { min-width: 220px; padding-left: 32px; }
+
+.summary { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.summaryMain, .summaryItem {
+  display: grid;
+  gap: 3px;
+  padding: 12px 16px;
+  border: 1px solid #e4dce9;
+  border-radius: 14px;
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.summaryMain { min-width: 190px; border-color: #5b21b6; background: #5b21b6; color: #fff; }
+.summaryMain span, .summaryMain small { color: #ddd0f7; font-size: 11px; font-weight: 700; }
+.summaryMain strong { font-size: 22px; letter-spacing: -0.02em; }
+.summaryItem span { color: #746a7a; font-size: 11px; font-weight: 800; }
+.summaryItem strong { color: #2b2231; font-size: 16px; }
+
+.cards { display: grid; gap: 10px; }
+.collectionCard {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 14px 16px;
+  border: 1px solid #e4dce9;
+  border-radius: 14px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.collectionCard:hover { border-color: #cdbcea; box-shadow: 0 4px 16px rgba(91, 33, 182, 0.07); }
+.collectionCard strong { color: #2b2231; font-size: 14px; }
+.collectionCard a { color: inherit; text-decoration: none; }
+.collectionCard p { margin: 4px 0 0; color: #746a7a; font-size: 12px; }
+.collectionAmount { font-size: 18px !important; font-variant-numeric: tabular-nums; text-align: right; }
+.receiptActions { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; border-top: 1px dashed #eee8f1; margin-top: 8px; }
+.receiptActions a, .receiptActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #dfd6e5;
+  border-radius: 8px;
+  background: #fff;
+  color: #4a3f52;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+.receiptActions a:hover, .receiptActions button:hover:not(:disabled) { border-color: #a78bfa; background: #faf8ff; color: #5b21b6; }
+.receiptActions button:disabled { cursor: progress; opacity: 0.55; }
+.receiptActions a:focus-visible, .receiptActions button:focus-visible { outline: 2px solid #6d28d9; outline-offset: 2px; }
+
 @media (max-width: 620px) {
   .header { margin-bottom: 20px; }
   .navigation { align-items: flex-start; }
   .tabs button { padding: 0 9px; }
-  .chargeRow, .collectionRow { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
-  .chargeRow > button, .collectionRow > a { grid-column: 1 / -1; width: fit-content; }
+  .chargeRow, .collectionRow { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; }
+  .chargeRow > button { grid-column: 1 / -1; width: fit-content; }
+  .receiptActions { grid-column: 1 / -1; }
+  .searchField input { min-width: 0; width: 100%; }
   .amount { min-width: 0; }
   .manualButton { margin-left: 0; }
 }

@@ -291,6 +291,117 @@
   font-size: 9px;
 }
 
+.enrollSteps {
+  display: grid;
+  gap: 14px;
+}
+
+.enrollStep {
+  display: grid;
+  gap: 6px;
+}
+
+.enrollStep select,
+.enrollStep input[type="date"],
+.enrollStep input[type="number"] {
+  min-height: 42px;
+  border: 1px solid #e5deea;
+  border-radius: 11px;
+  padding: 0 10px;
+  background: white;
+  font-size: 13px;
+}
+
+.enrollStep .helper {
+  margin: 0;
+  font-size: 11px;
+}
+
+.enrollLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2b2433;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.enrollLabel b {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ede7f8;
+  color: #5b21b6;
+  font-size: 11px;
+}
+
+.slotChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.slotChip {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  min-width: 130px;
+  padding: 9px 12px;
+  border: 1px solid #e5deea;
+  border-radius: 11px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.slotChip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.slotChip small {
+  color: #857b8b;
+  font-size: 11px;
+}
+
+.slotChipOn {
+  border-color: #5b21b6;
+  background: #f4effc;
+  box-shadow: 0 0 0 1px #5b21b6 inset;
+}
+
+.slotChip:focus-within {
+  outline: 2px solid #5b21b6;
+  outline-offset: 2px;
+}
+
+.slotFull {
+  color: #b42318 !important;
+}
+
+.enrollSubmit {
+  min-height: 44px;
+  border: 0;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #5b21b6;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.enrollSubmit:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
 .studentList {
   display: grid;
 }

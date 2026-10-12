@@ -44,7 +44,7 @@ export type CollectionView = {
   notes: string | null;
   hasProof: boolean;
   legacyPaymentId: string | null;
-  student?: { firstName: string; lastName: string } | null;
+  student?: { firstName: string; lastName: string; email?: string; phone?: string } | null;
 };
 
 export type StudentAccount = {
