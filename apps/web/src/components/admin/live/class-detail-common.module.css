@@ -1,0 +1,24 @@
+.card {
+  padding: 18px;
+  border: 1px solid #e9e2ed;
+  border-radius: 19px;
+  background: white;
+}
+
+.cardHeader > span {
+  color: #6d28d9;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.cardHeader h3 {
+  margin: 4px 0 13px;
+  font-size: 14px;
+}
+
+.helper {
+  margin: 10px 0 0;
+  color: #857b8b;
+  font-size: 9px;
+}

@@ -1,7 +1,8 @@
 import { Gift } from "lucide-react";
 import type { Student } from "./live-types";
 import type { TrialBooking } from "./class-detail-types";
-import styles from "./class-detail.module.css";
+import styles from "./class-detail-trials.module.css";
+import common from "./class-detail-common.module.css";
 
 type Props = {
   trials: TrialBooking[];
@@ -29,8 +30,8 @@ export function ClassTrialsCard({
   onConvert
 }: Props) {
   return (
-    <section className={styles.card + " " + styles.trialCard}>
-      <div className={styles.cardHeader}><span>PRUEBA</span><h3>Clases de prueba</h3></div>
+    <section className={common.card + " " + styles.trialCard}>
+      <div className={common.cardHeader}><span>PRUEBA</span><h3>Clases de prueba</h3></div>
       <div className={styles.trialComposer}>
         <select value={trialStudentId} onChange={(event) => onStudentChange(event.target.value)}>
           <option value="">Seleccionar alumno</option>
@@ -45,7 +46,7 @@ export function ClassTrialsCard({
       </div>
 
       <div className={styles.trialList}>
-        {trials.length === 0 && <p className={styles.helper}>Todavía no hay pruebas agendadas.</p>}
+        {trials.length === 0 && <p className={common.helper}>Todavía no hay pruebas agendadas.</p>}
         {trials.map((trial) => (
           <div key={trial._id}>
             <span>

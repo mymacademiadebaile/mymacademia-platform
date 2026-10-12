@@ -3,7 +3,8 @@ import Link from "next/link";
 import type { BillingPreference, DanceClass } from "./live-types";
 import type { Enrollment } from "./class-detail-types";
 import { normalizedMode, preferenceForClass, preferenceLabel } from "./class-detail-helpers";
-import styles from "./class-detail.module.css";
+import styles from "./class-detail-students.module.css";
+import common from "./class-detail-common.module.css";
 
 type Props = {
   danceClass: DanceClass;
@@ -18,10 +19,10 @@ export function ClassStudentsCard({ danceClass, enrollments, busy, onChangeBilli
   const mode = normalizedMode(danceClass);
 
   return (
-    <section className={styles.card + " " + styles.studentsCard}>
-      <div className={styles.cardHeader}><span>ALUMNOS</span><h3>Inscriptos actuales</h3></div>
+    <section className={common.card + " " + styles.studentsCard}>
+      <div className={common.cardHeader}><span>ALUMNOS</span><h3>Inscriptos actuales</h3></div>
       <div className={styles.studentList}>
-        {enrollments.length === 0 && <p className={styles.helper}>Todavía no hay alumnos inscriptos.</p>}
+        {enrollments.length === 0 && <p className={common.helper}>Todavía no hay alumnos inscriptos.</p>}
         {enrollments.map((enrollment) => (
           <div key={enrollment._id}>
             <Link href={"/admin/students/" + enrollment.studentId._id} className={styles.studentIdentity}>

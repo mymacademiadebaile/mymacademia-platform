@@ -4,7 +4,7 @@ import type { BillingMode, Branch, CatalogItem, DanceClass, Professor } from "./
 import { Field, LiveModal } from "./live-common";
 import type { ScheduleDraft } from "./class-detail-types";
 import { dayLabels, monthlyPriceFor, refId } from "./class-detail-helpers";
-import styles from "./class-detail.module.css";
+import styles from "./class-detail-modals.module.css";
 
 type Props = {
   open: boolean;

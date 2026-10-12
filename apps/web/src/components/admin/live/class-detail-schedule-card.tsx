@@ -1,12 +1,13 @@
 import { CalendarDays } from "lucide-react";
 import type { DanceClass } from "./live-types";
 import { dayLabels, refId, refName } from "./class-detail-helpers";
-import styles from "./class-detail.module.css";
+import styles from "./class-detail-schedule.module.css";
+import common from "./class-detail-common.module.css";
 
 export function ClassScheduleCard({ danceClass }: { danceClass: DanceClass }) {
   return (
-    <section className={styles.card}>
-      <div className={styles.cardHeader}><span>HORARIOS</span><h3>Agenda semanal</h3></div>
+    <section className={common.card}>
+      <div className={common.cardHeader}><span>HORARIOS</span><h3>Agenda semanal</h3></div>
       <div className={styles.scheduleList}>
         {danceClass.schedules.map((schedule, index) => (
           <div key={index}>

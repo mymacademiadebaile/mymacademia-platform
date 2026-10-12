@@ -1,0 +1,74 @@
+.scheduleEditor {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+}
+
+.scheduleEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.scheduleEditorHeader strong {
+  font-size: 10px;
+}
+
+.scheduleEditorHeader button {
+  min-height: 31px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e5deea;
+  border-radius: 9px;
+  background: white;
+  color: #5b21b6;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.scheduleEditorRow {
+  display: grid;
+  grid-template-columns: 1fr 110px 110px 36px;
+  gap: 7px;
+}
+
+.scheduleEditorRow select,
+.scheduleEditorRow input {
+  min-height: 39px;
+  border: 1px solid #e5deea;
+  border-radius: 10px;
+  padding: 0 8px;
+  background: white;
+}
+
+.scheduleEditorRow button {
+  border: 1px solid #fee2e2;
+  border-radius: 9px;
+  background: #fff7f7;
+  color: #be123c;
+}
+
+.switchRow {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid #e5deea;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+.switchRow input { width: 17px; }
+.switchRow span { color: #5f5566; font-size: 12px; font-weight: 750; }
+
+@media (max-width: 680px) {
+  .scheduleEditorRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .scheduleEditorRow select {
+    grid-column: 1 / -1;
+  }
+}

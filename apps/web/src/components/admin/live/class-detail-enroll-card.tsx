@@ -10,7 +10,8 @@ import {
   preferenceForClass,
   preferenceLabel
 } from "./class-detail-helpers";
-import styles from "./class-detail.module.css";
+import styles from "./class-detail-enroll.module.css";
+import common from "./class-detail-common.module.css";
 
 type Props = {
   danceClass: DanceClass;
@@ -47,8 +48,8 @@ export function ClassEnrollCard(props: Props) {
   const num = () => ++step;
 
   return (
-    <section className={styles.card}>
-      <div className={styles.cardHeader}><span>INSCRIPCIÓN</span><h3>Agregar alumno</h3></div>
+    <section className={common.card}>
+      <div className={common.cardHeader}><span>INSCRIPCIÓN</span><h3>Agregar alumno</h3></div>
       <div className={styles.enrollSteps}>
         <div className={styles.enrollStep}>
           <label className={styles.enrollLabel}><b>{num()}</b>Alumno</label>
@@ -104,7 +105,7 @@ export function ClassEnrollCard(props: Props) {
                 );
               })}
             </div>
-            <p className={styles.helper}>
+            <p className={common.helper}>
               {selectedSeries.length === 0 ? "Sin selección: el alumno se inscribe en todos los horarios." : `${selectedSeries.length} de ${slots.length} horarios seleccionados.`}
             </p>
           </div>
@@ -124,7 +125,7 @@ export function ClassEnrollCard(props: Props) {
               <option value="PRORATED">Proporcional a las clases que quedan</option>
               <option value="CUSTOM">Importe personalizado</option>
             </select>
-            <p className={styles.helper}>El alumno entra a mitad de mes, por eso hay que definir cuánto se cobra ahora.</p>
+            <p className={common.helper}>El alumno entra a mitad de mes, por eso hay que definir cuánto se cobra ahora.</p>
             {joinPolicy === "CUSTOM" && (
               <input type="number" min="0" step="0.01" placeholder="Importe a cobrar ($)" value={joinCustomAmount} onChange={(event) => props.onJoinCustomAmountChange(event.target.value)} />
             )}
@@ -135,7 +136,7 @@ export function ClassEnrollCard(props: Props) {
           <Plus size={15} /> Inscribir alumno
         </button>
         {mode !== "BOTH" && (
-          <p className={styles.helper}>
+          <p className={common.helper}>
             Modalidad: {preferenceLabel(preferenceForClass(danceClass))}. La mensualidad no limita cuántas clases toma.
           </p>
         )}

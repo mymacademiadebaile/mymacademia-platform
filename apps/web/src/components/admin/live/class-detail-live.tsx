@@ -30,7 +30,7 @@ import { ClassTrialsCard } from "./class-detail-trials-card";
 import { ClassStudentsCard } from "./class-detail-students-card";
 import { ClassChargeModal } from "./class-detail-charge-modal";
 import { ClassEditModal } from "./class-detail-edit-modal";
-import styles from "./class-detail.module.css";
+import styles from "./class-detail-layout.module.css";
 
 export function ClassDetailLive({ id }: { id: string }) {
   const [danceClass, setDanceClass] = useState<DanceClass | null>(null);

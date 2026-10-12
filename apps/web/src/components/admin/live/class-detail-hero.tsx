@@ -1,7 +1,7 @@
 import { Copy, Power, Trash2 } from "lucide-react";
 import type { DanceClass } from "./live-types";
 import { billingLabel, refName } from "./class-detail-helpers";
-import styles from "./class-detail.module.css";
+import styles from "./class-detail-hero.module.css";
 
 type Props = {
   danceClass: DanceClass;
