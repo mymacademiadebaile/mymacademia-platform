@@ -9,7 +9,7 @@ import PDFDocument from "pdfkit";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
-import { ACADEMY_TIME_ZONE, toDateOnly } from "../../common/dates";
+import { ACADEMY_TIME_ZONE, academyDateOf, classDateKey, toDateOnly } from "../../common/dates";
 import { privateAssetUrl, uploadPrivateBuffer } from "../../services/cloudinary";
 import { CollectionModel } from "../billing/collection.model";
 import { sendEmail } from "../../services/mailer";
@@ -442,6 +442,7 @@ adminPaymentsRouter.get("/export.xlsx", async (request, response, next) => {
       { header: "Tipo", key: "paymentType", width: 14 },
       { header: "Concepto", key: "concept", width: 24 },
       { header: "Período", key: "period", width: 12 },
+      { header: "Fecha de clase", key: "classDate", width: 16 },
       { header: "Vencimiento", key: "dueDate", width: 16 },
       { header: "Importe", key: "amount", width: 14 },
       { header: "Estado", key: "status", width: 14 },
@@ -462,11 +463,12 @@ adminPaymentsRouter.get("/export.xlsx", async (request, response, next) => {
         paymentType: payment.paymentType === "PER_CLASS" ? "Por clase" : "Mensual",
         concept: payment.concept,
         period: payment.period,
-        dueDate: payment.dueDate,
+        classDate: payment.classDate ? classDateKey(payment.classDate) : "",
+        dueDate: payment.dueDate ? classDateKey(payment.dueDate) : "",
         amount: payment.amount,
         status: effectiveStatus(payment),
         method: payment.paymentMethod ?? "",
-        paidAt: payment.paidAt ?? ""
+        paidAt: payment.paidAt ? academyDateOf(payment.paidAt) : ""
       });
     }
 

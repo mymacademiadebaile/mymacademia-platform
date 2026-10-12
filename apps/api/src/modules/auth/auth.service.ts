@@ -43,6 +43,9 @@ export function createRefreshToken(user: TokenUser) {
   return createToken(user, "refresh", REFRESH_TOKEN_TTL);
 }
 
+// Login resolves the user by email alone: the platform runs a single academy today, so emails
+// are treated as globally unique. Supporting several academies means adding an organization
+// selector here and in forgot-password (the unique index is per organization + email).
 export async function login(input: LoginInput) {
   const user = await UserModel.findOne({
     email: input.email,
