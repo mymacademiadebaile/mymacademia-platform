@@ -161,8 +161,18 @@ async function validateClassRelations(
     disciplineIds: string[];
     segmentIds: string[];
     levelIds: string[];
-  }
+  },
+  // Ids already stored on the class: they stay valid even if later deactivated.
+  existing: {
+    professorIds: string[];
+    disciplineIds: string[];
+    segmentIds: string[];
+    levelIds: string[];
+  } = { professorIds: [], disciplineIds: [], segmentIds: [], levelIds: [] }
 ) {
+  const activeOrKept = (kept: string[]) => ({
+    $or: [{ isActive: true }, { _id: { $in: kept } }]
+  });
   const [branch, professors, disciplineCount, segmentCount, levelCount] = await Promise.all([
     BranchModel.findOne({
       _id: input.branchId,
@@ -172,25 +182,25 @@ async function validateClassRelations(
     ProfessorModel.find({
       _id: { $in: input.professorIds },
       organizationId,
-      isActive: true
+      ...activeOrKept(existing.professorIds)
     }).select("_id userId"),
     CatalogItemModel.countDocuments({
       _id: { $in: input.disciplineIds },
       organizationId,
       type: "DISCIPLINE",
-      isActive: true
+      ...activeOrKept(existing.disciplineIds)
     }),
     CatalogItemModel.countDocuments({
       _id: { $in: input.segmentIds },
       organizationId,
       type: "SEGMENT",
-      isActive: true
+      ...activeOrKept(existing.segmentIds)
     }),
     CatalogItemModel.countDocuments({
       _id: { $in: input.levelIds },
       organizationId,
       type: "LEVEL",
-      isActive: true
+      ...activeOrKept(existing.levelIds)
     })
   ]);
 
@@ -206,7 +216,16 @@ async function validateClassRelations(
     _id: { $in: professors.map((professor) => professor.userId) },
     organizationId,
     role: "PROFESSOR",
-    isActive: true,
+    $or: [
+      { isActive: true },
+      {
+        _id: {
+          $in: professors
+            .filter((professor) => existing.professorIds.includes(professor._id.toString()))
+            .map((professor) => professor.userId)
+        }
+      }
+    ],
     branchIds: new Types.ObjectId(input.branchId)
   });
 
@@ -530,7 +549,12 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
       input.segmentIds ||
       input.levelIds
     ) {
-      await validateClassRelations(organizationId, merged);
+      await validateClassRelations(organizationId, merged, {
+        professorIds: item.professorIds.map((value) => value.toString()),
+        disciplineIds: item.disciplineIds.map((value) => value.toString()),
+        segmentIds: item.segmentIds.map((value) => value.toString()),
+        levelIds: item.levelIds.map((value) => value.toString())
+      });
     }
 
     const targetStatus = input.status ?? item.status;

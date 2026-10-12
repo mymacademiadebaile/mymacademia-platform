@@ -83,7 +83,9 @@ const completeProfessorVideoUploadSchema = z.object({
 async function validateRelations(
   organizationId: string,
   branchIds: string[],
-  disciplineIds: string[]
+  disciplineIds: string[],
+  // Disciplines already on the professor stay valid even if later deactivated.
+  keptDisciplineIds: string[] = []
 ) {
   const [branchCount, disciplineCount] = await Promise.all([
     BranchModel.countDocuments({
@@ -96,7 +98,7 @@ async function validateRelations(
           _id: { $in: disciplineIds },
           organizationId,
           type: "DISCIPLINE",
-          isActive: true
+          $or: [{ isActive: true }, { _id: { $in: keptDisciplineIds } }]
         })
       : Promise.resolve(0)
   ]);
@@ -324,7 +326,12 @@ adminProfessorsRouter.patch("/:id", async (request, response, next) => {
     const disciplineIds = input.disciplineIds ?? professor.disciplineIds.map((value) => value.toString());
 
     if (input.branchIds || input.disciplineIds) {
-      await validateRelations(organizationId, branchIds, disciplineIds);
+      await validateRelations(
+        organizationId,
+        branchIds,
+        disciplineIds,
+        professor.disciplineIds.map((value) => value.toString())
+      );
     }
 
     if (input.email && input.email !== user.email) {

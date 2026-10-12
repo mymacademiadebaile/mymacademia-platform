@@ -77,7 +77,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
 
       setData(detail);
       setAllBranches(branches.filter((branch) => branch.isActive));
-      setCatalogs(catalogItems.filter((item) => item.type === "DISCIPLINE" && item.isActive));
+      setCatalogs(catalogItems.filter((item) => item.type === "DISCIPLINE"));
     } catch (requestError) {
       setError(apiMessage(requestError));
     }
@@ -312,6 +312,8 @@ export function ProfessorDetailLive({ id }: { id: string }) {
   const selectedDisciplineIds = new Set(
     professor.disciplineIds.map((value) => typeof value === "string" ? value : value._id)
   );
+  // Inactive disciplines stay selectable only when the professor already has them.
+  const selectableCatalogs = catalogs.filter((item) => item.isActive || selectedDisciplineIds.has(item._id));
 
   return (
     <>
@@ -541,8 +543,8 @@ export function ProfessorDetailLive({ id }: { id: string }) {
           </select>
         </Field>
         <Field label="Disciplinas" wide>
-          <select name="disciplineIds" multiple size={Math.min(6, Math.max(3, catalogs.length))} defaultValue={[...selectedDisciplineIds]}>
-            {catalogs.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
+          <select name="disciplineIds" multiple size={Math.min(6, Math.max(3, selectableCatalogs.length))} defaultValue={[...selectedDisciplineIds]}>
+            {selectableCatalogs.map((item) => <option value={item._id} key={item._id}>{item.name}{item.isActive ? "" : " (inactivo)"}</option>)}
           </select>
         </Field>
         <Field label="Descripción corta para la web" wide>

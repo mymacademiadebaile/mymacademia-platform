@@ -157,7 +157,7 @@ export function ClassDetailLive({ id }: { id: string }) {
         apiFetch<TrialResponse>("/admin/trials?classId=" + id),
         apiFetch<Paginated<Student>>("/admin/students?limit=100&isActive=true"),
         apiFetch<Branch[]>("/admin/branches"),
-        fetchAllPaginated<Professor>("/admin/professors?isActive=true"),
+        fetchAllPaginated<Professor>("/admin/professors"),
         apiFetch<CatalogItem[]>("/admin/catalogs")
       ]);
       setDanceClass(classData);
@@ -165,8 +165,8 @@ export function ClassDetailLive({ id }: { id: string }) {
       setTrials(trialData.items);
       setStudents(studentData.items);
       setBranches(branchList.filter((item) => item.isActive));
-      setProfessors(professorList.filter((item) => item.isActive));
-      setCatalogs(catalogList.filter((item) => item.isActive));
+      setProfessors(professorList);
+      setCatalogs(catalogList);
       setBillingPreference(preferenceForClass(classData) ?? "PER_CLASS");
       setMonthlyPlan(4);
     } catch (requestError) {
@@ -540,6 +540,12 @@ export function ClassDetailLive({ id }: { id: string }) {
   const selectedDisciplineIds = danceClass.disciplineIds.map(refId);
   const selectedSegmentIds = danceClass.segmentIds.map(refId);
   const selectedLevelIds = danceClass.levelIds.map(refId);
+  // Inactive items stay selectable only when the class already uses them.
+  const selectableProfessors = professors.filter((item) => item.isActive || selectedProfessorIds.includes(item._id));
+  const selectableDisciplines = disciplines.filter((item) => item.isActive || selectedDisciplineIds.includes(item._id));
+  const selectableSegments = segments.filter((item) => item.isActive || selectedSegmentIds.includes(item._id));
+  const selectableLevels = levels.filter((item) => item.isActive || selectedLevelIds.includes(item._id));
+  const inactiveSuffix = (item: { isActive: boolean }) => (item.isActive ? "" : " (inactivo)");
   const mode = normalizedMode(danceClass);
 
   return (
@@ -580,7 +586,7 @@ export function ClassDetailLive({ id }: { id: string }) {
         </div>
       </section>
 
-      <GroupSchedulesPanel classId={id} danceClass={danceClass} professors={professors} onChanged={() => void load()} />
+      <GroupSchedulesPanel classId={id} danceClass={danceClass} professors={professors.filter((item) => item.isActive)} onChanged={() => void load()} />
 
       <div className={styles.webToggle}>
         <WebSwitch
@@ -854,23 +860,23 @@ export function ClassDetailLive({ id }: { id: string }) {
           </label>
         </Field>
         <Field label="Profesores" wide>
-          <select name="professorIds" multiple defaultValue={selectedProfessorIds} size={Math.min(5, Math.max(3, professors.length))} required>
-            {professors.map((professor) => <option key={professor._id} value={professor._id}>{professor.displayName}</option>)}
+          <select name="professorIds" multiple defaultValue={selectedProfessorIds} size={Math.min(5, Math.max(3, selectableProfessors.length))} required>
+            {selectableProfessors.map((professor) => <option key={professor._id} value={professor._id}>{professor.displayName}{inactiveSuffix(professor)}</option>)}
           </select>
         </Field>
         <Field label="Disciplinas">
           <select name="disciplineIds" multiple defaultValue={selectedDisciplineIds} size={4} required>
-            {disciplines.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
+            {selectableDisciplines.map((item) => <option key={item._id} value={item._id}>{item.name}{inactiveSuffix(item)}</option>)}
           </select>
         </Field>
         <Field label="Público">
           <select name="segmentIds" multiple defaultValue={selectedSegmentIds} size={3} required>
-            {segments.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
+            {selectableSegments.map((item) => <option key={item._id} value={item._id}>{item.name}{inactiveSuffix(item)}</option>)}
           </select>
         </Field>
         <Field label="Niveles">
           <select name="levelIds" multiple defaultValue={selectedLevelIds} size={3} required>
-            {levels.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
+            {selectableLevels.map((item) => <option key={item._id} value={item._id}>{item.name}{inactiveSuffix(item)}</option>)}
           </select>
         </Field>
 
