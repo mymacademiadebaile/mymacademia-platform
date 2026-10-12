@@ -141,7 +141,7 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
       })
         .populate({
           path: "classId",
-          select: "name schedules capacity status professorIds disciplineIds segmentIds levelIds",
+          select: "name schedules capacity status billingMode pricePerClass monthlyPrice monthlyPrice4 monthlyPrice8 professorIds disciplineIds segmentIds levelIds",
           populate: [
             { path: "professorIds", select: "displayName" },
             { path: "disciplineIds", select: "name type" },
