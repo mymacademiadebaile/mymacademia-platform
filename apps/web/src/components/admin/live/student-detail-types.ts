@@ -1,5 +1,5 @@
 import type { ChargeView } from "../billing/billing-types";
-import type { BillingPreference, DanceClass, Payment, Student } from "./live-types";
+import type { BillingPreference, DanceClass, Student } from "./live-types";
 
 export type Enrollment = {
   _id: string;
@@ -14,14 +14,14 @@ export type Enrollment = {
 export type StudentDetail = {
   student: Student;
   enrollments: Enrollment[];
-  payments: Payment[];
   financial: {
     paidAmount: number;
     paidCount: number;
     pendingAmount: number;
-    pendingCount: number;
     overdueAmount: number;
+    pendingCount: number;
     overdueCount: number;
+    openCount: number;
   };
 };
 

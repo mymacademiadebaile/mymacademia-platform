@@ -1,5 +1,5 @@
 import { Types, type ClientSession } from "mongoose";
-import { academyNow, utcDayRange } from "../../common/dates";
+import { academyNow } from "../../common/dates";
 import { toPesos } from "../../common/money";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { SessionBookingModel } from "../sessions/session-booking.model";
@@ -7,7 +7,7 @@ import { chargeState } from "./balance-service";
 import { ChargeModel } from "./charge.model";
 import { CollectionModel } from "./collection.model";
 import { PaymentAllocationModel } from "./payment-allocation.model";
-import { legacyPaymentToChargeView, unmirroredLegacyPayments, type ChargeView, type LegacyPaymentLike } from "./legacy-adapter";
+import type { ChargeView } from "./legacy-adapter";
 
 type BillingType = "PER_CLASS" | "MONTHLY" | "FREE";
 
@@ -31,7 +31,6 @@ const RANK: Record<string, number> = { PAID: 0, PARTIAL: 1, OVERDUE: 2, PENDING:
 
 export interface CoverageViews {
   views: ChargeView[];
-  legacyById: Map<string, LegacyPaymentLike>;
   lastCollectionByCharge: Map<string, { method?: string; receiptNumber?: string }>;
 }
 
@@ -52,7 +51,7 @@ export async function loadCoverageViews(
   session?: ClientSession
 ): Promise<CoverageViews> {
   if (!scope.classIds.length || !scope.studentIds.length) {
-    return { views: [], legacyById: new Map(), lastCollectionByCharge: new Map() };
+    return { views: [],lastCollectionByCharge: new Map() };
   }
   const days = [...new Set(scope.days)];
   const chargeFilter = {
@@ -66,25 +65,7 @@ export async function loadCoverageViews(
       { kind: "CLASS_FEE", sessionId: { $exists: false }, serviceDate: { $in: days } }
     ]
   };
-  const legacyFilter = {
-    organizationId,
-    classId: { $in: scope.classIds },
-    studentId: { $in: scope.studentIds },
-    status: { $ne: "CANCELLED" },
-    $or: [
-      { paymentType: "MONTHLY", period: { $in: scope.periods } },
-      { paymentType: "PER_CLASS", sessionId: { $in: scope.sessionIds } },
-      ...days.map((day) => {
-        const { start, end } = utcDayRange(day);
-        return { paymentType: "PER_CLASS", sessionId: { $exists: false }, classDate: { $gte: start, $lt: end } };
-      })
-    ]
-  };
-
-  const [charges, legacy] = await Promise.all([
-    ChargeModel.find(chargeFilter).session(session ?? null).lean<ChargeView[]>(),
-    unmirroredLegacyPayments(legacyFilter, session)
-  ]);
+  const charges = await ChargeModel.find(chargeFilter).session(session ?? null).lean<ChargeView[]>();
 
   const allocations = charges.length
     ? await PaymentAllocationModel.find({ organizationId, chargeId: { $in: charges.map((item) => item._id) } })
@@ -105,8 +86,7 @@ export async function loadCoverageViews(
   }
 
   return {
-    views: [...charges, ...legacy.map(legacyPaymentToChargeView)],
-    legacyById: new Map(legacy.map((item) => [String(item._id), item])),
+    views: charges,
     lastCollectionByCharge
   };
 }
@@ -155,18 +135,17 @@ export function pickCoverage(
   if (!best) {
     return { status: "NONE", paymentType: null, amount: input.listPrice, paidAmount: 0, balanceAmount: input.listPrice };
   }
-  const legacyPayment = best.view.legacy ? loaded.legacyById.get(String(best.view._id)) : undefined;
   const collection = loaded.lastCollectionByCharge.get(String(best.view._id));
   return {
     status: best.state.status as CoverageResult["status"],
     paymentType: best.view.kind === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS",
-    paymentId: legacyPayment ? String(legacyPayment._id) : best.view.legacyPaymentId ? String(best.view.legacyPaymentId) : undefined,
-    chargeId: best.view.legacy ? undefined : String(best.view._id),
+    paymentId: best.view.legacyPaymentId ? String(best.view.legacyPaymentId) : undefined,
+    chargeId: String(best.view._id),
     amount: toPesos(best.state.owedCents),
     paidAmount: toPesos(best.state.paidCents),
     balanceAmount: toPesos(best.state.balanceCents),
-    paymentMethod: legacyPayment?.paymentMethod ?? collection?.method,
-    receiptNumber: legacyPayment?.receiptNumber ?? collection?.receiptNumber,
+    paymentMethod: collection?.method,
+    receiptNumber: collection?.receiptNumber,
     dueDate: best.view.dueDate
   };
 }
@@ -270,10 +249,5 @@ export async function hasMonthlyCoverage(
     period,
     status: { $ne: "VOID" }
   }).session(session ?? null);
-  if (charge) return true;
-  const legacy = await unmirroredLegacyPayments(
-    { organizationId, studentId, classId, paymentType: "MONTHLY", period, status: { $ne: "CANCELLED" } },
-    session
-  );
-  return legacy.length > 0;
+  return Boolean(charge);
 }

@@ -8,6 +8,7 @@ import { env } from "../../config/env";
 import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
+import { syncLegacyPayment } from "../billing/legacy-sync";
 import { PaymentModel } from "../payments/payment.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
@@ -102,7 +103,7 @@ describe("GET /admin/reports/overview", () => {
       }
     ]);
 
-    await PaymentModel.create([
+    const legacyPayments = await PaymentModel.create([
       {
         organizationId: ids.organization,
         branchId: ids.branch,
@@ -158,6 +159,7 @@ describe("GET /admin/reports/overview", () => {
         paidAt: new Date("2026-09-05T12:00:00.000Z")
       }
     ]);
+    for (const legacy of legacyPayments) await syncLegacyPayment(legacy._id);
 
     const response = await auth(
       request(app).get("/api/admin/reports/overview?from=2026-09-01&to=2026-09-30")

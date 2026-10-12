@@ -10,6 +10,7 @@ import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { ChargeModel } from "../billing/charge.model";
+import { syncLegacyPayment } from "../billing/legacy-sync";
 import { PaymentModel } from "../payments/payment.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
@@ -67,7 +68,8 @@ async function setup(mode: Mode, preference?: PaymentKind, sessionDate = SESSION
   return { danceClass, student, enrollment, session };
 }
 
-function addPayment(
+/** Legacy fixture, mirrored to Charge/Collection like the legacy endpoints do (reads only use the new model). */
+async function addPayment(
   ctx: { danceClass: { _id: Types.ObjectId }; student: { _id: Types.ObjectId } },
   type: PaymentKind,
   when: string,
@@ -75,7 +77,7 @@ function addPayment(
   extra: Record<string, unknown> = {}
 ) {
   const classDate = new Date(`${when}T12:00:00.000Z`);
-  return PaymentModel.create({
+  const payment = await PaymentModel.create({
     organizationId: ids.org,
     branchId: ids.branch,
     studentId: ctx.student._id,
@@ -89,6 +91,8 @@ function addPayment(
     status,
     ...extra
   });
+  await syncLegacyPayment(payment._id);
+  return payment;
 }
 
 async function participantOf(ctx: { session: { _id: Types.ObjectId }; student: { _id: Types.ObjectId } }) {

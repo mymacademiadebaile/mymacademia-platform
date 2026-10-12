@@ -8,11 +8,8 @@ import { BranchModel } from "../core/branch.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { closeEnrollment } from "../enrollments/enrollment-service";
 import { academyNow } from "../../common/dates";
-import { PaymentModel } from "../payments/payment.model";
-import { effectivePaymentStatus } from "../payments/payment-status";
-import { studentBalances, studentIdsWithOverdueDebt } from "../billing/balance-service";
+import { chargeState, openCharges as listOpenCharges, studentBalances, studentIdsWithOverdueDebt } from "../billing/balance-service";
 import { CollectionModel } from "../billing/collection.model";
-import { unmirroredLegacyPayments } from "../billing/legacy-adapter";
 import { toPesos } from "../../common/money";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
@@ -134,7 +131,7 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
       throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
     }
 
-    const [enrollments, payments, balances] = await Promise.all([
+    const [enrollments, balances, collections, openCharges] = await Promise.all([
       EnrollmentModel.find({
         organizationId,
         studentId: student._id
@@ -150,62 +147,38 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
           ]
         })
         .sort({ enrolledAt: -1 }),
-      PaymentModel.find({
-        organizationId,
-        studentId: student._id
-      }).sort({ dueDate: -1 }),
-      studentBalances(organizationId, [student._id])
+      studentBalances(organizationId, [student._id]),
+      CollectionModel.find({ organizationId, studentId: student._id }).select("amountCents refundedCents").lean<any[]>(),
+      listOpenCharges(organizationId, { studentIds: [student._id] })
     ]);
     const balance = balances.get(String(student._id))!;
-    const [collections, unmirroredPaid] = await Promise.all([
-      CollectionModel.find({ organizationId, studentId: student._id }).select("amountCents refundedCents").lean<any[]>(),
-      unmirroredLegacyPayments({ organizationId, studentId: student._id, status: "PAID" })
-    ]);
+    const today = academyNow().date;
+    let overdueCount = 0;
+    let pendingCount = 0;
+    for (const charge of openCharges) {
+      const state = chargeState(charge, today);
+      if (state.status === "PAID" || state.status === "VOID") continue;
+      if (state.overdue) overdueCount += 1;
+      else pendingCount += 1;
+    }
     const collected = collections.reduce(
       (sum, item) => ({ amountCents: sum.amountCents + item.amountCents, refundedCents: sum.refundedCents + item.refundedCents, count: sum.count + 1 }),
       { amountCents: 0, refundedCents: 0, count: 0 }
     );
 
-    const financial = payments.reduce(
-      (summary, payment) => {
-        const status = effectivePaymentStatus(payment);
-        if (status === "PAID") {
-          summary.paidAmount += payment.amount;
-          summary.paidCount += 1;
-        } else if (status === "OVERDUE") {
-          summary.overdueAmount += payment.amount;
-          summary.overdueCount += 1;
-        } else if (status === "PENDING") {
-          summary.pendingAmount += payment.amount;
-          summary.pendingCount += 1;
-        }
-
-        return summary;
-      },
-      {
-        paidAmount: 0,
-        paidCount: 0,
-        pendingAmount: 0,
-        pendingCount: 0,
-        overdueAmount: 0,
-        overdueCount: 0
-      }
-    );
-
     response.json({
       student,
       enrollments,
-      payments,
-      // Legacy totals of the payments list plus the central balance (same rule as every screen).
+      // Everything derives from charges and collections (central balance, same rule as every screen).
       financial: {
-        ...financial,
-        // Money received: collections of the new model (legacy payments are mirrored there) plus
-        // legacy paid payments not mirrored yet, minus refunds.
-        paidAmount: toPesos(collected.amountCents - collected.refundedCents) + unmirroredPaid.reduce((sum, item) => sum + item.amount, 0),
-        paidCount: collected.count + unmirroredPaid.length,
+        paidAmount: toPesos(collected.amountCents - collected.refundedCents),
+        paidCount: collected.count,
         pendingAmount: toPesos(balance.pendingCents - balance.overdueCents),
         overdueAmount: toPesos(balance.overdueCents),
         creditAmount: toPesos(balance.creditCents),
+        pendingCount,
+        overdueCount,
+        openCount: balance.openCount,
         partialCount: balance.partialCount
       }
     });

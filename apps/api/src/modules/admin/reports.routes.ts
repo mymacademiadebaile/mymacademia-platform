@@ -8,7 +8,7 @@ import { toPesos } from "../../common/money";
 import { chargeState } from "../billing/balance-service";
 import { ChargeModel } from "../billing/charge.model";
 import { CollectionModel } from "../billing/collection.model";
-import { legacyPaymentToChargeView, unmirroredLegacyPayments, type ChargeView } from "../billing/legacy-adapter";
+import type { ChargeView } from "../billing/legacy-adapter";
 import { PaymentAllocationModel } from "../billing/payment-allocation.model";
 import { RefundModel } from "../billing/refund.model";
 import { ProfessorModel } from "../professors/professor.model";
@@ -224,15 +224,6 @@ async function buildOverview(
 
   const today = academyNow().date;
   const scope = { organizationId, ...branchFilter };
-  const legacyIssuedFilter = {
-    ...scope,
-    $or: [
-      { paymentType: "PER_CLASS", classDate: { $gte: range.start, $lt: range.endExclusive } },
-      // Old manual per-class charges may not have classDate: their period is the best key.
-      { paymentType: "PER_CLASS", classDate: { $exists: false }, period: { $in: range.periods } },
-      { paymentType: "MONTHLY", period: { $in: range.periods } }
-    ]
-  };
   const chargeIssuedFilter = {
     ...scope,
     $or: [
@@ -251,7 +242,7 @@ async function buildOverview(
   const classFilter = { organizationId, ...branchFilter };
   const studentFilter = { organizationId, isActive: true, ...branchFilter };
 
-  const [students, newStudents, classes, issuedCharges, legacyIssued, cash, sessions] = await Promise.all([
+  const [students, newStudents, classes, issuedCharges, cash, sessions] = await Promise.all([
     StudentModel.countDocuments(studentFilter),
     StudentModel.countDocuments({
       ...studentFilter,
@@ -262,7 +253,6 @@ async function buildOverview(
       .populate("disciplineIds", "name")
       .lean(),
     ChargeModel.find(chargeIssuedFilter).lean<ChargeView[]>(),
-    unmirroredLegacyPayments(legacyIssuedFilter),
     cashMovements(organizationId, range, query.branchId),
     ClassSessionModel.find(sessionFilter)
       .select("classId sessionDate status")
@@ -321,7 +311,7 @@ async function buildOverview(
     })
     .sort((a, b) => b.occupancyPercent - a.occupancyPercent || a.name.localeCompare(b.name));
 
-  const issued: ChargeView[] = [...issuedCharges, ...legacyIssued.map(legacyPaymentToChargeView)];
+  const issued: ChargeView[] = issuedCharges;
   const typeOf = (charge: ChargeView) => (charge.kind === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS");
   const financial = summarizeIssuedCharges(issued, today);
   const issuedByType = PAYMENT_TYPES.map((paymentType) => ({
@@ -500,14 +490,13 @@ async function buildOverview(
 
 /**
  * Money received in the range, by Argentina accounting day: collections of the new model
- * (split by the charges they paid) plus legacy paid payments not mirrored yet. Refunds are
+ * (split by the charges they paid). Refunds are
  * reported separately, on the day they happened.
  */
 async function cashMovements(organizationId: string, range: DateRange, branchId?: string) {
   const scope = { organizationId, ...(branchId ? { branchId } : {}) };
-  const [collections, legacyPaid, refunds] = await Promise.all([
+  const [collections, refunds] = await Promise.all([
     CollectionModel.find({ ...scope, accountingDate: { $gte: range.from, $lte: range.to } }).lean<any[]>(),
-    unmirroredLegacyPayments({ ...scope, status: "PAID", paidAt: { $gte: range.start, $lt: range.endExclusive } }),
     RefundModel.find({ ...scope, accountingDate: { $gte: range.from, $lte: range.to } }).select("amountCents").lean<any[]>()
   ]);
   const allocations = collections.length
@@ -534,14 +523,6 @@ async function cashMovements(organizationId: string, range: DateRange, branchId?
     }
     // Money received and left as credit (not applied to any charge yet).
     if (rest > 0) entries.push({ amount: toPesos(rest), method: collection.method, paymentType: "CREDIT" });
-  }
-  for (const payment of legacyPaid) {
-    entries.push({
-      amount: payment.amount,
-      method: payment.paymentMethod ?? "OTHER",
-      paymentType: payment.paymentType,
-      classId: payment.classId ? String(payment.classId) : undefined
-    });
   }
   return { entries, refunded: toPesos(refunds.reduce((sum, item) => sum + item.amountCents, 0)) };
 }

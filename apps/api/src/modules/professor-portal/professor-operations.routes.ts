@@ -9,7 +9,7 @@ import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { toPesos } from "../../common/money";
 import { chargeState } from "../billing/balance-service";
 import { ChargeModel } from "../billing/charge.model";
-import { legacyPaymentToChargeView, unmirroredLegacyPayments, type ChargeView } from "../billing/legacy-adapter";
+import type { ChargeView } from "../billing/legacy-adapter";
 import {
   ATTENDANCE_STATUSES,
   ClassAttendanceModel
@@ -487,24 +487,18 @@ professorOperationsRouter.get("/students/:id", async (request, response, next) =
 
     const [payments, sessions] = await Promise.all([
       // Only the charges of the professor's own classes; same rules as the admin account view.
-      Promise.all([
-        ChargeModel.find({
-          organizationId: context.organizationId,
-          studentId: student._id,
-          classId: { $in: classIds },
-          status: { $ne: "VOID" }
-        }).lean<ChargeView[]>(),
-        unmirroredLegacyPayments({
-          organizationId: context.organizationId,
-          studentId: student._id,
-          classId: { $in: classIds },
-          status: { $ne: "CANCELLED" }
-        })
-      ]).then(([charges, legacy]) =>
-        [...charges, ...legacy.map(legacyPaymentToChargeView)]
-          .sort((a, b) => (b.serviceDate ?? b.dueDate).localeCompare(a.serviceDate ?? a.dueDate))
-          .slice(0, 60)
-      ),
+      ChargeModel.find({
+        organizationId: context.organizationId,
+        studentId: student._id,
+        classId: { $in: classIds },
+        status: { $ne: "VOID" }
+      })
+        .lean<ChargeView[]>()
+        .then((charges) =>
+          charges
+            .sort((a, b) => (b.serviceDate ?? b.dueDate).localeCompare(a.serviceDate ?? a.dueDate))
+            .slice(0, 60)
+        ),
       ClassSessionModel.find({
         organizationId: context.organizationId,
         classId: { $in: classIds },

@@ -1,12 +1,4 @@
-import { formatDateOnly } from "@/lib/dates";
-import type { BillingPreference, DanceClass, Payment } from "./live-types";
-
-export function paymentStatus(payment: Payment) {
-  if (payment.status === "PENDING" && new Date(payment.dueDate).getTime() < Date.now()) {
-    return "OVERDUE";
-  }
-  return payment.status;
-}
+import type { BillingPreference, DanceClass } from "./live-types";
 
 export function whatsappHref(phone?: string, name?: string) {
   if (!phone) return "";
@@ -45,13 +37,6 @@ export function monthlyPriceFor(danceClass: DanceClass, plan: 4 | 8) {
   return plan === 8
     ? danceClass.monthlyPrice8 ?? danceClass.monthlyPrice ?? 0
     : danceClass.monthlyPrice4 ?? danceClass.monthlyPrice ?? 0;
-}
-
-export function paymentReference(payment: Payment) {
-  if ((payment.paymentType ?? "MONTHLY") === "PER_CLASS" && payment.classDate) {
-    return formatDateOnly(payment.classDate);
-  }
-  return payment.period;
 }
 
 const dayLabels: Record<string, string> = {

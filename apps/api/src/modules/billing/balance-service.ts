@@ -1,9 +1,8 @@
 import { Types, type ClientSession } from "mongoose";
 import { academyNow } from "../../common/dates";
-import { overduePaymentFilter } from "../payments/payment-status";
 import { ChargeModel } from "./charge.model";
 import { CollectionModel } from "./collection.model";
-import { legacyPaymentToChargeView, unmirroredLegacyPayments, type ChargeView } from "./legacy-adapter";
+import type { ChargeView } from "./legacy-adapter";
 
 /**
  * Single source of truth for "how much does a student owe". Admin screens, the professor
@@ -53,7 +52,7 @@ function emptyBalance(studentId: string): StudentBalance {
   return { studentId, pendingCents: 0, overdueCents: 0, partialCount: 0, openCount: 0, creditCents: 0 };
 }
 
-/** Open (not void, not fully paid) charges, legacy payments without mirror included. */
+/** Open (not void, not fully paid) charges. */
 export async function openCharges(
   organizationId: string,
   filter: { studentIds?: Array<string | Types.ObjectId>; classIds?: Array<string | Types.ObjectId> } = {},
@@ -63,11 +62,7 @@ export async function openCharges(
   if (filter.studentIds) scope.studentId = { $in: filter.studentIds.map((id) => new Types.ObjectId(String(id))) };
   if (filter.classIds) scope.classId = { $in: filter.classIds.map((id) => new Types.ObjectId(String(id))) };
 
-  const [charges, legacy] = await Promise.all([
-    ChargeModel.find({ ...scope, status: "OPEN" }).session(session ?? null).lean<ChargeView[]>(),
-    unmirroredLegacyPayments({ ...scope, status: { $in: ["PENDING", "OVERDUE"] } }, session)
-  ]);
-  return [...charges, ...legacy.map(legacyPaymentToChargeView)];
+  return ChargeModel.find({ ...scope, status: "OPEN" }).session(session ?? null).lean<ChargeView[]>();
 }
 
 /** Balances of the given students (or of every student with activity when omitted). */
@@ -113,14 +108,12 @@ export async function studentBalances(
 /** Students with at least one overdue obligation. Single definition of "debtor". */
 export async function studentIdsWithOverdueDebt(organizationId: string, now = new Date()) {
   const today = academyNow(now).date;
-  const [fromCharges, legacy] = await Promise.all([
-    ChargeModel.distinct("studentId", { organizationId, status: "OPEN", dueDate: { $lt: today }, balanceCents: { $gt: 0 } }),
-    unmirroredLegacyPayments({ organizationId, ...overduePaymentFilter(now) })
-  ]);
-  const ids = new Map<string, Types.ObjectId>();
-  for (const id of fromCharges as Types.ObjectId[]) ids.set(String(id), id);
-  for (const payment of legacy) ids.set(String(payment.studentId), payment.studentId);
-  return [...ids.values()];
+  return ChargeModel.distinct("studentId", {
+    organizationId,
+    status: "OPEN",
+    dueDate: { $lt: today },
+    balanceCents: { $gt: 0 }
+  }) as Promise<Types.ObjectId[]>;
 }
 
 /** Total overdue amount and number of overdue charges of the organization (attention badge). */

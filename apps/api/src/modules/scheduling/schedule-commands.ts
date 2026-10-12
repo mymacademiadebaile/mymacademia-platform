@@ -8,7 +8,7 @@ import { DanceClassModel, isArchivedStatus } from "../classes/class.model";
 import { ChargeModel } from "../billing/charge.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { closeEnrollment } from "../enrollments/enrollment-service";
-import { PaymentModel } from "../payments/payment.model";
+import { CollectionModel } from "../billing/collection.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel, slotKeyOf } from "../sessions/class-session.model";
 import { SessionBookingModel } from "../sessions/session-booking.model";
@@ -85,13 +85,13 @@ async function assertRuleFits(
 /** Activity that makes a session part of history (it can be cancelled, never deleted). */
 async function sessionsWithActivity(organizationId: string, sessionIds: Types.ObjectId[], dbSession?: ClientSession) {
   if (!sessionIds.length) return new Set<string>();
-  const [attendance, bookings, payments] = await Promise.all([
+  const [attendance, bookings, charges, collections] = await Promise.all([
     ClassAttendanceModel.distinct("sessionId", { organizationId, sessionId: { $in: sessionIds } }).session(dbSession ?? null),
     SessionBookingModel.distinct("sessionId", { organizationId, sessionId: { $in: sessionIds } }).session(dbSession ?? null),
-    PaymentModel.distinct("sessionId", { organizationId, sessionId: { $in: sessionIds } }).session(dbSession ?? null)
+    ChargeModel.distinct("sessionId", { organizationId, sessionId: { $in: sessionIds } }).session(dbSession ?? null),
+    CollectionModel.distinct("sessionId", { organizationId, sessionId: { $in: sessionIds } }).session(dbSession ?? null)
   ]);
-  const charges = await ChargeModel.distinct("sessionId", { organizationId, sessionId: { $in: sessionIds } }).session(dbSession ?? null);
-  return new Set([...attendance, ...bookings, ...payments, ...charges].map(String));
+  return new Set([...attendance, ...bookings, ...charges, ...collections].map(String));
 }
 
 /**

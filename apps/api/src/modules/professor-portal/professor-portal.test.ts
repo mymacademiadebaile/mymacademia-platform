@@ -11,6 +11,7 @@ import { CatalogItemModel } from "../catalogs/catalog.model";
 import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
+import { syncLegacyPayment } from "../billing/legacy-sync";
 import { PaymentModel } from "../payments/payment.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
@@ -124,7 +125,8 @@ function session(
   });
 }
 
-function payment(
+/** Legacy fixture, mirrored to Charge/Collection (reads only use the new model). */
+async function payment(
   organizationId: Types.ObjectId,
   branchId: Types.ObjectId,
   studentId: Types.ObjectId,
@@ -134,7 +136,7 @@ function payment(
   status: "PAID" | "PENDING"
 ) {
   const classDate = new Date(date + "T12:00:00.000Z");
-  return PaymentModel.create({
+  const created = await PaymentModel.create({
     organizationId,
     branchId,
     studentId,
@@ -147,6 +149,8 @@ function payment(
     dueDate: classDate,
     status
   });
+  await syncLegacyPayment(created._id);
+  return created;
 }
 
 beforeAll(async () => {

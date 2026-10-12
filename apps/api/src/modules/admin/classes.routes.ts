@@ -12,7 +12,7 @@ import { DanceClassModel, type DanceClass } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { enrollmentReconciliation } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
-import { PaymentModel } from "../payments/payment.model";
+import { CollectionModel } from "../billing/collection.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
@@ -721,9 +721,11 @@ adminClassesRouter.delete("/:id", async (request, response, next) => {
         ["IN_PROGRESS", "COMPLETED"].includes(session.status)
     );
 
-    const [enrollmentCount, paymentCount, chargeCount, trialCount, attendanceCount, bookingCount] = await Promise.all([
+    const [enrollmentCount, collectionCount, chargeCount, trialCount, attendanceCount, bookingCount] = await Promise.all([
       EnrollmentModel.countDocuments({ organizationId, classId: item._id }),
-      PaymentModel.countDocuments({ organizationId, classId: item._id }),
+      // Collections carry no class: the ones tied to this class are those taken for its sessions
+      // (the rest reach it through the charges they paid, counted below).
+      sessionIds.length ? CollectionModel.countDocuments({ organizationId, sessionId: { $in: sessionIds } }) : 0,
       ChargeModel.countDocuments({ organizationId, classId: item._id }),
       TrialBookingModel.countDocuments({ organizationId, classId: item._id }),
       sessionIds.length ? ClassAttendanceModel.countDocuments({ organizationId, sessionId: { $in: sessionIds } }) : 0,
@@ -732,7 +734,7 @@ adminClassesRouter.delete("/:id", async (request, response, next) => {
 
     const dependencies = [
       [enrollmentCount, "inscripción", "inscripciones"],
-      [paymentCount, "pago", "pagos"],
+      [collectionCount, "cobro", "cobros"],
       [chargeCount, "cargo", "cargos"],
       [trialCount, "prueba", "pruebas"],
       [pastOrStartedSessions.length, "sesión anterior", "sesiones anteriores"],

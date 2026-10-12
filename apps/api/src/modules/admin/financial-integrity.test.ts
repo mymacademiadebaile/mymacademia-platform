@@ -10,6 +10,7 @@ import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
+import { syncLegacyPayment } from "../billing/legacy-sync";
 import { PaymentModel } from "../payments/payment.model";
 import { StudentModel } from "../students/student.model";
 
@@ -128,7 +129,7 @@ describe("student filters", () => {
     const a = await setup();
     const b = await setup();
     for (const ctx of [a, b]) {
-      await PaymentModel.create({
+      const payment = await PaymentModel.create({
         organizationId: ids.org,
         branchId: ids.branch,
         studentId: ctx.student._id,
@@ -139,6 +140,7 @@ describe("student filters", () => {
         amount: 1000,
         dueDate: new Date("2026-01-10T12:00:00.000Z")
       });
+      await syncLegacyPayment(payment._id);
     }
 
     const response = await auth(

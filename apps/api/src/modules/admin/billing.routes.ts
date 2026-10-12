@@ -29,7 +29,7 @@ import { applyAdjustment, applyCredit, refundCollection, registerCollection } fr
 import { availableCreditCents, CollectionModel, type Collection } from "../billing/collection.model";
 import { hasMonthlyCoverage } from "../billing/coverage-service";
 import { FinancialAdjustmentModel } from "../billing/financial-adjustment.model";
-import { legacyPaymentToChargeView, unmirroredLegacyPayments, type ChargeView } from "../billing/legacy-adapter";
+import type { ChargeView } from "../billing/legacy-adapter";
 import { MigrationIssueModel } from "../billing/migration-issue.model";
 import { PaymentAllocationModel } from "../billing/payment-allocation.model";
 import { RefundModel } from "../billing/refund.model";
@@ -186,18 +186,8 @@ adminBillingRouter.get("/charges", async (request, response, next) => {
     if (query.status === "OPEN" || query.status === "PENDING" || query.status === "PARTIAL") filter.status = "OPEN";
     if (query.status === "OVERDUE") Object.assign(filter, { status: "OPEN", dueDate: { $lt: today } });
 
-    const legacyFilter: Record<string, unknown> = { organizationId };
-    if (query.studentId) legacyFilter.studentId = new Types.ObjectId(query.studentId);
-    if (query.classId) legacyFilter.classId = new Types.ObjectId(query.classId);
-    if (query.period) legacyFilter.period = query.period;
-    if (query.kind === "OTHER") legacyFilter._id = null;
-    if (query.kind) legacyFilter.paymentType = query.kind === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS";
-
-    const [charges, legacy] = await Promise.all([
-      ChargeModel.find(filter).sort({ dueDate: -1, createdAt: -1 }).lean<ChargeView[]>(),
-      unmirroredLegacyPayments(legacyFilter)
-    ]);
-    let items = [...charges, ...legacy.map(legacyPaymentToChargeView)].map((item) => presentCharge(item, today));
+    const charges = await ChargeModel.find(filter).sort({ dueDate: -1, createdAt: -1 }).lean<ChargeView[]>();
+    let items = charges.map((item) => presentCharge(item, today));
     if (query.status) {
       items = items.filter((item) =>
         query.status === "OPEN" ? ["PENDING", "PARTIAL", "OVERDUE"].includes(item.status) : item.status === query.status
@@ -960,15 +950,14 @@ adminBillingRouter.get("/students/:id/account", async (request, response, next) 
     if (!student) throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
     const today = academyNow().date;
 
-    const [charges, legacy, collections, refunds, adjustments, balances] = await Promise.all([
+    const [charges, collections, refunds, adjustments, balances] = await Promise.all([
       ChargeModel.find({ organizationId, studentId: student._id }).sort({ dueDate: -1 }).lean<ChargeView[]>(),
-      unmirroredLegacyPayments({ organizationId, studentId: student._id }),
       CollectionModel.find({ organizationId, studentId: student._id }).sort({ receivedAt: -1 }).lean(),
       RefundModel.find({ organizationId, studentId: student._id }).sort({ refundedAt: -1 }).lean(),
       FinancialAdjustmentModel.find({ organizationId, studentId: student._id }).sort({ createdAt: -1 }).lean(),
       studentBalances(organizationId, [student._id], today)
     ]);
-    const classIds = [...new Set([...charges, ...legacy].map((item) => item.classId).filter(Boolean).map(String))];
+    const classIds = [...new Set(charges.map((item) => item.classId).filter(Boolean).map(String))];
     const classes = await DanceClassModel.find({ organizationId, _id: { $in: classIds } }).select("name").lean();
     const classById = new Map(classes.map((item) => [String(item._id), item.name]));
     const balance = balances.get(String(student._id))!;
@@ -990,7 +979,7 @@ adminBillingRouter.get("/students/:id/account", async (request, response, next) 
         openCount: balance.openCount,
         credit: toPesos(balance.creditCents)
       },
-      charges: [...charges, ...legacy.map(legacyPaymentToChargeView)]
+      charges: charges
         .map((item) => ({
           ...presentCharge(item, today),
           className: item.classId ? classById.get(String(item.classId)) ?? null : null,
