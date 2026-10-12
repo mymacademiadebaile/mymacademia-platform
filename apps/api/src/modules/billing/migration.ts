@@ -81,7 +81,7 @@ export async function runSchedulingBillingMigration(options: { apply: boolean; n
     const organizationId = String(organization._id);
 
     // 1. Recurring rules from the weekly slots of each group.
-    const classes = await DanceClassModel.find({ organizationId }).lean<any[]>();
+    const classes = await DanceClassModel.find({ organizationId }).lean();
     const withRules = new Set((await ClassScheduleModel.distinct("classId", { organizationId })).map(String));
     const missing = classes.filter((item) => !withRules.has(String(item._id)) && item.schedules?.length);
     report.schedules.classesWithoutRules += missing.length;
@@ -93,7 +93,7 @@ export async function runSchedulingBillingMigration(options: { apply: boolean; n
 
     // 2. Explicit enrollment periods. The start is the earliest evidence of the student in the
     //    group (enrollment date, attendance, payments), because reactivations used to overwrite it.
-    const enrollments = await EnrollmentModel.find({ organizationId, "periods.0": { $exists: false } }).lean<any[]>();
+    const enrollments = await EnrollmentModel.find({ organizationId, "periods.0": { $exists: false } }).lean();
     report.enrollments.withoutPeriods += enrollments.length;
     for (const enrollment of enrollments) {
       const [period] = enrollmentPeriods(enrollment);
@@ -112,7 +112,7 @@ export async function runSchedulingBillingMigration(options: { apply: boolean; n
     }
 
     // 3. Sessions: adopt legacy sessions as occurrences of the rules and fill the rolling window.
-    const firstSession = await ClassSessionModel.findOne({ organizationId }).sort({ sessionDate: 1 }).select("sessionDate").lean<any>();
+    const firstSession = await ClassSessionModel.findOne({ organizationId }).sort({ sessionDate: 1 }).select("sessionDate").lean();
     if (apply && firstSession) {
       const end = addDays(today, 60);
       for (let from = firstSession.sessionDate; from <= end; from = addDays(from, MAX_GENERATION_DAYS)) {
@@ -131,7 +131,7 @@ export async function runSchedulingBillingMigration(options: { apply: boolean; n
       origin: { $nin: ["EXTRA", "RESCHEDULED"] },
       sessionDate: { $gte: today },
       status: "SCHEDULED"
-    }).lean<any[]>();
+    }).lean();
     report.sessions.ghostFuture += ghosts.length;
     for (const ghost of ghosts) {
       const [attendance, bookings, payments] = await Promise.all([
@@ -180,9 +180,9 @@ export async function runSchedulingBillingMigration(options: { apply: boolean; n
     }
 
     // 5. Validation: money in the old model must equal money in the new one.
-    const legacy = await PaymentModel.find({ organizationId }).lean<any[]>();
-    const mirroredCharges = await ChargeModel.find({ organizationId, legacyPaymentId: { $exists: true } }).lean<any[]>();
-    const mirroredCollections = await CollectionModel.find({ organizationId, legacyPaymentId: { $exists: true } }).lean<any[]>();
+    const legacy = await PaymentModel.find({ organizationId }).lean();
+    const mirroredCharges = await ChargeModel.find({ organizationId, legacyPaymentId: { $exists: true } }).lean();
+    const mirroredCollections = await CollectionModel.find({ organizationId, legacyPaymentId: { $exists: true } }).lean();
     const mirrored = new Set(mirroredCharges.map((item) => String(item.legacyPaymentId)));
     report.validation.unmirroredPayments += legacy.filter((item) => !mirrored.has(String(item._id))).length;
     report.validation.legacyPaidCents += legacy.filter((item) => item.status === "PAID").reduce((sum, item) => sum + toCents(item.amount), 0);
@@ -200,11 +200,11 @@ export async function runSchedulingBillingMigration(options: { apply: boolean; n
 /** Earliest calendar day with attendance or a payment of the student in the group. */
 async function earliestEvidence(organizationId: string, classId: Types.ObjectId, studentId: Types.ObjectId) {
   const [attendance, payment] = await Promise.all([
-    ClassAttendanceModel.find({ organizationId, studentId }).select("sessionId").lean<any[]>(),
-    PaymentModel.findOne({ organizationId, classId, studentId, status: { $ne: "CANCELLED" } }).sort({ classDate: 1, period: 1 }).lean<any>()
+    ClassAttendanceModel.find({ organizationId, studentId }).select("sessionId").lean(),
+    PaymentModel.findOne({ organizationId, classId, studentId, status: { $ne: "CANCELLED" } }).sort({ classDate: 1, period: 1 }).lean()
   ]);
   const sessions = attendance.length
-    ? await ClassSessionModel.find({ _id: { $in: attendance.map((item) => item.sessionId) }, classId }).sort({ sessionDate: 1 }).limit(1).lean<any[]>()
+    ? await ClassSessionModel.find({ _id: { $in: attendance.map((item) => item.sessionId) }, classId }).sort({ sessionDate: 1 }).limit(1).lean()
     : [];
   const candidates = [
     sessions[0]?.sessionDate,

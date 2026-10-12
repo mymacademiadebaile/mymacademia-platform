@@ -10,6 +10,12 @@ import { ClassAttendanceModel, type AttendanceStatus, type ParticipantType } fro
 import { ClassSessionModel } from "./class-session.model";
 import { SessionBookingModel } from "./session-booking.model";
 
+/** Shape of the error thrown by an unordered bulkWrite: duplicate-key failures carry code 11000. */
+interface BulkWriteError {
+  code?: number;
+  writeErrors?: Array<{ code?: number }>;
+}
+
 export interface RosterSession {
   _id: Types.ObjectId;
   organizationId?: Types.ObjectId;
@@ -53,8 +59,8 @@ async function deriveRoster(organizationId: string, session: RosterSession, dbSe
     EnrollmentModel.find({ organizationId, classId: session.classId })
       .select("_id studentId status enrolledAt endedAt createdAt periods scheduleKeys seriesIds")
       .session(dbSession ?? null)
-      .lean<any[]>(),
-    SessionBookingModel.find({ organizationId, sessionId: session._id }).session(dbSession ?? null).lean<any[]>(),
+      .lean(),
+    SessionBookingModel.find({ organizationId, sessionId: session._id }).session(dbSession ?? null).lean(),
     TrialBookingModel.find({
       organizationId,
       classId: session.classId,
@@ -62,7 +68,7 @@ async function deriveRoster(organizationId: string, session: RosterSession, dbSe
       scheduledFor: { $gte: start, $lt: end }
     })
       .session(dbSession ?? null)
-      .lean<any[]>()
+      .lean()
   ]);
 
   const overrideByEnrollment = new Map(overrides.map((item) => [String(item.enrollmentId), item.status]));
@@ -108,7 +114,7 @@ async function deriveRoster(organizationId: string, session: RosterSession, dbSe
         })
           .select("_id")
           .session(dbSession ?? null)
-          .lean<any[]>()
+          .lean()
       ).map((item) => String(item._id))
     );
     return entries.filter((item) => active.has(item.studentId));
@@ -128,7 +134,7 @@ export async function loadRoster(
 ): Promise<RosterEntry[]> {
   const rows = await ClassAttendanceModel.find({ organizationId, sessionId: session._id, removedAt: { $exists: false } })
     .session(options.dbSession ?? null)
-    .lean<any[]>();
+    .lean();
   const fromRows: RosterEntry[] = rows.map((row) => ({
     studentId: String(row.studentId),
     participantType: row.participantType ?? "ENROLLMENT",
@@ -177,8 +183,8 @@ export async function freezeRoster(organizationId: string, session: RosterSessio
         }
       })),
       { ordered: false, session: dbSession }
-    ).catch((error: any) => {
-      if (error?.code !== 11000 && !(error?.writeErrors ?? []).every((item: any) => item.code === 11000)) throw error;
+    ).catch((error: BulkWriteError) => {
+      if (error?.code !== 11000 && !(error?.writeErrors ?? []).every((item) => item.code === 11000)) throw error;
     });
   }
   await ClassSessionModel.updateOne(
@@ -251,11 +257,11 @@ export async function rosterBatch(organizationId: string, sessions: RosterSessio
   const [enrollments, overrides, rows, trials] = await Promise.all([
     EnrollmentModel.find({ organizationId, classId: { $in: classIds } })
       .select("_id classId studentId status enrolledAt endedAt createdAt periods scheduleKeys seriesIds")
-      .lean<any[]>(),
-    SessionBookingModel.find({ organizationId, sessionId: { $in: sessionIds } }).select("sessionId enrollmentId status").lean<any[]>(),
+      .lean(),
+    SessionBookingModel.find({ organizationId, sessionId: { $in: sessionIds } }).select("sessionId enrollmentId status").lean(),
     ClassAttendanceModel.find({ organizationId, sessionId: { $in: sessionIds }, removedAt: { $exists: false } })
       .select("sessionId studentId enrollmentId participantType status")
-      .lean<any[]>(),
+      .lean(),
     TrialBookingModel.find({
       organizationId,
       classId: { $in: classIds },
@@ -263,7 +269,7 @@ export async function rosterBatch(organizationId: string, sessions: RosterSessio
       scheduledFor: { $gte: first, $lt: last }
     })
       .select("classId studentId scheduledFor")
-      .lean<any[]>()
+      .lean()
   ]);
 
   const inactive = new Set(
@@ -274,11 +280,11 @@ export async function rosterBatch(organizationId: string, sessions: RosterSessio
         isActive: false
       })
         .select("_id")
-        .lean<any[]>()
+        .lean()
     ).map((item) => String(item._id))
   );
 
-  const enrollmentsByClass = new Map<string, any[]>();
+  const enrollmentsByClass = new Map<string, typeof enrollments>();
   for (const enrollment of enrollments) {
     const key = String(enrollment.classId);
     enrollmentsByClass.set(key, [...(enrollmentsByClass.get(key) ?? []), enrollment]);
@@ -290,7 +296,7 @@ export async function rosterBatch(organizationId: string, sessions: RosterSessio
     map.set(String(item.enrollmentId), item.status);
     overridesBySession.set(key, map);
   }
-  const rowsBySession = new Map<string, any[]>();
+  const rowsBySession = new Map<string, typeof rows>();
   for (const row of rows) {
     const key = String(row.sessionId);
     rowsBySession.set(key, [...(rowsBySession.get(key) ?? []), row]);

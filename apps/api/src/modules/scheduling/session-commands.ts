@@ -40,7 +40,7 @@ async function loadSessionForUpdate(organizationId: string, sessionId: string, d
   if (!session) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
   const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId })
     .session(dbSession ?? null)
-    .lean<any>();
+    .lean();
   if (!danceClass) throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
   return { session, danceClass };
 }
@@ -69,7 +69,7 @@ function rethrowSlotTaken(error: unknown): never {
  * Completing freezes the roster; leaving an active state releases the time slot.
  */
 export async function changeSessionStatus(actor: Actor, sessionId: string, to: SessionStatus, reason?: string) {
-  const preview = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean<any>();
+  const preview = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean();
   if (!preview) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
   await ensureLocks(actor.organizationId, [calendarLockKey(preview.sessionDate), sessionLockKey(sessionId)]);
 
@@ -154,7 +154,7 @@ export interface SessionChanges {
  * identity, roster, attendance or charges. Later schedule changes leave it alone.
  */
 export async function updateSingleSession(actor: Actor, sessionId: string, changes: SessionChanges) {
-  const preview = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean<any>();
+  const preview = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean();
   if (!preview) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
   await ensureLocks(actor.organizationId, [calendarLockKey(preview.sessionDate)]);
 
@@ -257,7 +257,7 @@ export async function rescheduleSession(actor: Actor, sessionId: string, input: 
   if (`${input.date}T${input.startTime}` <= `${today.date}T${today.time}`) {
     throw new AppError(422, "La nueva fecha debe ser futura", "RESCHEDULE_IN_PAST");
   }
-  const preview = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean<any>();
+  const preview = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean();
   if (!preview) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
   const lockKeys = [
     calendarLockKey(preview.sessionDate),
@@ -352,7 +352,7 @@ export async function rescheduleSession(actor: Actor, sessionId: string, input: 
       removedAt: { $exists: false }
     })
       .session(dbSession ?? null)
-      .lean<any[]>();
+      .lean();
 
     const [replacement] = await ClassSessionModel.create(
       [
@@ -437,7 +437,7 @@ export async function createExtraSession(actor: Actor, input: ExtraSessionInput)
     await touchLocks(actor.organizationId, [calendarLockKey(input.date)], dbSession);
     const danceClass = await DanceClassModel.findOne({ _id: input.classId, organizationId: actor.organizationId })
       .session(dbSession ?? null)
-      .lean<any>();
+      .lean();
     if (!danceClass || isArchivedStatus(danceClass.status)) {
       throw new AppError(404, "Clase no encontrada o archivada", "CLASS_NOT_FOUND");
     }
@@ -508,7 +508,7 @@ export async function addSessionParticipant(
     }
     const student = await StudentModel.findOne({ _id: input.studentId, organizationId: actor.organizationId, isActive: true })
       .session(dbSession ?? null)
-      .lean<any>();
+      .lean();
     if (!student) throw new AppError(404, "Alumno no encontrado o inactivo", "STUDENT_NOT_FOUND");
 
     const roster = await loadRoster(actor.organizationId, session, { dbSession });
@@ -574,23 +574,23 @@ export async function prepareSessionChangeNotices(
   sessionId: string,
   message: string
 ) {
-  const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean<any>();
+  const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean();
   if (!session) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
-  const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId: actor.organizationId }).lean<any>();
+  const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId: actor.organizationId }).lean();
   const roster = await loadRoster(actor.organizationId, session);
   const students = await StudentModel.find({
     organizationId: actor.organizationId,
     _id: { $in: roster.map((item) => new Types.ObjectId(item.studentId)) }
   })
     .select("email firstName")
-    .lean<any[]>();
+    .lean();
   const professorIds = session.professorIds?.length ? session.professorIds : danceClass?.professorIds ?? [];
   const professors = await ProfessorModel.find({ organizationId: actor.organizationId, _id: { $in: professorIds } })
     .select("userId")
-    .lean<any[]>();
+    .lean();
   const users = await UserModel.find({ organizationId: actor.organizationId, _id: { $in: professors.map((item) => item.userId) } })
     .select("email")
-    .lean<any[]>();
+    .lean();
 
   const subject = `Cambio en ${danceClass?.name ?? "tu clase"} del ${session.sessionDate}`;
   const documents = [

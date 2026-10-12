@@ -2,7 +2,7 @@ import { ADJUSTMENT_TYPES, CHARGE_KINDS, COLLECTION_METHODS, MID_MONTH_POLICIES 
 import { Router } from "express";
 import multer from "multer";
 import PDFDocument from "pdfkit";
-import { Types } from "mongoose";
+import { Types, type HydratedDocument } from "mongoose";
 import { z } from "zod";
 import {
   ACADEMY_TIME_ZONE,
@@ -23,9 +23,9 @@ import {
   planMonthlyCharge,
   voidCharge
 } from "../billing/charge-service";
-import { ChargeModel } from "../billing/charge.model";
+import { ChargeModel, type Charge } from "../billing/charge.model";
 import { applyAdjustment, applyCredit, refundCollection, registerCollection } from "../billing/collection-service";
-import { availableCreditCents, CollectionModel } from "../billing/collection.model";
+import { availableCreditCents, CollectionModel, type Collection } from "../billing/collection.model";
 import { hasMonthlyCoverage } from "../billing/coverage-service";
 import { FinancialAdjustmentModel } from "../billing/financial-adjustment.model";
 import { legacyPaymentToChargeView, unmirroredLegacyPayments, type ChargeView } from "../billing/legacy-adapter";
@@ -56,7 +56,7 @@ const actorOf = (request: Express.Request) => ({
 });
 
 /** API view of a charge: amounts in pesos plus its state today. */
-function presentCharge(charge: ChargeView & Record<string, any>, today = academyNow().date) {
+function presentCharge(charge: ChargeView & Partial<Pick<Charge, "origin" | "joinPolicy" | "voidReason">>, today = academyNow().date) {
   const state = chargeState(charge, today);
   return {
     id: String(charge._id),
@@ -86,7 +86,7 @@ function presentCharge(charge: ChargeView & Record<string, any>, today = academy
   };
 }
 
-function presentCollection(collection: any) {
+function presentCollection(collection: Collection & { _id: Types.ObjectId }) {
   return {
     id: String(collection._id),
     studentId: String(collection.studentId),
@@ -113,7 +113,7 @@ export const adminBillingRouter = Router();
 
 adminBillingRouter.get("/settings", async (request, response, next) => {
   try {
-    const organization = await OrganizationModel.findById(request.auth!.organizationId).select("billing").lean<any>();
+    const organization = await OrganizationModel.findById(request.auth!.organizationId).select("billing").lean();
     response.json({
       monthlyDueDay: organization?.billing?.monthlyDueDay ?? 10,
       midMonthPolicy: organization?.billing?.midMonthPolicy ?? "ASK"
@@ -137,7 +137,7 @@ adminBillingRouter.patch("/settings", async (request, response, next) => {
     if (input.midMonthPolicy !== undefined) set["billing.midMonthPolicy"] = input.midMonthPolicy;
     await OrganizationModel.updateOne({ _id: organizationId }, { $set: set });
     await AuditLogModel.create({ organizationId, actorUserId: request.auth!.userId, action: "BILLING_SETTINGS_UPDATED", entityType: "Organization", entityId: new Types.ObjectId(organizationId), metadata: input });
-    const organization = await OrganizationModel.findById(organizationId).select("billing").lean<any>();
+    const organization = await OrganizationModel.findById(organizationId).select("billing").lean();
     response.json({ monthlyDueDay: organization?.billing?.monthlyDueDay ?? 10, midMonthPolicy: organization?.billing?.midMonthPolicy ?? "ASK" });
   } catch (error) {
     next(error);
@@ -202,18 +202,19 @@ adminBillingRouter.get("/charges", async (request, response, next) => {
     const studentIds = [...new Set(items.map((item) => item.studentId))];
     const classIds = [...new Set(items.map((item) => item.classId).filter(Boolean))];
     const [students, classes] = await Promise.all([
-      StudentModel.find({ organizationId, _id: { $in: studentIds } }).select("firstName lastName isActive").lean<any[]>(),
-      DanceClassModel.find({ organizationId, _id: { $in: classIds } }).select("name").lean<any[]>()
+      StudentModel.find({ organizationId, _id: { $in: studentIds } }).select("firstName lastName isActive").lean(),
+      DanceClassModel.find({ organizationId, _id: { $in: classIds } }).select("name").lean()
     ]);
     const studentById = new Map(students.map((item) => [String(item._id), item]));
     const classById = new Map(classes.map((item) => [String(item._id), item]));
-    const page = items.slice((query.page - 1) * query.limit, query.page * query.limit).map((item) => ({
-      ...item,
-      student: studentById.get(item.studentId)
-        ? { id: item.studentId, firstName: studentById.get(item.studentId).firstName, lastName: studentById.get(item.studentId).lastName, isActive: studentById.get(item.studentId).isActive }
-        : null,
-      className: item.classId ? classById.get(item.classId)?.name ?? null : null
-    }));
+    const page = items.slice((query.page - 1) * query.limit, query.page * query.limit).map((item) => {
+      const student = studentById.get(item.studentId);
+      return {
+        ...item,
+        student: student ? { id: item.studentId, firstName: student.firstName, lastName: student.lastName, isActive: student.isActive } : null,
+        className: item.classId ? classById.get(item.classId)?.name ?? null : null
+      };
+    });
 
     response.json({ items: page, total: items.length, page: query.page, limit: query.limit });
   } catch (error) {
@@ -238,7 +239,7 @@ adminBillingRouter.post("/charges", async (request, response, next) => {
       .parse(request.body);
     const organizationId = request.auth!.organizationId;
     // Inactive students may still owe: past obligations can be registered for them.
-    const student = await StudentModel.findOne({ _id: input.studentId, organizationId }).lean<any>();
+    const student = await StudentModel.findOne({ _id: input.studentId, organizationId }).lean();
     if (!student) throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
     if (input.classId && !(await DanceClassModel.exists({ _id: input.classId, organizationId }))) {
       throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
@@ -304,21 +305,22 @@ adminBillingRouter.get("/monthly/:period/preview", async (request, response, nex
   try {
     const period = periodSchema.parse(request.params.period);
     const organizationId = request.auth!.organizationId;
-    const classes = await DanceClassModel.find({ organizationId, billingMode: { $in: ["MONTHLY", "BOTH"] } }).lean<any[]>();
+    const classes = await DanceClassModel.find({ organizationId, billingMode: { $in: ["MONTHLY", "BOTH"] } }).lean();
     const classById = new Map(classes.map((item) => [String(item._id), item]));
-    const enrollments = await EnrollmentModel.find({ organizationId, classId: { $in: classes.map((item) => item._id) } }).lean<any[]>();
+    const enrollments = await EnrollmentModel.find({ organizationId, classId: { $in: classes.map((item) => item._id) } }).lean();
     const existing = new Set(
-      (await ChargeModel.find({ organizationId, kind: "MONTHLY_FEE", period, status: { $ne: "VOID" } }).select("studentId classId").lean<any[]>())
+      (await ChargeModel.find({ organizationId, kind: "MONTHLY_FEE", period, status: { $ne: "VOID" } }).select("studentId classId").lean())
         .map((item) => `${item.studentId}:${item.classId}`)
     );
     const students = await StudentModel.find({ organizationId, _id: { $in: enrollments.map((item) => item.studentId) } })
       .select("firstName lastName")
-      .lean<any[]>();
+      .lean();
     const studentById = new Map(students.map((item) => [String(item._id), item]));
 
     const rows = [];
     for (const enrollment of enrollments) {
       const danceClass = classById.get(String(enrollment.classId));
+      if (!danceClass) continue;
       const planned = await planMonthlyCharge(organizationId, enrollment, danceClass, period);
       if (!planned.charge && planned.skip !== "NEEDS_DECISION") continue;
       const student = studentById.get(String(enrollment.studentId));
@@ -404,10 +406,10 @@ adminBillingRouter.get("/collections", async (request, response, next) => {
     if (query.studentId) filter.studentId = query.studentId;
     if (query.from || query.to) filter.accountingDate = { ...(query.from ? { $gte: query.from } : {}), ...(query.to ? { $lte: query.to } : {}) };
     const [items, total] = await Promise.all([
-      CollectionModel.find(filter).sort({ receivedAt: -1 }).skip((query.page - 1) * query.limit).limit(query.limit).lean<any[]>(),
+      CollectionModel.find(filter).sort({ receivedAt: -1 }).skip((query.page - 1) * query.limit).limit(query.limit).lean(),
       CollectionModel.countDocuments(filter)
     ]);
-    const students = await StudentModel.find({ organizationId, _id: { $in: items.map((item) => item.studentId) } }).select("firstName lastName").lean<any[]>();
+    const students = await StudentModel.find({ organizationId, _id: { $in: items.map((item) => item.studentId) } }).select("firstName lastName").lean();
     const studentById = new Map(students.map((item) => [String(item._id), item]));
     response.json({
       items: items.map((item) => ({
@@ -440,7 +442,7 @@ adminBillingRouter.post("/collections", async (request, response, next) => {
     });
     response.status(result.replayed ? 200 : 201).json({
       collection: presentCollection(result.collection),
-      allocations: result.allocations.map((item: any) => ({ id: String(item._id), chargeId: String(item.chargeId), amount: toPesos(item.amountCents) })),
+      allocations: result.allocations.map((item) => ({ id: String(item._id), chargeId: String(item.chargeId), amount: toPesos(item.amountCents) })),
       replayed: result.replayed
     });
   } catch (error) {
@@ -452,11 +454,11 @@ adminBillingRouter.get("/collections/:id", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);
     const organizationId = request.auth!.organizationId;
-    const collection = await CollectionModel.findOne({ _id: id, organizationId }).lean<any>();
+    const collection = await CollectionModel.findOne({ _id: id, organizationId }).lean();
     if (!collection) throw new AppError(404, "Cobro no encontrado", "COLLECTION_NOT_FOUND");
     const [allocations, refunds] = await Promise.all([
-      PaymentAllocationModel.find({ organizationId, collectionId: collection._id }).lean<any[]>(),
-      RefundModel.find({ organizationId, collectionId: collection._id }).sort({ refundedAt: 1 }).lean<any[]>()
+      PaymentAllocationModel.find({ organizationId, collectionId: collection._id }).lean(),
+      RefundModel.find({ organizationId, collectionId: collection._id }).sort({ refundedAt: 1 }).lean()
     ]);
     const charges = await ChargeModel.find({ _id: { $in: allocations.map((item) => item.chargeId) } }).lean<ChargeView[]>();
     const chargeById = new Map(charges.map((item) => [String(item._id), item]));
@@ -566,7 +568,7 @@ adminBillingRouter.post("/collections/:id/proof", proofUpload.single("file"), as
 adminBillingRouter.get("/collections/:id/proof", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);
-    const collection = await CollectionModel.findOne({ _id: id, organizationId: request.auth!.organizationId }).lean<any>();
+    const collection = await CollectionModel.findOne({ _id: id, organizationId: request.auth!.organizationId }).lean();
     if (!collection) throw new AppError(404, "Cobro no encontrado", "COLLECTION_NOT_FOUND");
     if (collection.proof?.publicId) {
       response.json({ url: privateAssetUrl(collection.proof), expiresInSeconds: 300 });
@@ -586,14 +588,14 @@ adminBillingRouter.get("/collections/:id/receipt.pdf", async (request, response,
   try {
     const id = objectIdSchema.parse(request.params.id);
     const organizationId = request.auth!.organizationId;
-    const collection = await CollectionModel.findOne({ _id: id, organizationId }).lean<any>();
+    const collection = await CollectionModel.findOne({ _id: id, organizationId }).lean();
     if (!collection) throw new AppError(404, "Recibo no disponible", "RECEIPT_NOT_FOUND");
     const [organization, student, allocations] = await Promise.all([
-      OrganizationModel.findById(organizationId).lean<any>(),
-      StudentModel.findById(collection.studentId).select("firstName lastName email").lean<any>(),
-      PaymentAllocationModel.find({ collectionId: collection._id }).lean<any[]>()
+      OrganizationModel.findById(organizationId).lean(),
+      StudentModel.findById(collection.studentId).select("firstName lastName email").lean(),
+      PaymentAllocationModel.find({ collectionId: collection._id }).lean()
     ]);
-    const charges = await ChargeModel.find({ _id: { $in: allocations.map((item) => item.chargeId) } }).select("concept").lean<any[]>();
+    const charges = await ChargeModel.find({ _id: { $in: allocations.map((item) => item.chargeId) } }).select("concept").lean();
     const conceptById = new Map(charges.map((item) => [String(item._id), item.concept]));
 
     const document = new PDFDocument({ size: "A4", margin: 54 });
@@ -648,14 +650,14 @@ adminBillingRouter.post("/sessions/:id/collect", async (request, response, next)
       })
       .parse(request.body);
     const actor = actorOf(request);
-    const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean<any>();
+    const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean();
     if (!session) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
 
     // A monthly student whose fee of that month was not generated yet: generate it now (the
     // mid-month rules still apply) and collect it, instead of charging a single class.
     const period = periodOf(session.sessionDate);
-    const enrollment = await EnrollmentModel.findOne({ organizationId: actor.organizationId, classId: session.classId, studentId: input.studentId }).lean<any>();
-    const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId: actor.organizationId }).lean<any>();
+    const enrollment = await EnrollmentModel.findOne({ organizationId: actor.organizationId, classId: session.classId, studentId: input.studentId }).lean();
+    const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId: actor.organizationId }).lean();
     const monthlyStudent =
       enrollment &&
       danceClass &&
@@ -664,7 +666,7 @@ adminBillingRouter.post("/sessions/:id/collect", async (request, response, next)
       await createMonthlyChargeForEnrollment(actor, String(enrollment._id), period, {});
     }
 
-    let charge: any;
+    let charge: HydratedDocument<Charge> | null;
     if (await hasMonthlyCoverage(actor.organizationId, input.studentId, session.classId, period)) {
       charge = await ChargeModel.findOne({
         organizationId: actor.organizationId,
@@ -711,20 +713,20 @@ adminBillingRouter.get("/students/:id/account", async (request, response, next) 
   try {
     const id = objectIdSchema.parse(request.params.id);
     const organizationId = request.auth!.organizationId;
-    const student = await StudentModel.findOne({ _id: id, organizationId }).lean<any>();
+    const student = await StudentModel.findOne({ _id: id, organizationId }).lean();
     if (!student) throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
     const today = academyNow().date;
 
     const [charges, legacy, collections, refunds, adjustments, balances] = await Promise.all([
       ChargeModel.find({ organizationId, studentId: student._id }).sort({ dueDate: -1 }).lean<ChargeView[]>(),
       unmirroredLegacyPayments({ organizationId, studentId: student._id }),
-      CollectionModel.find({ organizationId, studentId: student._id }).sort({ receivedAt: -1 }).lean<any[]>(),
-      RefundModel.find({ organizationId, studentId: student._id }).sort({ refundedAt: -1 }).lean<any[]>(),
-      FinancialAdjustmentModel.find({ organizationId, studentId: student._id }).sort({ createdAt: -1 }).lean<any[]>(),
+      CollectionModel.find({ organizationId, studentId: student._id }).sort({ receivedAt: -1 }).lean(),
+      RefundModel.find({ organizationId, studentId: student._id }).sort({ refundedAt: -1 }).lean(),
+      FinancialAdjustmentModel.find({ organizationId, studentId: student._id }).sort({ createdAt: -1 }).lean(),
       studentBalances(organizationId, [student._id], today)
     ]);
-    const classIds = [...new Set([...charges, ...legacy].map((item: any) => item.classId).filter(Boolean).map(String))];
-    const classes = await DanceClassModel.find({ organizationId, _id: { $in: classIds } }).select("name").lean<any[]>();
+    const classIds = [...new Set([...charges, ...legacy].map((item) => item.classId).filter(Boolean).map(String))];
+    const classes = await DanceClassModel.find({ organizationId, _id: { $in: classIds } }).select("name").lean();
     const classById = new Map(classes.map((item) => [String(item._id), item.name]));
     const balance = balances.get(String(student._id))!;
 
