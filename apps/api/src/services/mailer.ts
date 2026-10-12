@@ -43,7 +43,7 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
     to: input.to,
     subject: input.subject,
     text: input.text,
-    html: input.html ?? emailTemplate(input),
+    html: input.html ?? emailTemplate({ ...input, logoUrl: `${env.APP_ORIGIN.replace(/\/+$/, "")}/mym-academia-logo.png` }),
     attachments: input.attachments
   });
 }

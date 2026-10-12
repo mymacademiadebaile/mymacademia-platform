@@ -276,7 +276,7 @@ describe("POST /billing/charges/:id/remind and receipt email", () => {
     const response = await admin(request(app).post(`/api/admin/billing/charges/${chargeId}/remind`));
     expect(response.status).toBe(200);
     expect(sendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "alumno@example.com", subject: "Recordatorio de pago - M&M Academia", text: expect.stringContaining("Mensualidad · Grupo (2026-10)") })
+      expect.objectContaining({ to: "alumno@example.com", subject: "Recordatorio de pago - M&M Academia", text: expect.stringContaining("Vencimiento: 10/10/2026") })
     );
     const log = await NotificationLogModel.findOne({ studentId: student._id, type: "DEBT_REMINDER" }).lean();
     expect(log).toMatchObject({ status: "SENT", channel: "EMAIL", destination: "alumno@example.com" });

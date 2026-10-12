@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
+import { userNameSchema } from "../auth/auth.schemas";
 import { PasswordResetTokenModel } from "../auth/password-reset-token.model";
 import { UserModel } from "../auth/user.model";
 import { DanceClassModel } from "../classes/class.model";
@@ -24,6 +25,7 @@ const createUserSchema = z.object({
   firstName: z.string().trim().min(2).max(80),
   lastName: z.string().trim().min(2).max(80),
   email: z.string().trim().email().transform((value) => value.toLowerCase()),
+  userName: userNameSchema.optional().or(z.literal("")),
   password: passwordSchema,
   phone: z.string().trim().max(50).optional().or(z.literal("")),
   role: manageableRoles,
@@ -34,6 +36,7 @@ const updateUserSchema = z.object({
   firstName: z.string().trim().min(2).max(80).optional(),
   lastName: z.string().trim().min(2).max(80).optional(),
   email: z.string().trim().email().transform((value) => value.toLowerCase()).optional(),
+  userName: userNameSchema.optional().or(z.literal("")),
   password: passwordSchema.optional(),
   phone: z.string().trim().max(50).optional().or(z.literal("")),
   branchIds: z.array(objectIdSchema).min(1, "Seleccioná al menos una sede").optional(),
@@ -64,6 +67,7 @@ function userResponse(user: {
   firstName: string;
   lastName: string;
   email: string;
+  userName?: string;
   phone?: string;
   role: "ADMIN" | "PROFESSOR" | "SUPER_ADMIN";
   isActive: boolean;
@@ -75,6 +79,7 @@ function userResponse(user: {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
+    userName: user.userName ?? "",
     phone: user.phone ?? "",
     role: user.role,
     isActive: user.isActive,
@@ -99,13 +104,14 @@ adminUsersRouter.get("/", async (request, response, next) => {
       filter.$or = [
         { firstName: containsText(query.q) },
         { lastName: containsText(query.q) },
-        { email: containsText(query.q) }
+        { email: containsText(query.q) },
+        { userName: containsText(query.q) }
       ];
     }
 
     const [users, total] = await Promise.all([
       UserModel.find(filter)
-        .select("firstName lastName email phone role isActive branchIds createdAt")
+        .select("firstName lastName email userName phone role isActive branchIds createdAt")
         .sort({ role: 1, lastName: 1, firstName: 1, _id: 1 })
         .skip((query.page - 1) * query.limit)
         .limit(query.limit),
@@ -135,10 +141,18 @@ adminUsersRouter.post("/", async (request, response, next) => {
       throw new AppError(409, "Ya existe un usuario con ese email", "EMAIL_ALREADY_EXISTS");
     }
 
+    if (input.userName) {
+      const userNameTaken = await UserModel.exists({ organizationId, userName: input.userName });
+      if (userNameTaken) {
+        throw new AppError(409, "Ya existe un usuario con ese nombre de usuario", "USERNAME_ALREADY_EXISTS");
+      }
+    }
+
     const user = await UserModel.create({
       organizationId,
       branchIds: input.branchIds.map((id) => new Types.ObjectId(id)),
       email: input.email,
+      userName: input.userName || undefined,
       passwordHash: await bcrypt.hash(input.password, 12),
       firstName: input.firstName,
       lastName: input.lastName,
@@ -199,10 +213,22 @@ adminUsersRouter.patch("/:id", async (request, response, next) => {
       if (duplicate) throw new AppError(409, "Ya existe un usuario con ese email", "EMAIL_ALREADY_EXISTS");
     }
 
+    if (input.userName && input.userName !== user.userName) {
+      const duplicate = await UserModel.exists({
+        organizationId,
+        userName: input.userName,
+        _id: { $ne: user._id }
+      });
+      if (duplicate) {
+        throw new AppError(409, "Ya existe un usuario con ese nombre de usuario", "USERNAME_ALREADY_EXISTS");
+      }
+    }
+
     const before = userResponse(user);
     if (input.firstName !== undefined) user.firstName = input.firstName;
     if (input.lastName !== undefined) user.lastName = input.lastName;
     if (input.email !== undefined) user.email = input.email;
+    if (input.userName !== undefined) user.userName = input.userName || undefined;
     if (input.phone !== undefined) user.phone = input.phone.trim() || undefined;
     if (input.branchIds !== undefined) user.branchIds = input.branchIds.map((id) => new Types.ObjectId(id));
     if (input.isActive !== undefined) user.isActive = input.isActive;

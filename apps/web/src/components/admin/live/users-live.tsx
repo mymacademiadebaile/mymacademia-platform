@@ -16,6 +16,7 @@ type ManagedUser = {
   firstName: string;
   lastName: string;
   email: string;
+  userName?: string;
   phone: string;
   role: ManagedRole;
   isActive: boolean;
@@ -98,6 +99,7 @@ export function UsersLive() {
       firstName: form.get("firstName"),
       lastName: form.get("lastName"),
       email: form.get("email"),
+      userName: String(form.get("userName") || "").trim(),
       phone: form.get("phone") || undefined,
       branchIds: form.getAll("branchIds"),
       ...(editing ? {} : { role: form.get("role"), password }),
@@ -168,7 +170,7 @@ export function UsersLive() {
               setSearch(event.target.value);
               setPage(1);
             }}
-            placeholder="Nombre o email..."
+            placeholder="Nombre, email o usuario..."
           />
         </div>
         <select value={role} onChange={(event) => {
@@ -201,7 +203,7 @@ export function UsersLive() {
                 <span className={styles.avatar}>{`${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()}</span>
                 <div className={styles.userIdentity}>
                   <strong>{user.firstName} {user.lastName}</strong>
-                  <small>{user.email}{user.phone ? ` · ${user.phone}` : ""}</small>
+                  <small>{user.email}{user.userName ? ` · @${user.userName}` : ""}{user.phone ? ` · ${user.phone}` : ""}</small>
                 </div>
                 <span className={styles.userRole}>{roleLabel[user.role]}</span>
                 <span className={user.isActive ? styles.pill : styles.pillOff}>{user.isActive ? "Activo" : "Inactivo"}</span>
@@ -243,6 +245,9 @@ export function UsersLive() {
         <Field label="Nombre"><input name="firstName" defaultValue={editing?.firstName} required /></Field>
         <Field label="Apellido"><input name="lastName" defaultValue={editing?.lastName} required /></Field>
         <Field label="Email de acceso" wide><input name="email" type="email" defaultValue={editing?.email} required /></Field>
+        <Field label="Nombre de usuario (opcional)" wide>
+          <input name="userName" defaultValue={editing?.userName} maxLength={60} autoComplete="off" />
+        </Field>
         <Field label="Teléfono"><input name="phone" defaultValue={editing?.phone} /></Field>
         <Field label={editing ? "Nueva contraseña (opcional)" : "Contraseña inicial (10+ caracteres, letra y número)"}>
           <input

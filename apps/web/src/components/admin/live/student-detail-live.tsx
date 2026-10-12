@@ -328,7 +328,7 @@ export function StudentDetailLive({ id }: { id: string }) {
           student={student}
           busy={busy}
           onCharge={openPay}
-          onRemind={(chargeId) => void remind(chargeId)}
+          onRemind={(charge) => void remind(charge)}
           onEmailReceipt={(collectionId) => void emailReceipt(collectionId)}
           onShareWhatsApp={shareReceiptWhatsApp}
         />

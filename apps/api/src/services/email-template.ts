@@ -1,6 +1,8 @@
 type EmailTemplateInput = {
   subject: string;
   text: string;
+  /** Absolute public URL of the academy logo. */
+  logoUrl?: string;
 };
 
 type MessageLink = {
@@ -42,7 +44,8 @@ function actionLabel(url: string, subject: string, index: number) {
   const normalized = `${url} ${subject}`.toLocaleLowerCase("es-AR");
   let label = "Abrir enlace";
 
-  if (/(reset(?:-|_)?password|\/reset[/?]|contraseña|password)/.test(normalized)) label = "Restablecer contraseña";
+  if (/wa\.me|whatsapp/.test(normalized)) label = "Escribinos por WhatsApp";
+  else if (/(reset(?:-|_)?password|\/reset[/?]|contraseña|password)/.test(normalized)) label = "Restablecer contraseña";
   else if (/(pago|cuota|payment|checkout)/.test(normalized)) label = "Ver información de pago";
   else if (/(clase|horario|calendar)/.test(normalized)) label = "Ver detalles";
   else if (/(login|admin|portal)/.test(normalized)) label = "Ingresar a la plataforma";
@@ -100,7 +103,15 @@ function actionButtons(links: MessageLink[]) {
   </table>`;
 }
 
-export function emailTemplate({ subject, text }: EmailTemplateInput) {
+function logoCell(logoUrl?: string) {
+  if (logoUrl) {
+    return `<td valign="middle" width="56" style="width:56px;"><img src="${escapeHtml(logoUrl)}" alt="M&amp;M Academia" width="56" height="56" style="display:block;width:56px;height:56px;border:0;border-radius:28px;color:#ffffff;font-family:Georgia,serif;font-size:15px;font-weight:700;" /></td>`;
+  }
+
+  return `<td valign="middle" width="42" height="42" align="center" style="width:42px;height:42px;border:1px solid #a78bfa;border-radius:21px;color:#ffffff;font-family:Georgia,serif;font-size:15px;font-weight:700;letter-spacing:-1px;">M&amp;M</td>`;
+}
+
+export function emailTemplate({ subject, text, logoUrl }: EmailTemplateInput) {
   const cleanSubject = subjectWithoutBrand(subject);
   const title = escapeHtml(cleanSubject);
   const preview = escapeHtml(previewText(text));
@@ -126,7 +137,7 @@ export function emailTemplate({ subject, text }: EmailTemplateInput) {
               <td style="padding:28px 36px 26px;background:#281048;">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                   <tr>
-                    <td valign="middle" width="42" height="42" align="center" style="width:42px;height:42px;border:1px solid #a78bfa;border-radius:21px;color:#ffffff;font-family:Georgia,serif;font-size:15px;font-weight:700;letter-spacing:-1px;">M&amp;M</td>
+                    ${logoCell(logoUrl)}
                     <td valign="middle" style="padding-left:12px;">
                       <p style="margin:0;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:700;line-height:1.2;">M&amp;M Academia</p>
                       <p style="margin:4px 0 0;color:#d8ccf6;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.3px;line-height:1.2;text-transform:uppercase;">Academia de baile · La Plata</p>

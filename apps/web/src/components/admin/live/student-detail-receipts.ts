@@ -12,14 +12,21 @@ export function useStudentPaymentActions({
   setBusy: (busy: boolean) => void;
   setError: (message: string) => void;
 }) {
-  const { toast } = useAdminFeedback();
+  const { toast, confirm } = useAdminFeedback();
 
-  async function remind(chargeId: string) {
+  async function remind(charge: AccountCharge) {
+    const approved = await confirm({
+      title: "¿Enviar recordatorio de pago?",
+      description: `Se enviará un email a ${student?.email ?? "el alumno"} recordando ${charge.concept} por $ ${charge.balance.toLocaleString("es-AR")}.`,
+      confirmLabel: "Enviar recordatorio"
+    });
+    if (!approved) return;
+
     setBusy(true);
     setError("");
 
     try {
-      await apiFetch(`/admin/billing/charges/${chargeId}/remind`, { method: "POST" });
+      await apiFetch(`/admin/billing/charges/${charge.id}/remind`, { method: "POST" });
       toast("Recordatorio enviado por email");
     } catch (requestError) {
       const message = apiMessage(requestError);

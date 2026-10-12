@@ -31,6 +31,7 @@ import { hasMonthlyCoverage } from "../billing/coverage-service";
 import { FinancialAdjustmentModel } from "../billing/financial-adjustment.model";
 import type { ChargeView } from "../billing/legacy-adapter";
 import { MigrationIssueModel } from "../billing/migration-issue.model";
+import { paymentReminderText } from "../billing/reminder-message";
 import { PaymentAllocationModel } from "../billing/payment-allocation.model";
 import { RefundModel } from "../billing/refund.model";
 import { DanceClassModel } from "../classes/class.model";
@@ -279,7 +280,16 @@ adminBillingRouter.post("/charges/:id/remind", async (request, response, next) =
     if (!student?.email) throw new AppError(422, "El alumno no tiene email cargado", "STUDENT_WITHOUT_EMAIL");
 
     const subject = "Recordatorio de pago - M&M Academia";
-    const message = `Hola ${student.firstName}, te recordamos que se encuentra pendiente ${charge.concept} (${charge.period}) por $ ${toPesos(charge.balanceCents).toLocaleString("es-AR")}.`;
+    const organization = await OrganizationModel.findById(organizationId).select("inquiryWhatsApp").lean();
+    const message = paymentReminderText({
+      firstName: student.firstName,
+      concept: charge.concept,
+      kind: charge.kind,
+      period: charge.period,
+      amount: toPesos(charge.balanceCents),
+      dueDate: charge.dueDate,
+      inquiryWhatsApp: organization?.inquiryWhatsApp
+    });
     const log = {
       organizationId,
       actorUserId: request.auth!.userId,

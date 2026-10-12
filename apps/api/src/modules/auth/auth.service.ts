@@ -47,10 +47,9 @@ export function createRefreshToken(user: TokenUser) {
 // are treated as globally unique. Supporting several academies means adding an organization
 // selector here and in forgot-password (the unique index is per organization + email).
 export async function login(input: LoginInput) {
-  const user = await UserModel.findOne({
-    email: input.email,
-    isActive: true
-  }).select("+passwordHash");
+  const user =
+    (await UserModel.findOne({ email: input.login, isActive: true }).select("+passwordHash")) ??
+    (await UserModel.findOne({ userName: input.login, isActive: true }).select("+passwordHash"));
 
   if (!user) {
     throw new AppError(401, "Invalid email or password", "INVALID_CREDENTIALS");
@@ -71,6 +70,7 @@ export async function login(input: LoginInput) {
     user: {
       id: user.id,
       email: user.email,
+      userName: user.userName,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,

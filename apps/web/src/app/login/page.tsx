@@ -16,7 +16,7 @@ type LoginResponse = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("mymacademiadebaile@gmail.com");
+  const [login, setLogin] = useState("mymacademiadebaile@gmail.com");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +30,7 @@ export default function LoginPage() {
     try {
       const { user } = await apiFetch<LoginResponse>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ login, password })
       });
 
       const requested =
@@ -103,14 +103,14 @@ export default function LoginPage() {
           )}
 
           <label>
-            <span>Email</span>
+            <span>Email o usuario</span>
             <div className={styles.field}>
               <Mail size={18} />
               <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                type="text"
+                autoComplete="username"
+                value={login}
+                onChange={(event) => setLogin(event.target.value)}
                 required
               />
             </div>

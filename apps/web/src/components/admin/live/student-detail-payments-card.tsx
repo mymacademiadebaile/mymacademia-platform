@@ -21,7 +21,7 @@ export function StudentPaymentsCard({
   student: Student;
   busy: boolean;
   onCharge: (charge: AccountCharge) => void;
-  onRemind: (chargeId: string) => void;
+  onRemind: (charge: AccountCharge) => void;
   onEmailReceipt: (collectionId: string) => void;
   onShareWhatsApp: (charge: AccountCharge) => void;
 }) {
@@ -58,7 +58,7 @@ export function StudentPaymentsCard({
                   <button disabled={busy} onClick={() => onCharge(charge)}>Cobrar</button>
                 )}
                 {open && student.email && (
-                  <button disabled={busy} onClick={() => onRemind(charge.id)}>Recordar</button>
+                  <button disabled={busy} onClick={() => onRemind(charge)}>Recordar</button>
                 )}
                 {receipt && (
                   <>

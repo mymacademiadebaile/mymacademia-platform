@@ -1,9 +1,24 @@
 import { z } from "zod";
 
-export const loginSchema = z.object({
-  email: z.string().email().transform((value) => value.toLowerCase()),
-  password: z.string().min(8)
-});
+export const userNameSchema = z
+  .string()
+  .trim()
+  .min(1, "El nombre de usuario no puede estar vacío")
+  .max(60)
+  .transform((value) => value.toLowerCase());
+
+// `login` is the email or the userName; `email` is still accepted for older clients.
+export const loginSchema = z
+  .object({
+    login: z.string().trim().min(1).max(254).optional(),
+    email: z.string().trim().min(1).max(254).optional(),
+    password: z.string().min(8)
+  })
+  .refine((value) => value.login || value.email, { message: "Ingresá tu email o nombre de usuario", path: ["login"] })
+  .transform(({ login, email, password }) => ({
+    login: (login ?? email ?? "").toLowerCase(),
+    password
+  }));
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email().transform((value) => value.toLowerCase())
