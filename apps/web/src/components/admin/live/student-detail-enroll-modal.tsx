@@ -9,7 +9,7 @@ import {
   scheduleKey,
   scheduleLabel
 } from "./student-detail-helpers";
-import styles from "./student-detail.module.css";
+import styles from "./student-detail-modals.module.css";
 
 export function StudentEnrollModal({
   open,

@@ -1,7 +1,7 @@
 import { Mail, MessageCircle, Power } from "lucide-react";
 import { whatsappHref } from "./student-detail-helpers";
 import type { StudentDetail } from "./student-detail-types";
-import styles from "./student-detail.module.css";
+import styles from "./student-detail-hero.module.css";
 
 export function StudentDetailHero({
   student,

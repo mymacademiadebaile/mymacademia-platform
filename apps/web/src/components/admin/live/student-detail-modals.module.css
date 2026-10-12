@@ -1,0 +1,26 @@
+.modalHint {
+  grid-column: 1 / -1;
+  padding: 11px 12px;
+  border: 1px solid #e8e0ed;
+  border-radius: 12px;
+  background: #faf8fc;
+  color: #6f6576;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.scheduleChoices {
+  display: grid;
+  gap: 7px;
+  padding: 4px 0;
+}
+
+.scheduleChoice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #4d4453;
+}
+
+.scheduleChoice input { width: auto; }

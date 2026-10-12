@@ -1,0 +1,157 @@
+.card {
+  padding: 18px;
+  border: 1px solid #e9e2ed;
+  border-radius: 19px;
+  background: white;
+  box-shadow: 0 7px 26px rgba(48,27,59,.035);
+}
+
+.paymentsCard {
+  grid-column: 1 / -1;
+}
+
+.cardHeader {
+  margin-bottom: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cardHeader > div > span {
+  color: #6d28d9;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.cardHeader h3 {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+.cardHeader button,
+.cardHeader a {
+  min-height: 34px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #e6deeb;
+  border-radius: 10px;
+  background: white;
+  color: #5b21b6;
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.detailList {
+  margin: 0;
+  display: grid;
+  gap: 0;
+  border: 1px solid #f0ebf3;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.detailList > div {
+  min-height: 48px;
+  padding: 9px 11px;
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  border-top: 1px solid #f1ecf3;
+}
+
+.detailList > div:first-child {
+  border-top: 0;
+}
+
+.detailList dt {
+  color: #827888;
+  font-size: 9px;
+}
+
+.detailList dd {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.detailList .notes {
+  align-items: start;
+}
+
+.itemList {
+  display: grid;
+  gap: 8px;
+}
+
+.itemList > div {
+  min-height: 57px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #eee8f2;
+  border-radius: 13px;
+}
+
+.itemIcon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #f3edf9;
+  color: #6d28d9;
+}
+
+.itemList > div > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.itemList strong {
+  font-size: 11px;
+}
+
+.itemList small {
+  color: #817787;
+  font-size: 9px;
+}
+
+.itemList button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #fee2e2;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: #fff7f7;
+  color: #be123c;
+  cursor: pointer;
+}
+
+.empty {
+  margin: 12px 0;
+  color: #857b8b;
+  font-size: 10px;
+}
+
+@media (max-width: 1000px) {
+  .paymentsCard {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .detailList > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

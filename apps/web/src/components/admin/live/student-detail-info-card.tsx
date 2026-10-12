@@ -1,6 +1,6 @@
 import { formatDateOnly } from "@/lib/dates";
 import type { Branch, Student } from "./live-types";
-import styles from "./student-detail.module.css";
+import styles from "./student-detail-cards.module.css";
 
 export function StudentInfoCard({ student, branches }: { student: Student; branches: Branch[] }) {
   return (

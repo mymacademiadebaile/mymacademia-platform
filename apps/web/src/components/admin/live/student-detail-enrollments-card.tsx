@@ -5,7 +5,7 @@ import {
   scheduleLabel
 } from "./student-detail-helpers";
 import type { Enrollment } from "./student-detail-types";
-import styles from "./student-detail.module.css";
+import styles from "./student-detail-cards.module.css";
 
 export function StudentEnrollmentsCard({
   enrollments,

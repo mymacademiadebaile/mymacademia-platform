@@ -4,7 +4,8 @@ import { apiUrl } from "@/lib/api";
 import { formatDateOnly } from "@/lib/dates";
 import type { Payment, Student } from "./live-types";
 import { paymentReference, paymentStatus } from "./student-detail-helpers";
-import styles from "./student-detail.module.css";
+import styles from "./student-detail-payments.module.css";
+import cardStyles from "./student-detail-cards.module.css";
 
 export function StudentPaymentsCard({
   payments,
@@ -24,8 +25,8 @@ export function StudentPaymentsCard({
   onShareWhatsApp: (payment: Payment) => void;
 }) {
   return (
-    <section className={styles.card + " " + styles.paymentsCard}>
-      <div className={styles.cardHeader}>
+    <section className={cardStyles.card + " " + cardStyles.paymentsCard}>
+      <div className={cardStyles.cardHeader}>
         <div><span>CUENTA</span><h3>Pagos</h3></div>
         <Link href="/admin/payments"><CircleDollarSign size={15} /> Ver módulo pagos</Link>
       </div>
@@ -34,7 +35,7 @@ export function StudentPaymentsCard({
         <div className={styles.paymentHead}>
           <span>Concepto</span><span>Fecha / período</span><span>Vencimiento</span><span>Importe</span><span>Estado</span><span>Acciones</span>
         </div>
-        {payments.length === 0 && <p className={styles.empty}>Todavía no tiene pagos registrados.</p>}
+        {payments.length === 0 && <p className={cardStyles.empty}>Todavía no tiene pagos registrados.</p>}
         {payments.map((payment) => {
           const status = paymentStatus(payment);
           return (

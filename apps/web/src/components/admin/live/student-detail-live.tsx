@@ -23,7 +23,7 @@ import { StudentEditModal } from "./student-detail-edit-modal";
 import { StudentEnrollModal } from "./student-detail-enroll-modal";
 import { StudentPayModal } from "./student-detail-pay-modal";
 import { useStudentPaymentActions } from "./student-detail-receipts";
-import styles from "./student-detail.module.css";
+import styles from "./student-detail-live.module.css";
 
 export function StudentDetailLive({ id }: { id: string }) {
   const { toast, confirm } = useAdminFeedback();
