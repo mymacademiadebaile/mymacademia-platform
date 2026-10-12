@@ -280,16 +280,22 @@ describe("syncLegacyPayment: issues", () => {
     expect(await MigrationIssueModel.countDocuments({ entityId: orphan._id })).toBe(0);
   });
 
-  // BUG (not fixed here): the duplicate-key error of the first ChargeModel.create aborts the MongoDB
-  // transaction, so the fallback create (without chargeKey) fails with NoSuchTransaction, a
-  // TransientTransactionError. session.withTransaction() then retries the whole callback, which
-  // fails the same way, looping until the driver's 120s limit; no LEGACY_DUPLICATE_CHARGE issue is
-  // persisted (it rolls back). Verified with a probe: first create -> code 11000, second -> code 251.
-  // A fix needs to check for the existing chargeKey before creating, or do the fallback outside the
-  // aborted transaction. Expected behaviour once fixed:
-  //   outcome "ISSUE", one open LEGACY_DUPLICATE_CHARGE issue, a mirror charge without chargeKey,
-  //   and a second run returns "UNCHANGED".
-  it.todo("a charge already holding the identity produces LEGACY_DUPLICATE_CHARGE and keeps the history without key (BUG: transaction aborted by the duplicate key, sync loops)");
+  it("a charge already holding the identity produces LEGACY_DUPLICATE_CHARGE and keeps the history without key", async () => {
+    const pending = await payment();
+    expect(await syncLegacyPayment(pending._id)).toBe("CREATED");
+    // The mirror becomes a charge of the new model: it keeps the identity but loses the legacy link.
+    await ChargeModel.updateOne({ legacyPaymentId: pending._id }, { $unset: { legacyPaymentId: 1 } });
+
+    expect(await syncLegacyPayment(pending._id)).toBe("ISSUE");
+
+    const issues = await MigrationIssueModel.find({ kind: "LEGACY_DUPLICATE_CHARGE", entityId: pending._id }).lean<any[]>();
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({ status: "OPEN" });
+    const mirror = await ChargeModel.findOne({ legacyPaymentId: pending._id }).lean<any>();
+    expect(mirror).toMatchObject({ status: "OPEN", amountCents: 30050 });
+    expect(mirror.chargeKey).toBeUndefined();
+    expect(await syncLegacyPayment(pending._id)).toBe("UNCHANGED");
+  }, 20_000);
 
   it("per-class payment without sessionId nor classDate has no chargeKey (no identity guard)", async () => {
     const perClass = await payment({ paymentType: "PER_CLASS", concept: "Clase suelta" });

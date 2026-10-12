@@ -142,7 +142,15 @@ describe("billing migration idempotency", () => {
     expect(again.validation.unmirroredPayments).toBe(0);
   });
 
-  // KNOWN ISSUE (see legacy-sync.test.ts): an identity collision (LEGACY_DUPLICATE_CHARGE) aborts the
-  // transaction and withTransaction retries forever, so the migration would hang on such a payment.
-  it.todo("migration records LEGACY_DUPLICATE_CHARGE and continues instead of looping (BUG: see legacy-sync.test.ts)");
+  it("records LEGACY_DUPLICATE_CHARGE and finishes when a payment collides with an existing charge", async () => {
+    const colliding = await payment("colliding");
+    await runSchedulingBillingMigration({ apply: true, now: NOW });
+    // The mirror turns into a charge of the new model: same identity, no legacy link.
+    await ChargeModel.updateOne({ legacyPaymentId: colliding._id }, { $unset: { legacyPaymentId: 1 } });
+
+    const result = await runSchedulingBillingMigration({ apply: true, now: NOW });
+
+    expect(result.payments.ISSUE).toBeGreaterThanOrEqual(1);
+    expect(await MigrationIssueModel.countDocuments({ kind: "LEGACY_DUPLICATE_CHARGE", entityId: colliding._id })).toBe(1);
+  }, 30_000);
 });

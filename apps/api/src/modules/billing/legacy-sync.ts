@@ -22,10 +22,6 @@ export type SyncOutcome =
   | "UNCHANGED"
   | "ISSUE";
 
-function isDuplicateKey(error: unknown) {
-  return (error as { code?: number })?.code === 11000;
-}
-
 async function recordIssue(
   payment: LegacyPaymentLike,
   kind: string,
@@ -116,13 +112,14 @@ export async function syncLegacyPayment(
         issue = true;
       }
 
-      let charge;
-      try {
-        [charge] = await ChargeModel.create([fields], { session });
-      } catch (error) {
-        if (!isDuplicateKey(error)) throw error;
-        // The identity is already taken by a charge of the new model: keep the history without
-        // the key and let an administrator decide.
+      // A duplicate-key error would abort the MongoDB transaction and make every later write in it
+      // fail, so the identity is checked beforehand instead of being caught.
+      const identityTaken =
+        fields.chargeKey !== undefined &&
+        (await ChargeModel.exists({ organizationId: fields.organizationId, chargeKey: fields.chargeKey }).session(session ?? null)) !== null;
+      if (identityTaken) {
+        // The identity belongs to a charge of the new model: keep the history without the key
+        // and let an administrator decide.
         await recordIssue(
           payment,
           "LEGACY_DUPLICATE_CHARGE",
@@ -130,9 +127,9 @@ export async function syncLegacyPayment(
           { chargeKey: fields.chargeKey },
           session
         );
-        [charge] = await ChargeModel.create([{ ...fields, chargeKey: undefined }], { session });
         issue = true;
       }
+      const [charge] = await ChargeModel.create([identityTaken ? { ...fields, chargeKey: undefined } : fields], { session });
 
       if (payment.status === "PAID") {
         await createCollectionFor(payment, charge._id, session);
