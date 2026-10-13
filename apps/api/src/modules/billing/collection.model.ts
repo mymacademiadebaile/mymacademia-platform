@@ -3,7 +3,9 @@ import { Schema, Types, model } from "mongoose";
 
 /**
  * Money actually received. Immutable once created except for the denormalized counters
- * (`allocatedCents`, `refundedCents`), which change only through allocations and refunds.
+ * (`allocatedCents`, `refundedCents`), which change only through allocations and refunds,
+ * and the void marker (`voidedAt`): a collection registered by mistake is voided, never deleted.
+ * Every total (cash, balances, reports) skips voided collections with `voidedAt: null`.
  * Its `accountingDate` is the Argentina calendar day the money came in and never changes.
  */
 export interface Collection {
@@ -28,6 +30,10 @@ export interface Collection {
   /** Public proof URL uploaded by the old system, kept only as history. */
   legacyProofUrl?: string;
   createdByUserId?: Types.ObjectId;
+  /** Set when the collection was registered by mistake: it stops counting everywhere but stays on record. */
+  voidedAt?: Date;
+  voidReason?: string;
+  voidedByUserId?: Types.ObjectId;
   lockVersion: number;
 }
 
@@ -55,6 +61,9 @@ const collectionSchema = new Schema<Collection>(
     legacyPaymentId: { type: Schema.Types.ObjectId, ref: "Payment" },
     legacyProofUrl: { type: String, trim: true },
     createdByUserId: { type: Schema.Types.ObjectId, ref: "User" },
+    voidedAt: { type: Date },
+    voidReason: { type: String, trim: true, maxlength: 500 },
+    voidedByUserId: { type: Schema.Types.ObjectId, ref: "User" },
     lockVersion: { type: Number, default: 0 }
   },
   { timestamps: true }

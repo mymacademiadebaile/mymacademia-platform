@@ -30,6 +30,7 @@ import { ClassTrialsCard } from "./class-detail-trials-card";
 import { ClassStudentsCard } from "./class-detail-students-card";
 import { ClassChargeModal } from "./class-detail-charge-modal";
 import { ClassEditModal } from "./class-detail-edit-modal";
+import { FirstMonthModal } from "../billing/first-month-modal";
 import styles from "./class-detail-layout.module.css";
 
 export function ClassDetailLive({ id }: { id: string }) {
@@ -211,6 +212,16 @@ export function ClassDetailLive({ id }: { id: string }) {
           onRemove={(enrollment) => void actions.remove(enrollment)}
         />
       </div>
+
+      <FirstMonthModal
+        target={actions.switching}
+        busy={busy}
+        title={actions.switching?.midMonth ? "Pasar a mensual: primer mes" : "Pasar a mensual"}
+        submitLabel="Pasar a mensual"
+        askPolicy={actions.switching?.midMonth ?? true}
+        onClose={actions.cancelSwitch}
+        onSubmit={(choice) => void actions.switchToMonthly(choice)}
+      />
 
       <ClassChargeModal
         danceClass={danceClass}

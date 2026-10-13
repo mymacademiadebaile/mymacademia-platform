@@ -1,3 +1,4 @@
+import { collectedToast, proofFileOf, tryUploadProof } from "../billing/proof";
 import { FormEvent, useState } from "react";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
@@ -39,7 +40,7 @@ export function useClassCharge(danceClass: DanceClass | null) {
     setChargeSubmitting(true);
 
     try {
-      await apiFetch("/admin/billing/classes/" + danceClass._id + "/collect", {
+      const result = await apiFetch<{ collection: { id: string } }>("/admin/billing/classes/" + danceClass._id + "/collect", {
         method: "POST",
         body: JSON.stringify({
           studentId: chargingEnrollment.studentId._id,
@@ -53,11 +54,9 @@ export function useClassCharge(danceClass: DanceClass | null) {
           idempotencyKey: chargeKey
         })
       });
+      const proofError = await tryUploadProof(result.collection.id, proofFileOf(form));
       setChargingEnrollment(null);
-      toast({
-        title: "Cobro registrado",
-        description: chargingEnrollment.studentId.firstName + " " + chargingEnrollment.studentId.lastName + " · " + danceClass.name
-      });
+      toast(collectedToast(proofError, chargingEnrollment.studentId.firstName + " " + chargingEnrollment.studentId.lastName + " · " + danceClass.name));
     } catch (requestError) {
       toast({ title: "No se pudo registrar el cobro", description: apiMessage(requestError), tone: "error" });
     } finally {

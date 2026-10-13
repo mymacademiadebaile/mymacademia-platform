@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MidMonthPolicy } from "@mym/shared";
-import { apiFetch, apiMessage } from "@/lib/api";
+import { ApiError, apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { BillingPreference, DanceClass } from "./live-types";
 import type { Enrollment, TrialBooking } from "./class-detail-types";
-import { normalizedMode, preferenceForClass, preferenceLabel } from "./class-detail-helpers";
+import { monthlyPlansAvailable, monthlyPriceFor, normalizedMode, preferenceForClass, preferenceLabel } from "./class-detail-helpers";
+import type { FirstMonthChoice, FirstMonthTarget } from "../billing/first-month-modal";
+import { todayInArgentina } from "@/lib/dates";
 
 export type EnrollFormValues = {
   studentId: string;
@@ -27,6 +30,7 @@ type Params = {
 export function useClassActions({ id, danceClass, load, setBusy, setError }: Params) {
   const { toast, confirm } = useAdminFeedback();
   const router = useRouter();
+  const [switching, setSwitching] = useState<(FirstMonthTarget & { midMonth: boolean }) | null>(null);
 
   async function enroll(values: EnrollFormValues, onEnrolled: () => void) {
     const { studentId, billingPreference, monthlyPlan, startDate, joinPolicy, joinCustomAmount, selectedSeries } = values;
@@ -95,6 +99,22 @@ export function useClassActions({ id, danceClass, load, setBusy, setError }: Par
     const currentPreference = enrollment.billingPreference ?? preferenceForClass(danceClass!);
     if (next === currentPreference) return;
 
+    // Going monthly needs the plan and, with the month already started, how to bill the first month.
+    if (next === "MONTHLY") {
+      const period = todayInArgentina().slice(0, 7);
+      setSwitching({
+        enrollmentId: enrollment._id,
+        studentName: enrollment.studentId.firstName + " " + enrollment.studentId.lastName,
+        className: danceClass!.name,
+        period,
+        midMonth: todayInArgentina().slice(8, 10) !== "01",
+        plans: monthlyPlansAvailable(danceClass!)
+          ? { price4: monthlyPriceFor(danceClass!, 4), price8: monthlyPriceFor(danceClass!, 8), current: enrollment.monthlyPlan ?? 4 }
+          : undefined
+      });
+      return;
+    }
+
     const approved = await confirm({
       title: "Cambiar modalidad de cobro",
       description: enrollment.studentId.firstName + " pasará de " + preferenceLabel(currentPreference) + " a " + preferenceLabel(next) + ". Los pagos históricos no se modifican.",
@@ -112,6 +132,35 @@ export function useClassActions({ id, danceClass, load, setBusy, setError }: Par
       await load();
     } catch (requestError) {
       toast({ title: "No se pudo actualizar", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Switch to monthly: saves the plan, then creates this month's fee with the chosen first-month rule. */
+  async function switchToMonthly(choice: FirstMonthChoice) {
+    if (!switching) return;
+    setBusy(true);
+    try {
+      await apiFetch("/admin/enrollments/" + switching.enrollmentId + "/billing-preference", {
+        method: "PATCH",
+        body: JSON.stringify({ billingPreference: "MONTHLY", monthlyPlan: choice.plan })
+      });
+      try {
+        await apiFetch("/admin/billing/enrollments/" + switching.enrollmentId + "/monthly-charge", {
+          method: "POST",
+          body: JSON.stringify({ period: switching.period, policy: switching.midMonth ? choice.policy : undefined, customAmount: choice.customAmount })
+        });
+      } catch (requestError) {
+        // The fee of this month may already exist (it was monthly before): the switch itself is done.
+        if (!(requestError instanceof ApiError && requestError.status === 409)) throw requestError;
+      }
+      setSwitching(null);
+      toast({ title: "Ahora paga mensual", description: "La cuota del mes ya aparece en Pagos › Por cobrar.", tone: "success" });
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo actualizar", description: apiMessage(requestError), tone: "error" });
+      await load();
     } finally {
       setBusy(false);
     }
@@ -264,6 +313,9 @@ export function useClassActions({ id, danceClass, load, setBusy, setError }: Par
     enroll,
     remove,
     changeBilling,
+    switching,
+    cancelSwitch: () => setSwitching(null),
+    switchToMonthly,
     scheduleTrial,
     updateTrial,
     convertTrial,

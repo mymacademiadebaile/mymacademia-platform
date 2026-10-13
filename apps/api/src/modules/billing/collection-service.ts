@@ -6,6 +6,7 @@ import { withTransaction } from "../../common/transaction";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { ensureReceiptSequence, nextReceiptNumber } from "../payments/sequence.model";
 import { StudentModel } from "../students/student.model";
+import { voidChargeInSession } from "./charge-service";
 import { ChargeModel } from "./charge.model";
 import { availableCreditCents, CollectionModel } from "./collection.model";
 import { FinancialAdjustmentModel } from "./financial-adjustment.model";
@@ -219,6 +220,7 @@ export async function applyCredit(actor: Actor, collectionId: string, chargeId: 
       {
         _id: collectionId,
         organizationId: actor.organizationId,
+        voidedAt: null,
         $expr: { $gte: [{ $subtract: ["$amountCents", { $add: ["$allocatedCents", "$refundedCents"] }] }, amountCents] }
       },
       { $inc: { allocatedCents: amountCents, lockVersion: 1 } },
@@ -274,6 +276,7 @@ export async function refundCollection(actor: Actor, collectionId: string, input
   return withTransaction(async (dbSession) => {
     const collection = await CollectionModel.findOne({ _id: collectionId, organizationId: actor.organizationId }).session(dbSession ?? null);
     if (!collection) throw new AppError(404, "Cobro no encontrado", "COLLECTION_NOT_FOUND");
+    if (collection.voidedAt) throw new AppError(409, "El cobro está anulado", "COLLECTION_VOIDED");
     if (academyDateOf(refundedAt) < collection.accountingDate) {
       throw new AppError(422, "La devolución no puede ser anterior al cobro", "REFUND_BEFORE_COLLECTION");
     }
@@ -417,4 +420,64 @@ async function applyAdjustmentInSession(actor: Actor, input: AdjustmentInput, db
 /** Authorized discount, surcharge, write-off or credit transfer on a charge, with its reason. */
 export async function applyAdjustment(actor: Actor, input: AdjustmentInput) {
   return withTransaction((dbSession) => applyAdjustmentInSession(actor, input, dbSession));
+}
+
+/**
+ * Cancels a collection that was registered by mistake. It stops counting in cash, balances and
+ * reports, the money applied to its charges is released (they are owed again) and, if asked, the
+ * charges themselves are voided too (the debt never existed). Nothing is deleted: the collection
+ * keeps its receipt number, who voided it, when and why. Repeating the request is harmless.
+ */
+export async function voidCollection(actor: Actor, collectionId: string, input: { reason: string; voidCharges?: boolean }) {
+  const reason = input.reason?.trim();
+  if (!reason || reason.length < 3) throw new AppError(422, "Indicá el motivo de la anulación", "REASON_REQUIRED");
+
+  return withTransaction(async (dbSession) => {
+    const collection = await CollectionModel.findOne({ _id: collectionId, organizationId: actor.organizationId }).session(dbSession ?? null);
+    if (!collection) throw new AppError(404, "Cobro no encontrado", "COLLECTION_NOT_FOUND");
+    if (collection.voidedAt) return { collection, replayed: true };
+    if (collection.refundedCents > 0) {
+      throw new AppError(409, "El cobro ya tiene devoluciones y no se puede anular", "COLLECTION_HAS_REFUNDS");
+    }
+
+    // Claim the collection first: a concurrent void (or refund) loses here instead of releasing the money twice.
+    const claimed = await CollectionModel.findOneAndUpdate(
+      { _id: collection._id, voidedAt: null, refundedCents: 0 },
+      {
+        $set: { voidedAt: new Date(), voidReason: reason, voidedByUserId: new Types.ObjectId(actor.userId), allocatedCents: 0 },
+        $inc: { lockVersion: 1 }
+      },
+      { new: true, session: dbSession }
+    );
+    if (!claimed) throw new AppError(409, "El cobro cambió mientras se anulaba; revisalo e intentá de nuevo", "COLLECTION_CHANGED");
+
+    const allocations = await PaymentAllocationModel.find({ collectionId: collection._id }).session(dbSession ?? null);
+    const released: Types.ObjectId[] = [];
+    for (const allocation of allocations) {
+      const remaining = allocation.amountCents - allocation.reversedCents;
+      if (remaining <= 0) continue;
+      await unapplyFromCharge(actor.organizationId, allocation.chargeId, remaining, dbSession);
+      await PaymentAllocationModel.updateOne({ _id: allocation._id }, { $set: { reversedCents: allocation.amountCents } }, { session: dbSession });
+      released.push(allocation.chargeId);
+    }
+
+    const voidedCharges: Types.ObjectId[] = [];
+    if (input.voidCharges) {
+      for (const chargeId of released) {
+        await voidChargeInSession(actor, chargeId, `Cobro anulado: ${reason}`, dbSession);
+        voidedCharges.push(chargeId);
+      }
+    }
+
+    await audit(actor, "COLLECTION_VOIDED", "Collection", collection._id, {
+      studentId: collection.studentId,
+      amountCents: collection.amountCents,
+      receiptNumber: collection.receiptNumber,
+      accountingDate: collection.accountingDate,
+      reason,
+      releasedCharges: released,
+      voidedCharges
+    }, dbSession);
+    return { collection: claimed, replayed: false };
+  });
 }

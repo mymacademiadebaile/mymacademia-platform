@@ -92,7 +92,7 @@ export async function studentBalances(
     if (state.paidCents > 0) balance.partialCount += 1;
   }
 
-  const collectionScope: Record<string, unknown> = { organizationId: new Types.ObjectId(organizationId) };
+  const collectionScope: Record<string, unknown> = { organizationId: new Types.ObjectId(organizationId), voidedAt: null };
   if (studentIds) collectionScope.studentId = { $in: studentIds.map((id) => new Types.ObjectId(String(id))) };
   const credit = await CollectionModel.aggregate<{ _id: Types.ObjectId; credit: number }>([
     { $match: collectionScope },

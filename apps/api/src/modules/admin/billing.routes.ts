@@ -25,7 +25,7 @@ import {
   voidCharge
 } from "../billing/charge-service";
 import { ChargeModel, type Charge } from "../billing/charge.model";
-import { applyAdjustment, applyCredit, refundCollection, registerCollection } from "../billing/collection-service";
+import { applyAdjustment, applyCredit, refundCollection, registerCollection, voidCollection } from "../billing/collection-service";
 import { availableCreditCents, CollectionModel, type Collection } from "../billing/collection.model";
 import { hasMonthlyCoverage } from "../billing/coverage-service";
 import { FinancialAdjustmentModel } from "../billing/financial-adjustment.model";
@@ -103,10 +103,13 @@ function presentCollection(collection: Collection & { _id: Types.ObjectId }) {
     amount: toPesos(collection.amountCents),
     allocated: toPesos(collection.allocatedCents),
     refunded: toPesos(collection.refundedCents),
-    credit: toPesos(availableCreditCents(collection)),
+    credit: collection.voidedAt ? 0 : toPesos(availableCreditCents(collection)),
     receiptNumber: collection.receiptNumber ?? null,
     notes: collection.notes ?? null,
     hasProof: Boolean(collection.proof?.publicId || collection.legacyProofUrl),
+    voided: Boolean(collection.voidedAt),
+    voidedAt: collection.voidedAt ?? null,
+    voidReason: collection.voidReason ?? null,
     sessionId: collection.sessionId ? String(collection.sessionId) : null,
     legacyPaymentId: collection.legacyPaymentId ? String(collection.legacyPaymentId) : null
   };
@@ -552,6 +555,20 @@ adminBillingRouter.post("/collections/:id/apply-credit", async (request, respons
   }
 });
 
+/** Cancels a collection registered by mistake: out of the month's totals, charges owed again (or voided too). */
+adminBillingRouter.post("/collections/:id/void", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const input = z
+      .object({ reason: z.string().trim().min(3).max(500), voidCharges: z.boolean().optional() })
+      .parse(request.body);
+    const result = await voidCollection(actorOf(request), id, input);
+    response.status(result.replayed ? 200 : 201).json({ collection: presentCollection(result.collection.toObject()), replayed: result.replayed });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminBillingRouter.post("/collections/:id/refunds", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);
@@ -665,7 +682,8 @@ async function loadCollectionReceipt(organizationId: string, id: string) {
     })),
     className: classes.length === 1 ? classes[0].name : undefined,
     amount: toPesos(collection.amountCents),
-    credit: toPesos(availableCreditCents(collection))
+    credit: collection.voidedAt ? 0 : toPesos(availableCreditCents(collection)),
+    voided: Boolean(collection.voidedAt)
   };
   if (!receipt.concepts.length) receipt.concepts = [{ concept: collection.notes || "Pago a cuenta" }];
   return { collection, organization, student, receipt };
@@ -695,6 +713,7 @@ adminBillingRouter.post("/collections/:id/receipt/email", async (request, respon
     const organizationId = request.auth!.organizationId;
     const { collection, organization, student, receipt } = await loadCollectionReceipt(organizationId, id);
     if (!student.email) throw new AppError(422, "El alumno no tiene email cargado", "STUDENT_EMAIL_REQUIRED");
+    if (collection.voidedAt) throw new AppError(409, "El cobro está anulado: no se envía el recibo", "COLLECTION_VOIDED");
 
     const receiptNumber = collection.receiptNumber ?? "sin número";
     const subject = `Recibo de pago ${receiptNumber}`;
@@ -977,7 +996,7 @@ adminBillingRouter.get("/students/:id/account", async (request, response, next) 
     const lastCollectionByCharge = new Map<string, { id: string; receiptNumber: string | null }>();
     for (const allocation of allocations) {
       const collection = collectionById.get(String(allocation.collectionId));
-      if (collection) lastCollectionByCharge.set(String(allocation.chargeId), { id: String(collection._id), receiptNumber: collection.receiptNumber ?? null });
+      if (collection && !collection.voidedAt) lastCollectionByCharge.set(String(allocation.chargeId), { id: String(collection._id), receiptNumber: collection.receiptNumber ?? null });
     }
 
     response.json({
@@ -1037,7 +1056,7 @@ adminBillingRouter.get("/cash", async (request, response, next) => {
     const range = { $gte: query.from, $lte: query.to };
     const [collections, refunds] = await Promise.all([
       CollectionModel.aggregate<{ _id: { date: string; method: string }; amount: number; count: number }>([
-        { $match: { organizationId, accountingDate: range } },
+        { $match: { organizationId, voidedAt: null, accountingDate: range } },
         { $group: { _id: { date: "$accountingDate", method: "$method" }, amount: { $sum: "$amountCents" }, count: { $sum: 1 } } }
       ]),
       RefundModel.aggregate<{ _id: { date: string; method: string }; amount: number; count: number }>([

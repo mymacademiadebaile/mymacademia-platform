@@ -148,7 +148,7 @@ adminStudentsRouter.get("/:id", async (request, response, next) => {
         })
         .sort({ enrolledAt: -1 }),
       studentBalances(organizationId, [student._id]),
-      CollectionModel.find({ organizationId, studentId: student._id }).select("amountCents refundedCents").lean<any[]>(),
+      CollectionModel.find({ organizationId, studentId: student._id, voidedAt: null }).select("amountCents refundedCents").lean<any[]>(),
       listOpenCharges(organizationId, { studentIds: [student._id] })
     ]);
     const balance = balances.get(String(student._id))!;

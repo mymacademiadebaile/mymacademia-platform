@@ -496,7 +496,7 @@ async function buildOverview(
 async function cashMovements(organizationId: string, range: DateRange, branchId?: string) {
   const scope = { organizationId, ...(branchId ? { branchId } : {}) };
   const [collections, refunds] = await Promise.all([
-    CollectionModel.find({ ...scope, accountingDate: { $gte: range.from, $lte: range.to } }).lean<any[]>(),
+    CollectionModel.find({ ...scope, voidedAt: null, accountingDate: { $gte: range.from, $lte: range.to } }).lean<any[]>(),
     RefundModel.find({ ...scope, accountingDate: { $gte: range.from, $lte: range.to } }).select("amountCents").lean<any[]>()
   ]);
   const allocations = collections.length

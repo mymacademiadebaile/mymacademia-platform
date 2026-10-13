@@ -1,5 +1,6 @@
 "use client";
 
+import { collectedToast, ProofField, proofFileOf, tryUploadProof } from "../billing/proof";
 import {
   ArrowLeft,
   CalendarDays,
@@ -217,7 +218,7 @@ export function SessionLive({ id }: { id: string }) {
     try {
       // The API creates the class fee (or monthly fee) when it does not exist yet and collects it.
       const amount = hasOpenCharge(paying) || paymentAmount === paying.payment.amount ? undefined : paymentAmount;
-      await apiFetch("/admin/billing/sessions/" + data.id + "/collect", {
+      const result = await apiFetch<{ collection: { id: string } }>("/admin/billing/sessions/" + data.id + "/collect", {
         method: "POST",
         body: JSON.stringify({
           studentId: paying.studentId,
@@ -228,7 +229,7 @@ export function SessionLive({ id }: { id: string }) {
         })
       });
 
-      toast("Cobro registrado");
+      toast(collectedToast(await tryUploadProof(result.collection.id, proofFileOf(form))));
       setPaying(null);
       await load();
     } catch (requestError) {
@@ -550,6 +551,7 @@ export function SessionLive({ id }: { id: string }) {
         <Field label="Fecha de pago">
           <input name="paidAt" type="date" defaultValue={todayInArgentina()} max={todayInArgentina()} />
         </Field>
+        <ProofField />
       </LiveModal>
     </>
   );

@@ -1,3 +1,4 @@
+import { ProofField } from "../billing/proof";
 import { FormEvent } from "react";
 import { todayInArgentina } from "@/lib/dates";
 import type { BillingPreference, DanceClass } from "./live-types";
@@ -65,6 +66,7 @@ export function ClassChargeModal({
         </select>
       </Field>
       <Field label="Fecha de pago"><input name="paidAt" type="date" defaultValue={todayInArgentina()} /></Field>
+      <ProofField />
       <Field label="Notas" wide><textarea name="notes" rows={3} /></Field>
     </LiveModal>
   );

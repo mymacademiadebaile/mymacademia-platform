@@ -47,6 +47,8 @@ const createEnrollmentSchema = z.object({
 
 const updateBillingPreferenceSchema = z.object({
   billingPreference: billingPreferenceSchema,
+  /** Plan of the monthly fee (4 or 8 classes) chosen when switching to monthly. */
+  monthlyPlan: monthlyPlanSchema.optional(),
   effectiveDate: calendarDateSchema.optional()
 });
 const updateScheduleKeysSchema = z.object({ scheduleKeys: z.array(z.string().min(1).max(64)).min(1).max(14) });
@@ -424,6 +426,7 @@ adminEnrollmentsRouter.patch("/:id/billing-preference", async (request, response
     const previous = enrollment.billingPreference;
     const billingPreference = resolveBillingPreference(danceClass.billingMode, input.billingPreference);
     recordBillingChange(enrollment, billingPreference, effectiveDate, request.auth!.userId);
+    if (billingPreference === "MONTHLY" && input.monthlyPlan) enrollment.monthlyPlan = input.monthlyPlan;
     await enrollment.save();
 
     await AuditLogModel.create({

@@ -29,7 +29,7 @@ adminSummaryRouter.get("/", async (request, response, next) => {
         EnrollmentModel.countDocuments({ organizationId, status: "ACTIVE" }),
         openCharges(organizationId),
         CollectionModel.aggregate([
-          { $match: { organizationId: organizationObjectId } },
+          { $match: { organizationId: organizationObjectId, voidedAt: null } },
           { $group: { _id: null, total: { $sum: "$amountCents" } } }
         ]),
         RefundModel.aggregate([

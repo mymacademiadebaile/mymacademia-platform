@@ -1,5 +1,6 @@
 "use client";
 
+import { collectedToast, ProofField, proofFileOf, tryUploadProof } from "../billing/proof";
 import {
   Ban,
   CalendarClock,
@@ -246,20 +247,21 @@ export function SessionDrawer({
     if (modal?.kind !== "collect") return;
     const form = new FormData(event.currentTarget);
     const amount = Number(form.get("amount"));
-    void run(
-      () =>
-        apiFetch("/admin/billing/sessions/" + sessionId + "/collect", {
-          method: "POST",
-          body: JSON.stringify({
-            studentId: modal.participant.studentId,
-            method: form.get("method") as CollectionMethod,
-            amount: amount > 0 ? amount : undefined,
-            receivedAt: form.get("receivedAt") || undefined,
-            idempotencyKey: modal.key
-          })
-        }),
-      "Cobro registrado"
-    );
+    const proof = proofFileOf(form);
+    void run(async () => {
+      const result = await apiFetch<{ collection: { id: string } }>("/admin/billing/sessions/" + sessionId + "/collect", {
+        method: "POST",
+        body: JSON.stringify({
+          studentId: modal.participant.studentId,
+          method: form.get("method") as CollectionMethod,
+          amount: amount > 0 ? amount : undefined,
+          receivedAt: form.get("receivedAt") || undefined,
+          idempotencyKey: modal.key
+        })
+      });
+      const proofError = await tryUploadProof(result.collection.id, proof);
+      if (proofError) toast(collectedToast(proofError));
+    }, "Cobro registrado");
   }
 
   const status = data?.status;
@@ -654,6 +656,7 @@ export function SessionDrawer({
         <Field label="Fecha de cobro">
           <input name="receivedAt" type="date" defaultValue={todayInArgentina()} max={todayInArgentina()} />
         </Field>
+        <ProofField />
       </LiveModal>
     </>
   );

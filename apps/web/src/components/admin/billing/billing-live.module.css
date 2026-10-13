@@ -203,6 +203,53 @@
 .receiptActions button:disabled { cursor: progress; opacity: 0.55; }
 .receiptActions a:focus-visible, .receiptActions button:focus-visible { outline: 2px solid #6d28d9; outline-offset: 2px; }
 
+.collectionVoided { background: #faf7f7; border-color: #f0d4d4; }
+.collectionVoided .collectionAmount, .collectionVoided .avatar { opacity: 0.55; text-decoration: line-through; }
+.collectionVoided .rowMain small { color: #b42318; }
+.attachButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px dashed #c9b9e6;
+  border-radius: 8px;
+  background: #fff;
+  color: #5b21b6;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+.attachButton:hover { border-color: #a78bfa; background: #faf8ff; }
+.receiptActions .dangerAction { margin-left: auto; border-color: #f0c9c9; color: #b42318; }
+.receiptActions .dangerAction:hover:not(:disabled) { border-color: #e5a0a0; background: #fff5f5; color: #b42318; }
+
+.undecided {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid #f3d38a;
+  border-radius: 14px;
+  background: #fffbeb;
+}
+.undecided strong { color: #7a4b05; font-size: 14px; }
+.undecided p { margin: 0; color: #7a6a4a; font-size: 12px; }
+.undecidedRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px dashed #f0dfae; font-size: 13px; color: #3d3344; }
+.undecidedRow a { color: #5b21b6; font-weight: 800; text-decoration: none; }
+.undecidedRow button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: #5b21b6;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+}
+.undecidedRow button:hover { background: #4c1d95; }
+
 @media (max-width: 620px) {
   .header { margin-bottom: 20px; }
   .navigation { align-items: flex-start; }

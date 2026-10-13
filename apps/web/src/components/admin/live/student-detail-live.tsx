@@ -1,5 +1,7 @@
 "use client";
 
+import { collectedToast, proofFileOf, tryUploadProof } from "../billing/proof";
+import { useVoidCollection } from "../billing/void-collection";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -45,6 +47,7 @@ export function StudentDetailLive({ id }: { id: string }) {
   const [selectedScheduleKeys, setSelectedScheduleKeys] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const { openVoid, voidModal } = useVoidCollection(() => load());
   const { remind, emailReceipt, shareReceiptWhatsApp } = useStudentPaymentActions({
     student: data?.student,
     setBusy,
@@ -261,7 +264,7 @@ export function StudentDetailLive({ id }: { id: string }) {
     setError("");
 
     try {
-      await apiFetch("/admin/billing/collections", {
+      const result = await apiFetch<{ collection: { id: string } }>("/admin/billing/collections", {
         method: "POST",
         body: JSON.stringify({
           studentId: id,
@@ -272,8 +275,9 @@ export function StudentDetailLive({ id }: { id: string }) {
           idempotencyKey: payKey
         })
       });
+      const proofError = await tryUploadProof(result.collection.id, proofFileOf(form));
       setPaying(null);
-      toast("Pago registrado y recibo generado");
+      toast(collectedToast(proofError, "Se generó el recibo."));
       await load();
     } catch (requestError) {
       const message = apiMessage(requestError);
@@ -331,6 +335,15 @@ export function StudentDetailLive({ id }: { id: string }) {
           onRemind={(charge) => void remind(charge)}
           onEmailReceipt={(collectionId) => void emailReceipt(collectionId)}
           onShareWhatsApp={shareReceiptWhatsApp}
+          onVoid={(charge) =>
+            charge.lastCollection &&
+            openVoid({
+              id: charge.lastCollection.id,
+              receiptNumber: charge.lastCollection.receiptNumber,
+              amount: charge.paid,
+              studentName: student.firstName + " " + student.lastName
+            })
+          }
         />
       </div>
 
@@ -366,6 +379,7 @@ export function StudentDetailLive({ id }: { id: string }) {
         onClose={() => setPaying(null)}
         onSubmit={markPaid}
       />
+      {voidModal}
     </>
   );
 }

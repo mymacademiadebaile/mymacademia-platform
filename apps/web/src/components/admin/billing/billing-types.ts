@@ -43,6 +43,9 @@ export type CollectionView = {
   receiptNumber: string | null;
   notes: string | null;
   hasProof: boolean;
+  voided: boolean;
+  voidedAt: string | null;
+  voidReason: string | null;
   legacyPaymentId: string | null;
   student?: { firstName: string; lastName: string; email?: string; phone?: string } | null;
 };

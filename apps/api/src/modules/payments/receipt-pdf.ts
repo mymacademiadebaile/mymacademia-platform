@@ -40,6 +40,8 @@ export type ReceiptData = {
   className?: string;
   amount: number;
   credit?: number;
+  /** Collection voided: the receipt is still printable but marked as not valid. */
+  voided?: boolean;
 };
 
 export function formatReceiptMoney(value: number) {
@@ -144,7 +146,7 @@ export function writeReceiptPdf(
   document.roundedRect(margin, totalY, contentWidth, 74, 10).fill("#ede9fe");
   document.fillColor(violet).font("Helvetica-Bold").fontSize(9).text("TOTAL ABONADO", margin + 18, totalY + 18, { characterSpacing: 1 });
   document.fillColor(ink).font("Helvetica-Bold").fontSize(23).text(formatReceiptMoney(receipt.amount), margin + 18, totalY + 33);
-  document.fillColor("#166534").font("Helvetica-Bold").fontSize(9).text("PAGO CONFIRMADO", margin + contentWidth - 132, totalY + 32, { width: 114, align: "right", characterSpacing: 0.6 });
+  document.fillColor(receipt.voided ? "#b91c1c" : "#166534").font("Helvetica-Bold").fontSize(9).text(receipt.voided ? "PAGO ANULADO" : "PAGO CONFIRMADO", margin + contentWidth - 132, totalY + 32, { width: 114, align: "right", characterSpacing: 0.6 });
   if (receipt.credit && receipt.credit > 0) {
     document.fillColor(muted).font("Helvetica").fontSize(9).text(`Saldo a favor: ${formatReceiptMoney(receipt.credit)}`, margin + contentWidth - 232, totalY + 48, { width: 214, align: "right" });
   }
@@ -158,7 +160,18 @@ export function writeReceiptPdf(
     footerY + 16,
     { width: contentWidth, align: "center" }
   );
-  document.fillColor("#998ca5").fontSize(8).text("Este comprobante acredita el pago registrado.", margin, footerY + 32, { width: contentWidth, align: "center" });
+  document.fillColor("#998ca5").fontSize(8).text(
+    receipt.voided ? "Este comprobante fue anulado y no acredita ningún pago." : "Este comprobante acredita el pago registrado.",
+    margin,
+    footerY + 32,
+    { width: contentWidth, align: "center" }
+  );
+  if (receipt.voided) {
+    document.save();
+    document.rotate(-28, { origin: [pageWidth / 2, 420] });
+    document.fillColor("#dc2626").fillOpacity(0.22).font("Helvetica-Bold").fontSize(96).text("ANULADO", 0, 380, { width: pageWidth, align: "center", lineBreak: false });
+    document.restore();
+  }
 }
 
 export function receiptPdfBuffer(receipt: ReceiptData, organization: ReceiptOrganization, student: ReceiptStudent) {

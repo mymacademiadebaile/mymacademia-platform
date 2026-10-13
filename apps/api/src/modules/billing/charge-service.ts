@@ -299,7 +299,7 @@ export async function createMonthlyChargeForEnrollment(
       NOT_VALID: "La inscripción no está vigente en ese mes",
       NOT_MONTHLY: "La inscripción no está en modalidad mensual en ese mes",
       FREE: "La clase no cobra mensualidad",
-      NEEDS_DECISION: "Elegí cómo cobrar el primer mes (completo, proporcional o personalizado)",
+      NEEDS_DECISION: "Falta definir cómo cobrar el primer mes: hacelo en Pagos › Por cobrar (cuota completa, proporcional o personalizada)",
       ZERO_PRICE: "La clase no tiene precio mensual configurado"
     };
     throw new AppError(422, messages[planned.skip!] ?? "No corresponde mensualidad", `MONTHLY_CHARGE_${planned.skip}`);
@@ -504,27 +504,30 @@ export async function createManualCharge(
 /** Voids a charge without money applied. Charges with money must be refunded first. */
 export async function voidCharge(actor: Actor, chargeId: string, reason: string) {
   if (!reason?.trim()) throw new AppError(422, "Indicá el motivo", "REASON_REQUIRED");
-  return withTransaction(async (dbSession: ClientSession | undefined) => {
-    const charge = await ChargeModel.findOne({ _id: chargeId, organizationId: actor.organizationId }).session(dbSession ?? null);
-    if (!charge) throw new AppError(404, "Cargo no encontrado", "CHARGE_NOT_FOUND");
-    if (charge.status === "VOID") return charge;
-    if (charge.paidCents > 0) {
-      throw new AppError(409, "El cargo tiene pagos aplicados: primero registrá la devolución", "CHARGE_HAS_PAYMENTS");
-    }
-    charge.status = "VOID";
-    charge.balanceCents = 0;
-    charge.voidedAt = new Date();
-    charge.voidedByUserId = actor.userId ? new Types.ObjectId(actor.userId) : undefined;
-    charge.voidReason = reason.trim();
-    charge.chargeKey = undefined;
-    charge.lockVersion += 1;
-    await charge.save({ session: dbSession });
-    await AuditLogModel.create(
-      [{ organizationId: actor.organizationId, actorUserId: actor.userId, action: "CHARGE_VOIDED", entityType: "Charge", entityId: charge._id, metadata: { reason } }],
-      { session: dbSession }
-    );
-    return charge;
-  });
+  return withTransaction((dbSession: ClientSession | undefined) => voidChargeInSession(actor, chargeId, reason, dbSession));
+}
+
+/** Same as voidCharge, inside a transaction the caller already owns (for example voiding a collection and its debt together). */
+export async function voidChargeInSession(actor: Actor, chargeId: string | Types.ObjectId, reason: string, dbSession: ClientSession | undefined) {
+  const charge = await ChargeModel.findOne({ _id: chargeId, organizationId: actor.organizationId }).session(dbSession ?? null);
+  if (!charge) throw new AppError(404, "Cargo no encontrado", "CHARGE_NOT_FOUND");
+  if (charge.status === "VOID") return charge;
+  if (charge.paidCents > 0) {
+    throw new AppError(409, "El cargo tiene pagos aplicados: primero registrá la devolución", "CHARGE_HAS_PAYMENTS");
+  }
+  charge.status = "VOID";
+  charge.balanceCents = 0;
+  charge.voidedAt = new Date();
+  charge.voidedByUserId = actor.userId ? new Types.ObjectId(actor.userId) : undefined;
+  charge.voidReason = reason.trim();
+  charge.chargeKey = undefined;
+  charge.lockVersion += 1;
+  await charge.save({ session: dbSession });
+  await AuditLogModel.create(
+    [{ organizationId: actor.organizationId, actorUserId: actor.userId, action: "CHARGE_VOIDED", entityType: "Charge", entityId: charge._id, metadata: { reason } }],
+    { session: dbSession }
+  );
+  return charge;
 }
 
 /** Today in Argentina, exported for callers that build billing periods. */

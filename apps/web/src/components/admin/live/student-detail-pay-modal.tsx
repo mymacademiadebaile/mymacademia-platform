@@ -1,3 +1,4 @@
+import { ProofField } from "../billing/proof";
 import type { FormEvent } from "react";
 import { todayInArgentina } from "@/lib/dates";
 import type { AccountCharge } from "./student-detail-types";
@@ -35,6 +36,7 @@ export function StudentPayModal({
       <Field label="Fecha de pago">
         <input name="paidAt" type="date" defaultValue={todayInArgentina()} />
       </Field>
+      <ProofField />
     </LiveModal>
   );
 }

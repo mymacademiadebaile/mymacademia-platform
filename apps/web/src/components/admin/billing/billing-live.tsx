@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, CircleDollarSign, Download, FileText, Mail, MessageCircle, RefreshCcw, Search } from "lucide-react";
+import { Ban, CheckCircle2, CircleDollarSign, Download, FileText, Mail, MessageCircle, Paperclip, RefreshCcw, Search } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch, apiMessage, apiUrl } from "@/lib/api";
@@ -14,6 +14,9 @@ import styles from "../scheduling/calendar.module.css";
 import { METHOD_LABEL, formatMoney, newIdempotencyKey, type CollectionMethod } from "../scheduling/scheduling-types";
 import { CHARGE_STATUS_LABEL, type ChargeView, type CollectionView } from "./billing-types";
 import billingStyles from "./billing-live.module.css";
+import { FirstMonthModal, type FirstMonthChoice, type FirstMonthTarget } from "./first-month-modal";
+import { collectedToast, openProof, ProofField, proofFileOf, tryUploadProof, uploadProof } from "./proof";
+import { useVoidCollection } from "./void-collection";
 
 type Tab = "charges" | "monthly" | "collections" | "review";
 
@@ -60,6 +63,8 @@ function ChargesTab() {
   const [manualChargeOpen, setManualChargeOpen] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [busy, setBusy] = useState(false);
+  const [undecided, setUndecided] = useState<MonthlyPreview["items"]>([]);
+  const [deciding, setDeciding] = useState<FirstMonthTarget | null>(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -68,6 +73,13 @@ function ChargesTab() {
       if (period) params.set("period", period);
       if (status) params.set("status", status);
       setData(await apiFetch("/admin/billing/charges?" + params.toString()));
+      // Monthly students whose month started before they were set up: their fee waits for a decision.
+      if (period === todayInArgentina().slice(0, 7)) {
+        const preview = await apiFetch<MonthlyPreview>("/admin/billing/monthly/" + period + "/preview");
+        setUndecided(preview.items.filter((item) => item.status === "NEEDS_DECISION"));
+      } else {
+        setUndecided([]);
+      }
     } catch (requestError) {
       setError(apiMessage(requestError));
     }
@@ -94,7 +106,7 @@ function ChargesTab() {
     const amount = Number(form.get("amount"));
     setBusy(true);
     try {
-      await apiFetch("/admin/billing/collections", {
+      const result = await apiFetch<{ collection: { id: string } }>("/admin/billing/collections", {
         method: "POST",
         body: JSON.stringify({
           studentId: collecting.student.id,
@@ -104,8 +116,9 @@ function ChargesTab() {
           idempotencyKey: newIdempotencyKey()
         })
       });
+      const proofError = await tryUploadProof(result.collection.id, proofFileOf(form));
       setCollecting(null);
-      toast({ title: "Cobro registrado", tone: "success" });
+      toast(collectedToast(proofError));
       await load();
     } catch (requestError) {
       toast({ title: "No se pudo registrar el cobro", description: apiMessage(requestError), tone: "error" });
@@ -141,8 +154,47 @@ function ChargesTab() {
     }
   }
 
+  async function defineFirstMonth(choice: FirstMonthChoice) {
+    if (!deciding) return;
+    setBusy(true);
+    try {
+      await apiFetch("/admin/billing/enrollments/" + deciding.enrollmentId + "/monthly-charge", {
+        method: "POST",
+        body: JSON.stringify({ period: deciding.period, policy: choice.policy, customAmount: choice.customAmount })
+      });
+      setDeciding(null);
+      toast({ title: "Primer mes definido", description: "La cuota ya aparece en Por cobrar.", tone: "success" });
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo crear la cuota", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
+      {undecided.length > 0 && (
+        <section className={billingStyles.undecided} aria-label="Primer mes sin definir">
+          <strong>
+            {undecided.length === 1 ? "Falta definir el primer mes de 1 alumno" : `Falta definir el primer mes de ${undecided.length} alumnos`}
+          </strong>
+          <p>Empezaron a pagar mensual con el mes ya empezado. Hasta que lo definas no tienen cuota y no figuran en Por cobrar.</p>
+          {undecided.map((item) => (
+            <div key={item.enrollmentId} className={billingStyles.undecidedRow}>
+              <span>
+                <Link href={"/admin/students/" + item.studentId}>{item.student}</Link> · {item.className}
+              </span>
+              <button type="button" onClick={() => setDeciding({ enrollmentId: item.enrollmentId, studentName: item.student, className: item.className, period })}>
+                Definir primer mes
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <FirstMonthModal target={deciding} busy={busy} onClose={() => setDeciding(null)} onSubmit={(choice) => void defineFirstMonth(choice)} />
+
       <div className={billingStyles.controls}>
         <label>
           <span>Mes</span>
@@ -221,6 +273,7 @@ function ChargesTab() {
             ))}
           </select>
         </Field>
+        <ProofField />
       </LiveModal>
 
       <LiveModal
@@ -399,7 +452,9 @@ function CollectionsTab() {
   const [period, setPeriod] = useState(todayInArgentina().slice(0, 7));
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   const [data, setData] = useState<{ items: CollectionView[]; total: number } | null>(null);
+  const { openVoid, voidModal } = useVoidCollection(() => setReloadKey((value) => value + 1));
   const [year, month] = period.split("-").map(Number);
   const from = `${period}-01`;
   const to = `${period}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, "0")}`;
@@ -407,7 +462,7 @@ function CollectionsTab() {
   useEffect(() => {
     setData(null);
     void apiFetch<{ items: CollectionView[]; total: number }>(`/admin/billing/collections?from=${from}&to=${to}&limit=200`).then(setData).catch(() => setData({ items: [], total: 0 }));
-  }, [from, to]);
+  }, [from, to, reloadKey]);
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -418,10 +473,14 @@ function CollectionsTab() {
     );
   }, [data, search]);
 
+  const countedCollections = visible.filter((item) => !item.voided).length;
+  const voidedCollections = visible.length - countedCollections;
+
   const summary = useMemo(() => {
     const byMethod = new Map<CollectionMethod, number>();
     let total = 0;
     for (const item of visible) {
+      if (item.voided) continue;
       total += item.amount;
       byMethod.set(item.method, (byMethod.get(item.method) ?? 0) + item.amount);
     }
@@ -447,6 +506,33 @@ function CollectionsTab() {
     document.body.appendChild(link);
     link.click();
     link.remove();
+  }
+
+  async function showProof(item: CollectionView) {
+    setBusyId(item.id);
+    try {
+      await openProof(item.id);
+    } catch (requestError) {
+      toast({ title: "No se pudo abrir el comprobante", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function attachProof(item: CollectionView, event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setBusyId(item.id);
+    try {
+      await uploadProof(item.id, file);
+      toast({ title: "Comprobante adjuntado", tone: "success" });
+      setReloadKey((value) => value + 1);
+    } catch (requestError) {
+      toast({ title: "No se pudo adjuntar el comprobante", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusyId("");
+    }
   }
 
   function shareWhatsApp(item: CollectionView) {
@@ -488,7 +574,10 @@ function CollectionsTab() {
             <div className={billingStyles.summaryMain}>
               <span>Total cobrado</span>
               <strong>{formatMoney(summary.total)}</strong>
-              <small>{visible.length} {visible.length === 1 ? "cobro" : "cobros"}</small>
+              <small>
+                {countedCollections} {countedCollections === 1 ? "cobro" : "cobros"}
+                {voidedCollections ? ` · ${voidedCollections} anulado(s) no cuentan` : ""}
+              </small>
             </div>
             {summary.byMethod.map(([method, amount]) => (
               <div key={method} className={billingStyles.summaryItem}>
@@ -500,7 +589,7 @@ function CollectionsTab() {
 
           <div className={billingStyles.cards}>
             {visible.map((item) => (
-              <article key={item.id} className={billingStyles.collectionCard}>
+              <article key={item.id} className={`${billingStyles.collectionCard} ${item.voided ? billingStyles.collectionVoided : ""}`}>
                 <span className={billingStyles.avatar} aria-hidden="true">
                   {initialsOf(item.student?.firstName, item.student?.lastName)}
                 </span>
@@ -514,7 +603,9 @@ function CollectionsTab() {
                     {formatDateOnly(item.accountingDate)}
                     <span className={`${billingStyles.badge} ${billingStyles.badgeMethod}`}>{METHOD_LABEL[item.method]}</span>
                     {item.receiptNumber ? <span className={billingStyles.receiptNumber}>{item.receiptNumber}</span> : null}
+                    {item.voided ? <span className={`${billingStyles.badge} ${billingStyles.badgeDanger}`} style={{ marginLeft: 8 }}>Anulado</span> : null}
                   </p>
+                  {item.voided && item.voidReason ? <small>Motivo: {item.voidReason}</small> : null}
                 </div>
                 <strong className={billingStyles.collectionAmount}>{formatMoney(item.amount)}</strong>
                 <div className={billingStyles.receiptActions}>
@@ -524,14 +615,34 @@ function CollectionsTab() {
                   <a href={apiUrl(`/admin/billing/collections/${item.id}/receipt.pdf?download=1`)} title="Descargar recibo">
                     <Download size={13} /> Descargar
                   </a>
-                  {item.student?.email && (
+                  {!item.voided && item.student?.email && (
                     <button type="button" disabled={busyId === item.id} onClick={() => void emailReceipt(item)} title={`Enviar recibo a ${item.student.email}`}>
                       <Mail size={13} /> Email
                     </button>
                   )}
-                  {item.student?.phone && (
+                  {!item.voided && item.student?.phone && (
                     <button type="button" onClick={() => shareWhatsApp(item)} title="Abrir WhatsApp Web y descargar el recibo para adjuntarlo">
                       <MessageCircle size={13} /> WhatsApp
+                    </button>
+                  )}
+                  {item.hasProof ? (
+                    <button type="button" disabled={busyId === item.id} onClick={() => void showProof(item)} title="Ver el comprobante adjunto">
+                      <Paperclip size={13} /> Ver comprobante
+                    </button>
+                  ) : !item.voided ? (
+                    <label className={billingStyles.attachButton} title="Adjuntar foto o PDF del comprobante">
+                      <Paperclip size={13} /> Adjuntar comprobante
+                      <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" hidden onChange={(event) => void attachProof(item, event)} />
+                    </label>
+                  ) : null}
+                  {!item.voided && (
+                    <button
+                      type="button"
+                      className={billingStyles.dangerAction}
+                      onClick={() => openVoid({ id: item.id, receiptNumber: item.receiptNumber, amount: item.amount, studentName: item.student ? `${item.student.firstName} ${item.student.lastName}` : "Alumno" })}
+                      title="Anular un cobro cargado por error"
+                    >
+                      <Ban size={13} /> Anular
                     </button>
                   )}
                 </div>
@@ -545,6 +656,7 @@ function CollectionsTab() {
           </div>
         </>
       )}
+      {voidModal}
     </>
   );
 }

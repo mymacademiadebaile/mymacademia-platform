@@ -1,4 +1,4 @@
-import { CircleDollarSign, Download, FileText, Mail, MessageCircle } from "lucide-react";
+import { Ban, CircleDollarSign, Download, FileText, Mail, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
 import { formatDateOnly } from "@/lib/dates";
@@ -15,7 +15,8 @@ export function StudentPaymentsCard({
   onCharge,
   onRemind,
   onEmailReceipt,
-  onShareWhatsApp
+  onShareWhatsApp,
+  onVoid
 }: {
   charges: AccountCharge[];
   student: Student;
@@ -24,6 +25,7 @@ export function StudentPaymentsCard({
   onRemind: (charge: AccountCharge) => void;
   onEmailReceipt: (collectionId: string) => void;
   onShareWhatsApp: (charge: AccountCharge) => void;
+  onVoid: (charge: AccountCharge) => void;
 }) {
   return (
     <section className={cardStyles.card + " " + cardStyles.paymentsCard}>
@@ -86,6 +88,9 @@ export function StudentPaymentsCard({
                         <MessageCircle size={13} /> WhatsApp
                       </button>
                     )}
+                    <button disabled={busy} onClick={() => onVoid(charge)} title="Anular un cobro cargado por error">
+                      <Ban size={13} /> Anular cobro
+                    </button>
                   </>
                 )}
               </span>
