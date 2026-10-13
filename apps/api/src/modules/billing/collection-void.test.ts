@@ -301,3 +301,55 @@ describe("transfer proof", () => {
     expect(uploadPrivateBuffer).not.toHaveBeenCalled();
   });
 });
+
+describe("a voided collection leaves every report", () => {
+  const range = "from=2026-10-01&to=2026-10-31";
+  const overview = async () => (await admin(request(app).get(`/api/admin/reports/overview?${range}`))).body;
+  const summary = async () => (await admin(request(app).get("/api/admin/summary"))).body;
+  const studentView = async (studentId: Types.ObjectId) => (await admin(request(app).get(`/api/admin/students/${studentId}`))).body;
+
+  it("drops it from cash, summary and the student's paid total, and reopens the charge as owed", async () => {
+    const { student } = await setup();
+    const chargeId = await charge(student._id);
+    const baseline = await overview();
+    const baselineSummary = await summary();
+    const collectionId = await collect(student._id, chargeId, 8000);
+
+    const paid = await overview();
+    expect(paid.cash.collectedAmount).toBe(baseline.cash.collectedAmount + 8000);
+    expect(paid.cash.paidCount).toBe(baseline.cash.paidCount + 1);
+    expect((await summary()).collectedAmount).toBe(baselineSummary.collectedAmount + 8000);
+    expect((await studentView(student._id)).financial.paidAmount).toBe(8000);
+
+    await admin(request(app).post(`/api/admin/billing/collections/${collectionId}/void`)).send({ reason: "Error de carga" });
+
+    const voided = await overview();
+    expect(voided.cash.collectedAmount).toBe(baseline.cash.collectedAmount);
+    expect(voided.cash.paidCount).toBe(baseline.cash.paidCount);
+    expect(voided.cash.netAmount).toBe(baseline.cash.netAmount);
+    // The charge exists again and, past its due date (2026-10-05), it is overdue.
+    expect(voided.billing.issued.totalAmount).toBe(baseline.billing.issued.totalAmount);
+    expect(voided.billing.issued.overdueAmount).toBe(baseline.billing.issued.overdueAmount);
+    expect((await summary()).collectedAmount).toBe(baselineSummary.collectedAmount);
+    expect((await studentView(student._id)).financial.paidAmount).toBe(0);
+
+    const excel = await admin(request(app).get(`/api/admin/reports/export.xlsx?${range}`)).buffer(true).parse((res, done) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => done(null, Buffer.concat(chunks)));
+    });
+    expect(excel.status).toBe(200);
+  });
+
+  it("also drops the billed amount when the charge was removed with the collection", async () => {
+    const { student } = await setup();
+    const chargeId = await charge(student._id);
+    const collectionId = await collect(student._id, chargeId, 8000);
+    const before = await overview();
+    await admin(request(app).post(`/api/admin/billing/collections/${collectionId}/void`)).send({ reason: "Cargo equivocado", voidCharges: true });
+    const after = await overview();
+    expect(after.cash.collectedAmount).toBe(before.cash.collectedAmount - 8000);
+    expect(after.billing.issued.totalAmount).toBe(before.billing.issued.totalAmount - 8000);
+    expect(after.billing.issued.overdueAmount).toBe(before.billing.issued.overdueAmount);
+  });
+});
