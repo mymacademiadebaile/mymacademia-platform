@@ -142,13 +142,13 @@ function EventBlock({ item, startHour }: { item: Positioned; startHour: number }
       }}
       aria-label={`${session.startTime} ${session.class.name}${cancelled ? ", cancelada" : ""}`}
     >
-      <strong>
-        {session.startTime} {session.class.name}
-      </strong>
-      {cancelled && <span className={styles.cancelTag}>Cancelada</span>}
-      {height >= 48 && discipline && <span>{discipline}</span>}
-      {height >= 70 && <span>{session.class.branch.name}</span>}
-      {height >= 90 && <span>{session.enrolledCount} alumnos</span>}
+      <span className={styles.eventTime}>
+        {session.startTime}–{session.endTime}
+      </span>
+      <strong className={styles.eventName}>{session.class.name}</strong>
+      {cancelled && height >= 82 && <span className={styles.cancelTag}>Cancelada</span>}
+      {height >= 82 && discipline && <span className={styles.eventMeta}>{discipline}</span>}
+      {height >= 106 && <span className={styles.eventMeta}>{session.class.branch.name}</span>}
     </Link>
   );
 }
@@ -171,13 +171,19 @@ function TimeGrid({
   return (
     <div className={styles.gridScroll}>
       <div className={styles.timeGrid} style={{ gridTemplateColumns: `56px repeat(${days.length}, minmax(0, 1fr))` }}>
-        <div className={styles.corner} />
-        {days.map((day) => (
-          <div key={day} className={styles.dayHead} data-today={day === today}>
-            <span>{formatWeekdayShort(day)}</span>
-            <strong>{parseDateKey(day).day}</strong>
-          </div>
-        ))}
+        <div className={styles.corner}>Hora</div>
+        {days.map((day) => {
+          const count = byDate.get(day)?.length ?? 0;
+          return (
+            <div key={day} className={styles.dayHead} data-today={day === today}>
+              <span className={styles.dayLabel}>{formatWeekdayShort(day)}</span>
+              <strong>{parseDateKey(day).day}</strong>
+              <span className={styles.dayCount}>
+                {count === 0 ? "Libre" : `${count} ${count === 1 ? "clase" : "clases"}`}
+              </span>
+            </div>
+          );
+        })}
         <div className={styles.hours}>
           {hours.map((hour) => (
             <span key={hour} style={{ height: HOUR_HEIGHT }}>
@@ -190,7 +196,7 @@ function TimeGrid({
             key={day}
             className={styles.dayCol}
             data-today={day === today}
-            style={{ height: hours.length * HOUR_HEIGHT }}
+            style={{ minHeight: hours.length * HOUR_HEIGHT }}
           >
             {layoutDay(byDate.get(day) ?? []).map((item) => (
               <EventBlock key={item.session.id} item={item} startHour={startHour} />
