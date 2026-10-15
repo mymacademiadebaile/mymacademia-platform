@@ -31,6 +31,23 @@ const envSchema = z
 
     RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
     RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
+    AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60_000),
+    AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+    // Vercel places the Function behind one trusted proxy. Keep this explicit so
+    // the rate limiter keys requests from the platform-provided client address,
+    // not an arbitrary X-Forwarded-For value supplied directly to the app.
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(2).optional(),
+
+    // Conservative Atlas M0 defaults. A warm Vercel instance shares this pool
+    // across concurrent requests; minPoolSize stays at zero so idle instances do
+    // not reserve database connections.
+    MONGODB_MAX_POOL_SIZE: z.coerce.number().int().min(1).max(20).default(5),
+    MONGODB_MIN_POOL_SIZE: z.coerce.number().int().min(0).max(20).default(0),
+    MONGODB_MAX_CONNECTING: z.coerce.number().int().min(1).max(20).default(2),
+    MONGODB_MAX_IDLE_TIME_MS: z.coerce.number().int().min(1_000).max(300_000).default(30_000),
+    MONGODB_SERVER_SELECTION_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(10_000),
+    MONGODB_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(10_000),
+    MONGODB_WAIT_QUEUE_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(5_000),
 
     CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
     CLOUDINARY_API_KEY: z.string().min(1).optional(),
@@ -47,6 +64,22 @@ const envSchema = z
     CRON_SECRET: z.preprocess(blankAsUndefined, z.string().min(16).optional())
   })
   .superRefine((value, ctx) => {
+    if (value.MONGODB_MIN_POOL_SIZE > value.MONGODB_MAX_POOL_SIZE) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["MONGODB_MIN_POOL_SIZE"],
+        message: "MONGODB_MIN_POOL_SIZE must not exceed MONGODB_MAX_POOL_SIZE"
+      });
+    }
+
+    if (value.MONGODB_MAX_CONNECTING > value.MONGODB_MAX_POOL_SIZE) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["MONGODB_MAX_CONNECTING"],
+        message: "MONGODB_MAX_CONNECTING must not exceed MONGODB_MAX_POOL_SIZE"
+      });
+    }
+
     if (value.NODE_ENV !== "production") return;
 
     // Messages must never echo the received values (the JWT secret in particular).
@@ -99,7 +132,8 @@ const envSchema = z
     ...value,
     APP_ORIGIN: value.APP_ORIGIN ?? DEV_APP_ORIGIN,
     MONGODB_URI: value.MONGODB_URI ?? DEV_MONGODB_URI,
-    JWT_ACCESS_SECRET: value.JWT_ACCESS_SECRET ?? DEV_JWT_ACCESS_SECRET
+    JWT_ACCESS_SECRET: value.JWT_ACCESS_SECRET ?? DEV_JWT_ACCESS_SECRET,
+    TRUST_PROXY_HOPS: value.TRUST_PROXY_HOPS ?? (value.NODE_ENV === "production" ? 1 : 0)
   }));
 
 export type Env = z.output<typeof envSchema>;

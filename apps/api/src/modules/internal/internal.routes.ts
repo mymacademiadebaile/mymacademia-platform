@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import { env } from "../../config/env";
 import { AppError } from "../../common/http/app-error";
 import { runDailyJobs } from "../scheduling/daily-jobs";
@@ -13,12 +13,18 @@ function authorizedCron(header?: string) {
   return expected.length === received.length && timingSafeEqual(expected, received);
 }
 
+/** Authenticate the scheduled endpoint before any database middleware runs. */
+export const requireCronAuthorization: RequestHandler = (request, _response, next) => {
+  if (!authorizedCron(request.headers.authorization)) {
+    next(new AppError(401, "No autorizado", "UNAUTHORIZED"));
+    return;
+  }
+  next();
+};
+
 /** Daily maintenance triggered by the platform scheduler. Disabled while CRON_SECRET is unset. */
 internalRouter.get("/jobs/daily", async (request, response, next) => {
   try {
-    if (!authorizedCron(request.headers.authorization)) {
-      throw new AppError(401, "No autorizado", "UNAUTHORIZED");
-    }
     response.json(await runDailyJobs());
   } catch (error) {
     next(error);

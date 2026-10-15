@@ -29,7 +29,7 @@ function clientError(error: unknown): AppError | undefined {
   return undefined;
 }
 
-export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
   if (error instanceof ZodError) {
     response.status(400).json({
       error: "VALIDATION_ERROR",
@@ -49,7 +49,12 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     return;
   }
 
-  console.error(error);
+  // Keep infrastructure and request secrets out of logs. The request lifecycle
+  // logger already contributes method, route, status, duration and request ID.
+  request.log.error(
+    { errorName: error instanceof Error && error.name ? error.name : "UnknownError" },
+    "Unhandled API error"
+  );
   response.status(500).json({
     error: "INTERNAL_SERVER_ERROR",
     message: "Unexpected server error"

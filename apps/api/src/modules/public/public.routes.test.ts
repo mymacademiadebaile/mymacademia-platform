@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../../app";
 import { env } from "../../config/env";
 import { UserModel } from "../auth/user.model";
@@ -11,7 +11,7 @@ import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
 import { ProfessorModel } from "../professors/professor.model";
-import { resetPublicCatalogCache } from "./public.routes";
+import { loadPublicCatalog, resetPublicCatalogCache } from "./public.routes";
 
 let mongod: MongoMemoryServer;
 const app = createApp();
@@ -87,6 +87,7 @@ beforeEach(async () => {
     lastName: "Perez",
     role: "PROFESSOR"
   });
+
   const professor = await ProfessorModel.create({
     organizationId: org._id,
     userId: user._id,
@@ -115,6 +116,19 @@ beforeEach(async () => {
     { sub: String(new Types.ObjectId()), organizationId: String(org._id), role: "ADMIN" },
     env.JWT_ACCESS_SECRET
   );
+});
+
+it("coalesces concurrent public-catalog cache misses within one API instance", async () => {
+  const organizationFindOne = vi.spyOn(OrganizationModel, "findOne");
+  const catalogFind = vi.spyOn(CatalogItemModel, "find");
+
+  await Promise.all([loadPublicCatalog(), loadPublicCatalog(), loadPublicCatalog()]);
+
+  expect(organizationFindOne).toHaveBeenCalledTimes(1);
+  // One catalog build runs two CatalogItem queries (DISCIPLINE and LEVEL).
+  expect(catalogFind).toHaveBeenCalledTimes(2);
+  organizationFindOne.mockRestore();
+  catalogFind.mockRestore();
 });
 
 describe("GET /api/public/*", () => {

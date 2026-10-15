@@ -67,6 +67,16 @@ Los comandos de instalación y build viven dentro de cada service de
 | --- | --- | --- |
 | `RATE_LIMIT_WINDOW_MS` | `60000` | Ventana del rate limit. |
 | `RATE_LIMIT_MAX` | `120` | Máximo de requests por ventana. |
+| `AUTH_RATE_LIMIT_WINDOW_MS` | `900000` | Ventana específica para login y recuperación de contraseña. |
+| `AUTH_RATE_LIMIT_MAX` | `10` | Máximo de intentos de credenciales por IP en esa ventana. |
+| `TRUST_PROXY_HOPS` | `1` en producción, `0` fuera de producción | Cantidad de proxies confiables delante de Express. En Vercel mantener `1`; no usar `true`. |
+| `MONGODB_MAX_POOL_SIZE` | `5` | Máximo de sockets de MongoDB por instancia cálida de la API. |
+| `MONGODB_MIN_POOL_SIZE` | `0` | No reserva sockets en instancias inactivas. |
+| `MONGODB_MAX_CONNECTING` | `2` | Limita handshakes simultáneos del driver por instancia. |
+| `MONGODB_MAX_IDLE_TIME_MS` | `30000` | Cierra sockets de pool inactivos después de 30 segundos. |
+| `MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `10000` | Límite de selección de servidor de MongoDB. |
+| `MONGODB_CONNECT_TIMEOUT_MS` | `10000` | Límite de establecimiento de conexión TCP/TLS. |
+| `MONGODB_WAIT_QUEUE_TIMEOUT_MS` | `5000` | Backpressure cuando el pool se encuentra ocupado. |
 | `PUBLIC_ORGANIZATION_SLUG` | `mym-academia` | Organización cuyo catálogo público muestra la web. |
 | `SMTP_HOST` | `smtp.gmail.com` | Host SMTP. |
 | `SMTP_PORT` | `465` | Puerto SMTP. |
@@ -130,6 +140,26 @@ Después del deploy, comprobá:
 - [ ] Navegación del portal de profesor.
 - [ ] Carga y visualización de imágenes de Cloudinary.
 - [ ] Conexión a MongoDB y catálogo público publicado.
+
+## Controles de capacidad y abuso
+
+La API reutiliza el pool de Mongoose dentro de cada instancia cálida, pero una
+plataforma serverless puede crear varias instancias y cada una conserva su propio
+pool. Por eso, los límites de la aplicación son una primera barrera, no un límite
+global de tráfico. Antes de producción:
+
+- Configurá `MONGODB_MAX_POOL_SIZE=5` como punto de partida para Atlas M0 y no
+  aumentes el valor sin revisar la métrica de conexiones, los cold starts y la
+  concurrencia real de Vercel.
+- Mantené activo Vercel Firewall/WAF y agregá reglas de rate limit o challenge
+  para rutas públicas anormalmente solicitadas si la telemetría lo justifica.
+  Es la capa compartida entre instancias; el store de `express-rate-limit` es
+  intencionalmente local a cada instancia.
+- Si el plan de Vercel lo permite, ubicá el servicio `api` en `gru1` para
+  acercarlo a Atlas en `sa-east-1`; verificá primero que no cambie el alcance de
+  regiones contratado.
+- No cargues secretos ni datos de estudiantes en logs. Cada respuesta de API
+  devuelve `X-Request-Id`, útil para correlacionar los logs seguros con Atlas.
 
 ## Desarrollo y validación
 

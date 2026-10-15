@@ -6,6 +6,9 @@ export const apiRateLimiter = rateLimit({
   max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
+  // CORS handles preflight before this middleware, but retain this guard for
+  // deployments that opt into preflight continuation.
+  skip: (request) => request.method === "OPTIONS",
   message: {
     error: "RATE_LIMIT_EXCEEDED",
     message: "Too many requests. Please try again later."
@@ -14,11 +17,11 @@ export const apiRateLimiter = rateLimit({
 
 // Stricter limit for credential endpoints (login, password reset). In-memory, per IP.
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60_000,
-  max: 10,
+  windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
+  max: env.AUTH_RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => env.NODE_ENV === "test",
+  skip: (request) => request.method === "OPTIONS",
   message: {
     error: "RATE_LIMIT_EXCEEDED",
     message: "Too many attempts. Please try again later."

@@ -35,6 +35,24 @@ describe("parseEnv", () => {
     expect(env.APP_ORIGIN).toBe(validProduction.APP_ORIGIN);
   });
 
+  it("rejects inconsistent MongoDB pool limits", () => {
+    expect(() =>
+      parseEnv({
+        ...validProduction,
+        MONGODB_MAX_POOL_SIZE: "4",
+        MONGODB_MIN_POOL_SIZE: "5"
+      })
+    ).toThrow("MONGODB_MIN_POOL_SIZE must not exceed MONGODB_MAX_POOL_SIZE");
+
+    expect(() =>
+      parseEnv({
+        ...validProduction,
+        MONGODB_MAX_POOL_SIZE: "4",
+        MONGODB_MAX_CONNECTING: "5"
+      })
+    ).toThrow("MONGODB_MAX_CONNECTING must not exceed MONGODB_MAX_POOL_SIZE");
+  });
+
   it.each([
     ["JWT_ACCESS_SECRET missing", { JWT_ACCESS_SECRET: undefined }, "JWT_ACCESS_SECRET is required in production"],
     ["JWT_ACCESS_SECRET blank", { JWT_ACCESS_SECRET: "   " }, "JWT_ACCESS_SECRET is required in production"],
