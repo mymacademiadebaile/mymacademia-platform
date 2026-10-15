@@ -49,4 +49,7 @@ adminRouter.use("/notifications", adminNotificationsRouter);
 adminRouter.use("/audit", adminAuditRouter);
 adminRouter.use("/reports", adminReportsRouter);
 adminRouter.use("/settings", adminSettingsRouter);
-adminRouter.use("/users", requireRole("SUPER_ADMIN"), adminUsersRouter);
+// Administrators manage the operational accounts for their organization. The
+// users router itself only exposes ADMIN and PROFESSOR records, never a
+// SUPER_ADMIN account.
+adminRouter.use("/users", adminUsersRouter);

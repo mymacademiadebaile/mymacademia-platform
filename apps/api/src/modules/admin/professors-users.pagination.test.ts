@@ -14,7 +14,9 @@ const RECORD_COUNT = 12;
 const app = createApp();
 let mongod: MongoMemoryServer;
 let professorToken: string;
+let adminToken: string;
 let superAdminToken: string;
+let userBranchId: Types.ObjectId;
 
 const professorNames = Array.from(
   { length: RECORD_COUNT },
@@ -66,6 +68,7 @@ beforeAll(async () => {
     { organizationId: professorOrganization._id, name: "Sede profesores" },
     { organizationId: userOrganization._id, name: "Sede usuarios" }
   ]);
+  userBranchId = userBranch._id;
 
   const professorUsers = await Promise.all(
     professorNames.map((displayName, index) =>
@@ -128,6 +131,7 @@ beforeAll(async () => {
   });
 
   professorToken = accessToken(professorOrganization._id, "ADMIN");
+  adminToken = accessToken(userOrganization._id, "ADMIN");
   superAdminToken = accessToken(userOrganization._id, "SUPER_ADMIN");
 });
 
@@ -173,6 +177,51 @@ describe("GET /admin/professors pagination", () => {
 });
 
 describe("GET /admin/users pagination", () => {
+  it("allows an administrator to access user management", async () => {
+    const response = await request(app)
+      .get("/api/admin/users")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expectPage(response, 1, 10, 10);
+  });
+
+  it("allows an administrator to create, update, and delete an administrator account", async () => {
+    const created = await request(app)
+      .post("/api/admin/users")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        firstName: "Nueva",
+        lastName: "Administradora",
+        email: "nueva.administradora@pagination.test",
+        password: "ClaveSegura123",
+        role: "ADMIN",
+        branchIds: [String(userBranchId)]
+      });
+
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      firstName: "Nueva",
+      lastName: "Administradora",
+      role: "ADMIN",
+      isActive: true
+    });
+
+    const updated = await request(app)
+      .patch(`/api/admin/users/${created.body.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ firstName: "Actualizada", isActive: false, password: "OtraClave123" });
+
+    expect(updated.status).toBe(200);
+    expect(updated.body).toMatchObject({ firstName: "Actualizada", isActive: false });
+
+    const deleted = await request(app)
+      .delete(`/api/admin/users/${created.body.id}`)
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(deleted.status).toBe(204);
+    expect(await UserModel.exists({ _id: created.body.id })).toBeNull();
+  });
+
   it("defaults to ten results, reports the total, and keeps page boundaries stable", async () => {
     const firstPage = await request(app)
       .get("/api/admin/users")

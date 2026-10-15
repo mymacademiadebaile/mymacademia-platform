@@ -111,7 +111,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     (notifications?.attention.overdueCount ?? 0) +
     (notifications?.attention.failedCommunications ?? 0);
 
-  const visibleNavigation = user?.role === "SUPER_ADMIN"
+  const visibleNavigation = user?.role === "SUPER_ADMIN" || user?.role === "ADMIN"
     ? [...navigation.slice(0, -1), { href: "/admin/users", label: "Usuarios", icon: ShieldCheck }, navigation.at(-1)!]
     : navigation;
 

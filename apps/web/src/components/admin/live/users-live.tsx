@@ -154,9 +154,9 @@ export function UsersLive() {
   return (
     <>
       <PageHeader
-        eyebrow="SUPER ADMIN"
+        eyebrow="ADMINISTRACIÓN"
         title="Usuarios del sistema"
-        description="Creá y administrá los accesos de administradores y profesores. Los super admins no se gestionan desde esta pantalla."
+        description="Creá y administrá los accesos de administradores y profesores. Las cuentas de superadministración no se gestionan desde esta pantalla."
         actionLabel="Nuevo usuario"
         onAction={() => setModal("create")}
       />
