@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Types, type ClientSession } from "mongoose";
 import { addDays, dateRange, daysBetween, weekDayFor } from "../../common/dates";
 import { AppError } from "../../common/http/app-error";
 import {
@@ -75,7 +75,8 @@ function ignoreDuplicateKeyErrors(error: any) {
  */
 export async function generateSessions(
   organizationId: string,
-  options: { from: string; to: string; classIds?: Array<Types.ObjectId | string> }
+  options: { from: string; to: string; classIds?: Array<Types.ObjectId | string> },
+  session?: ClientSession
 ) {
   const { from, to } = options;
   if (to < from) throw new AppError(422, "Rango de fechas inválido", "INVALID_DATE_RANGE");
@@ -85,20 +86,20 @@ export async function generateSessions(
 
   const classFilter: Record<string, unknown> = { organizationId, status: { $in: SCHEDULABLE_CLASS_STATUSES } };
   if (options.classIds) classFilter._id = { $in: options.classIds.map((id) => new Types.ObjectId(String(id))) };
-  const classes = await DanceClassModel.find(classFilter).lean<ClassDoc[]>();
+  const classes = await DanceClassModel.find(classFilter).session(session ?? null).lean<ClassDoc[]>();
   if (!classes.length) return { created: 0, adopted: 0 };
 
-  await ensureScheduleRules(organizationId, classes);
+  await ensureScheduleRules(organizationId, classes, session);
   const classIds = classes.map((item) => item._id);
   const [rules, holidays] = await Promise.all([
-    loadRules(organizationId, { classIds, from, to }),
-    HolidayModel.find({ organizationId, date: { $gte: from, $lte: to } }).lean()
+    loadRules(organizationId, { classIds, from, to }, session),
+    HolidayModel.find({ organizationId, date: { $gte: from, $lte: to } }).session(session ?? null).lean()
   ]);
   const planned = planOccurrences(classes, rules, holidays, from, to);
   if (!planned.length) return { created: 0, adopted: 0 };
 
   const organizationObjectId = new Types.ObjectId(organizationId);
-  const adopted = await adoptLegacySessions(organizationObjectId, planned, from, to);
+  const adopted = await adoptLegacySessions(organizationObjectId, planned, from, to, session);
 
   const operations = planned.map((item) => {
     const status = item.holiday ? "SUSPENDED" : "SCHEDULED";
@@ -143,7 +144,7 @@ export async function generateSessions(
 
   let created = 0;
   try {
-    const result = await ClassSessionModel.bulkWrite(operations as never, { ordered: false });
+    const result = await ClassSessionModel.bulkWrite(operations as never, { ordered: false, ...(session ? { session } : {}) });
     created = result.upsertedCount;
   } catch (error: any) {
     ignoreDuplicateKeyErrors(error);
@@ -158,7 +159,8 @@ async function adoptLegacySessions(
   organizationId: Types.ObjectId,
   planned: PlannedOccurrence[],
   from: string,
-  to: string
+  to: string,
+  session?: ClientSession
 ) {
   const legacy = await ClassSessionModel.find({
     organizationId,
@@ -168,6 +170,7 @@ async function adoptLegacySessions(
     origin: { $nin: ["EXTRA", "RESCHEDULED"] }
   })
     .select("_id classId sessionDate startTime status")
+    .session(session ?? null)
     .lean<any[]>();
   if (!legacy.length) return 0;
 
@@ -191,7 +194,8 @@ async function adoptLegacySessions(
             ...(holdsSlot ? { slotKey: slotKeyOf(match) } : {}),
             ...(item.rule.spaceId ? { spaceId: item.rule.spaceId } : {})
           }
-        }
+        },
+        { session }
       );
       adopted += result.modifiedCount;
     } catch (error) {

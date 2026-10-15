@@ -1,5 +1,6 @@
 import { BILLING_MODES, WEEK_DAYS } from "@mym/shared";
 import { containsText } from "../../common/regex";
+import { withTransaction } from "../../common/transaction";
 import { Router } from "express";
 import { Types, type HydratedDocument } from "mongoose";
 import { z } from "zod";
@@ -29,7 +30,8 @@ import {
   resumeGroup
 } from "../scheduling/schedule-commands";
 import { ensureScheduleRules, loadRules, ruleCoversDate, slotKey } from "../scheduling/schedule-service";
-import { assertNoConflicts, assertUsableSpace, findRuleConflicts } from "../scheduling/conflict-service";
+import { assertNoConflicts, assertUsableSpace, findRuleConflicts, RULES_LOCK_KEY } from "../scheduling/conflict-service";
+import { ensureLocks, touchLocks } from "../scheduling/resource-lock.model";
 import { calendarDateSchema, objectIdSchema } from "./admin.schemas";
 
 const scheduleSchema = z.object({
@@ -148,6 +150,7 @@ const listQuerySchema = z.object({
 });
 
 type ScheduleInput = z.infer<typeof scheduleSchema>;
+type DanceClassUpdate = z.infer<typeof updateDanceClassSchema>;
 
 function overlaps(a: ScheduleInput, b: { day: string; startTime: string; endTime: string }) {
   return a.day === b.day && a.startTime < b.endTime && b.startTime < a.endTime;
@@ -295,6 +298,58 @@ const actorOf = (request: Express.Request) => ({
   organizationId: request.auth!.organizationId,
   userId: request.auth!.userId
 });
+
+function classSnapshot(item: HydratedDocument<DanceClass>) {
+  return {
+    branchId: item.branchId.toString(),
+    name: item.name,
+    professorIds: item.professorIds.map((value) => value.toString()),
+    disciplineIds: item.disciplineIds.map((value) => value.toString()),
+    segmentIds: item.segmentIds.map((value) => value.toString()),
+    levelIds: item.levelIds.map((value) => value.toString()),
+    capacity: item.capacity,
+    billingMode: item.billingMode ?? "MONTHLY",
+    pricePerClass: item.pricePerClass ?? 0,
+    monthlyPrice: item.monthlyPrice ?? 0,
+    monthlyPrice4: item.monthlyPrice4 ?? null,
+    monthlyPrice8: item.monthlyPrice8 ?? null,
+    freeTrialEnabled: item.freeTrialEnabled ?? false,
+    schedules: item.schedules,
+    status: item.status,
+    publishOnWeb: item.publishOnWeb ?? true
+  };
+}
+
+function applyClassUpdate(item: HydratedDocument<DanceClass>, input: DanceClassUpdate) {
+  const billingModeChanged = input.billingMode !== undefined && input.billingMode !== item.billingMode;
+  const archiving = (input.status === "INACTIVE" || input.status === "ARCHIVED") && !isArchivedStatus(item.status);
+  const unarchiving = input.status === "ACTIVE" && isArchivedStatus(item.status);
+
+  if (input.branchId !== undefined) item.branchId = new Types.ObjectId(input.branchId);
+  if (input.name !== undefined) item.name = input.name;
+  if (input.professorIds !== undefined) item.professorIds = input.professorIds.map((value) => new Types.ObjectId(value));
+  if (input.disciplineIds !== undefined) item.disciplineIds = input.disciplineIds.map((value) => new Types.ObjectId(value));
+  if (input.segmentIds !== undefined) item.segmentIds = input.segmentIds.map((value) => new Types.ObjectId(value));
+  if (input.levelIds !== undefined) item.levelIds = input.levelIds.map((value) => new Types.ObjectId(value));
+  if (input.capacity !== undefined) item.capacity = input.capacity;
+  if (input.billingMode !== undefined) item.billingMode = input.billingMode;
+  if (input.pricePerClass !== undefined) item.pricePerClass = input.pricePerClass;
+  if (input.monthlyPrice !== undefined) item.monthlyPrice = input.monthlyPrice;
+  if (input.monthlyPrice4 !== undefined) {
+    item.monthlyPrice4 = input.monthlyPrice4 ?? undefined;
+    if (input.monthlyPrice4 !== null) item.monthlyPrice = input.monthlyPrice4;
+  }
+  if (input.monthlyPrice8 !== undefined) item.monthlyPrice8 = input.monthlyPrice8 ?? undefined;
+  if (input.freeTrialEnabled !== undefined) item.freeTrialEnabled = input.freeTrialEnabled;
+  if (unarchiving) {
+    item.status = "ACTIVE";
+    item.archivedAt = undefined;
+  }
+  if (input.publishOnWeb !== undefined) item.publishOnWeb = input.publishOnWeb;
+  if (input.defaultSpaceId !== undefined) item.defaultSpaceId = input.defaultSpaceId ? new Types.ObjectId(input.defaultSpaceId) : undefined;
+
+  return { archiving, billingModeChanged };
+}
 
 /** Active enrollments per current recurring slot (capacity is evaluated per slot). */
 async function seriesOccupancy(organizationId: string, danceClass: any) {
@@ -569,31 +624,6 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
       );
     }
 
-    const before = {
-      branchId: item.branchId.toString(),
-      name: item.name,
-      professorIds: item.professorIds.map((value) => value.toString()),
-      disciplineIds: item.disciplineIds.map((value) => value.toString()),
-      segmentIds: item.segmentIds.map((value) => value.toString()),
-      levelIds: item.levelIds.map((value) => value.toString()),
-      capacity: item.capacity,
-      billingMode: item.billingMode ?? "MONTHLY",
-      pricePerClass: item.pricePerClass ?? 0,
-      monthlyPrice: item.monthlyPrice ?? 0,
-      monthlyPrice4: item.monthlyPrice4 ?? null,
-      monthlyPrice8: item.monthlyPrice8 ?? null,
-      freeTrialEnabled: item.freeTrialEnabled ?? false,
-      schedules: item.schedules,
-      status: item.status,
-      publishOnWeb: item.publishOnWeb ?? true
-    };
-
-    if (input.branchId !== undefined) item.branchId = new Types.ObjectId(input.branchId);
-    if (input.name !== undefined) item.name = input.name;
-    if (input.professorIds !== undefined) item.professorIds = input.professorIds.map((value) => new Types.ObjectId(value));
-    if (input.disciplineIds !== undefined) item.disciplineIds = input.disciplineIds.map((value) => new Types.ObjectId(value));
-    if (input.segmentIds !== undefined) item.segmentIds = input.segmentIds.map((value) => new Types.ObjectId(value));
-    if (input.levelIds !== undefined) item.levelIds = input.levelIds.map((value) => new Types.ObjectId(value));
     if (input.capacity !== undefined) {
       // Capacity is per session: compare with the busiest recurring slot, not the group total.
       const busiest = Math.max(0, ...(await seriesOccupancy(organizationId, item.toObject())).map((slot) => slot.occupied));
@@ -605,92 +635,111 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
           "CAPACITY_BELOW_ENROLLMENTS"
         );
       }
+    }
 
-      item.capacity = input.capacity;
-    }
-    const billingModeChanged =
-      input.billingMode !== undefined && input.billingMode !== item.billingMode;
-    if (input.billingMode !== undefined) item.billingMode = input.billingMode;
-    if (input.pricePerClass !== undefined) item.pricePerClass = input.pricePerClass;
-    if (input.monthlyPrice !== undefined) item.monthlyPrice = input.monthlyPrice;
-    if (input.monthlyPrice4 !== undefined) {
-      item.monthlyPrice4 = input.monthlyPrice4 ?? undefined;
-      if (input.monthlyPrice4 !== null) item.monthlyPrice = input.monthlyPrice4;
-    }
-    if (input.monthlyPrice8 !== undefined) item.monthlyPrice8 = input.monthlyPrice8 ?? undefined;
-    if (input.freeTrialEnabled !== undefined) item.freeTrialEnabled = input.freeTrialEnabled;
     const archiving = (input.status === "INACTIVE" || input.status === "ARCHIVED") && !isArchivedStatus(item.status);
-    const unarchiving = input.status === "ACTIVE" && isArchivedStatus(item.status);
-    if (unarchiving) {
-      item.status = "ACTIVE";
-      item.archivedAt = undefined;
-    }
-    if (input.publishOnWeb !== undefined) item.publishOnWeb = input.publishOnWeb;
-    if (input.defaultSpaceId !== undefined) {
-      item.defaultSpaceId = input.defaultSpaceId ? new Types.ObjectId(input.defaultSpaceId) : undefined;
-    }
 
-    await item.save();
-
-    // Recurring slots change from today on through versioned rules: past sessions keep their
-    // schedule, enrollments follow their series and no ghost sessions are created.
-    if (input.schedules !== undefined && !archiving) {
-      await applyWeeklySchedules(actorOf(request), item.id, input.schedules);
-    }
-    let archive: { enrollmentsClosed: number } | undefined;
+    // Archiving keeps its dedicated lifecycle: it ends schedules and closes enrollments while
+    // preserving every historical session. SCH-001 concerns the editable recurring schedule path.
     if (archiving) {
-      archive = await archiveGroup(actorOf(request), item.id, academyNow().date, "Clase archivada");
-    }
-    const refreshed = await DanceClassModel.findById(item._id);
-    if (refreshed) {
-      item.schedules = refreshed.schedules;
-      item.status = refreshed.status;
-    }
-
-    // The class is saved first; there are no transactions here, so a failure in the next write
-    // would leave ACTIVE enrollments with the old preferences until the mode is changed again.
-    let enrollmentsReconciled: number | undefined;
-    if (billingModeChanged) {
-      const { filter, update } = enrollmentReconciliation(item.billingMode);
-      const result = await EnrollmentModel.updateMany(
-        { ...filter, organizationId, classId: item._id, status: "ACTIVE" },
-        update
-      );
-      enrollmentsReconciled = result.modifiedCount;
-    }
-
-    await AuditLogModel.create({
-      organizationId,
-      actorUserId: request.auth!.userId,
-      action: "CLASS_UPDATED",
-      entityType: "DanceClass",
-      entityId: item._id,
-      metadata: {
-        before,
-        after: {
-          branchId: item.branchId.toString(),
-          name: item.name,
-          professorIds: item.professorIds.map((value) => value.toString()),
-          disciplineIds: item.disciplineIds.map((value) => value.toString()),
-          segmentIds: item.segmentIds.map((value) => value.toString()),
-          levelIds: item.levelIds.map((value) => value.toString()),
-          capacity: item.capacity,
-          billingMode: item.billingMode ?? "MONTHLY",
-          pricePerClass: item.pricePerClass ?? 0,
-          monthlyPrice: item.monthlyPrice ?? 0,
-          monthlyPrice4: item.monthlyPrice4 ?? null,
-          monthlyPrice8: item.monthlyPrice8 ?? null,
-          freeTrialEnabled: item.freeTrialEnabled ?? false,
-          schedules: item.schedules,
-          status: item.status,
-          publishOnWeb: item.publishOnWeb ?? true
-        },
-        ...(enrollmentsReconciled !== undefined ? { enrollmentsReconciled } : {}),
-        ...(archive ? { enrollmentsClosed: archive.enrollmentsClosed } : {})
+      const before = classSnapshot(item);
+      const { billingModeChanged } = applyClassUpdate(item, input);
+      await item.save();
+      const archive = await archiveGroup(actorOf(request), item.id, academyNow().date, "Clase archivada");
+      const refreshed = await DanceClassModel.findById(item._id);
+      if (refreshed) {
+        item.schedules = refreshed.schedules;
+        item.status = refreshed.status;
       }
+      let enrollmentsReconciled: number | undefined;
+      if (billingModeChanged) {
+        const { filter, update } = enrollmentReconciliation(item.billingMode);
+        const result = await EnrollmentModel.updateMany({ ...filter, organizationId, classId: item._id, status: "ACTIVE" }, update);
+        enrollmentsReconciled = result.modifiedCount;
+      }
+      await AuditLogModel.create({
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "CLASS_UPDATED",
+        entityType: "DanceClass",
+        entityId: item._id,
+        metadata: {
+          before,
+          after: classSnapshot(item),
+          ...(enrollmentsReconciled !== undefined ? { enrollmentsReconciled } : {}),
+          enrollmentsClosed: archive.enrollmentsClosed
+        }
+      });
+      response.json(item);
+      return;
+    }
+
+    const requiresScheduleLock =
+      input.schedules !== undefined ||
+      input.professorIds !== undefined ||
+      input.branchId !== undefined ||
+      input.defaultSpaceId !== undefined;
+    if (requiresScheduleLock) await ensureLocks(organizationId, [RULES_LOCK_KEY]);
+
+    const updated = await withTransaction(async (dbSession) => {
+      // A standalone MongoDB cannot provide the all-or-nothing contract required for a multi-slot
+      // edit. Refuse it before any write instead of falling back to a partially persistent flow.
+      if (input.schedules !== undefined && !dbSession) {
+        throw new AppError(503, "La edición de horarios requiere MongoDB con transacciones habilitadas", "TRANSACTIONS_REQUIRED");
+      }
+      // The lock is acquired before reading the mutable class/rules. Concurrent changes retry
+      // and revalidate against the winner's committed schedule.
+      if (requiresScheduleLock) await touchLocks(organizationId, [RULES_LOCK_KEY], dbSession);
+      const transactionalItem = await DanceClassModel.findOne({ _id: id, organizationId }).session(dbSession ?? null);
+      if (!transactionalItem) throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
+
+      const before = classSnapshot(transactionalItem);
+      const { billingModeChanged } = applyClassUpdate(transactionalItem, input);
+      await transactionalItem.save({ session: dbSession });
+
+      // Rules, their future materialized sessions, the read cache and their schedule audit
+      // events all participate in this same transaction.
+      if (input.schedules !== undefined) {
+        await applyWeeklySchedules(actorOf(request), transactionalItem.id, input.schedules, {
+          session: dbSession,
+          lockHeld: true
+        });
+      }
+
+      let enrollmentsReconciled: number | undefined;
+      if (billingModeChanged) {
+        const { filter, update } = enrollmentReconciliation(transactionalItem.billingMode);
+        const result = await EnrollmentModel.updateMany(
+          { ...filter, organizationId, classId: transactionalItem._id, status: "ACTIVE" },
+          update,
+          { session: dbSession }
+        );
+        enrollmentsReconciled = result.modifiedCount;
+      }
+
+      const refreshed = await DanceClassModel.findById(transactionalItem._id).session(dbSession ?? null);
+      if (!refreshed) throw new AppError(500, "No se pudo actualizar la clase", "CLASS_UPDATE_FAILED");
+      await AuditLogModel.create(
+        [
+          {
+            organizationId,
+            actorUserId: request.auth!.userId,
+            action: "CLASS_UPDATED",
+            entityType: "DanceClass",
+            entityId: refreshed._id,
+            metadata: {
+              before,
+              after: classSnapshot(refreshed),
+              ...(enrollmentsReconciled !== undefined ? { enrollmentsReconciled } : {})
+            }
+          }
+        ],
+        { session: dbSession }
+      );
+      return refreshed;
     });
 
-    response.json(item);
+    response.json(updated);
   } catch (error) {
     next(error);
   }

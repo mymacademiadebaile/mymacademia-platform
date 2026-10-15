@@ -303,47 +303,242 @@ export async function endScheduleSeries(actor: Actor, seriesId: string, fromDate
   });
 }
 
-/**
- * Compatibility for screens that still send the whole weekly `schedules` array of a group:
- * the difference with the slots valid today becomes rule operations effective today.
- * Unchanged slots keep their series; a slot whose times changed on the same weekday keeps its
- * series too (so enrollments follow it); removed slots end; new slots start.
- */
-export async function applyWeeklySchedules(
-  actor: Actor,
-  classId: string,
-  schedules: Array<{ day: WeekDay; startTime: string; endTime: string }>
-) {
-  const today = academyNow().date;
-  const danceClass = await loadGroup(actor.organizationId, classId);
-  await ensureScheduleRules(actor.organizationId, [danceClass]);
-  const current = (await loadRules(actor.organizationId, { classIds: [danceClass._id], from: today })).filter(
-    (rule) => ruleCoversDate(rule, today) || rule.validFrom > today
-  );
+type WeeklyScheduleSlot = { day: WeekDay; startTime: string; endTime: string };
 
+type WeeklySchedulePlan = {
+  ending: ScheduleRule[];
+  changing: Array<{ rule: ScheduleRule; slot: WeeklyScheduleSlot }>;
+  creating: WeeklyScheduleSlot[];
+};
+
+export interface ApplyWeeklySchedulesOptions {
+  /** Reuse the caller's transaction. The caller must acquire RULES_LOCK_KEY before reading the class. */
+  session?: ClientSession;
+  lockHeld?: boolean;
+}
+
+function assertWeeklyScheduleInput(schedules: WeeklyScheduleSlot[]) {
+  const seen = new Set<string>();
+  for (const schedule of schedules) {
+    assertValidSlot(schedule);
+    const key = slotKey(schedule);
+    if (seen.has(key)) throw new AppError(409, "El horario está repetido", "SCHEDULE_DUPLICATE");
+    seen.add(key);
+  }
+
+  for (let index = 0; index < schedules.length; index += 1) {
+    const schedule = schedules[index]!;
+    if (
+      schedules.some(
+        (other, otherIndex) =>
+          otherIndex !== index &&
+          other.day === schedule.day &&
+          other.startTime < schedule.endTime &&
+          schedule.startTime < other.endTime
+      )
+    ) {
+      throw new AppError(409, "La clase ya tiene un horario que se superpone", "SCHEDULE_OVERLAP");
+    }
+  }
+}
+
+function planWeeklySchedules(current: ScheduleRule[], schedules: WeeklyScheduleSlot[]): WeeklySchedulePlan {
   const wanted = schedules.map((slot) => ({ ...slot, key: slotKey(slot) }));
   const remainingCurrent = current.filter((rule) => !wanted.some((slot) => slot.key === slotKey(rule)));
   const remainingWanted = wanted.filter((slot) => !current.some((rule) => slotKey(rule) === slot.key));
+  const changing: WeeklySchedulePlan["changing"] = [];
 
-  const pairs: Array<{ rule: ScheduleRule; slot: (typeof wanted)[number] }> = [];
   for (const slot of [...remainingWanted]) {
     const sameDay = remainingCurrent.filter((rule) => rule.day === slot.day);
     const match = sameDay.find((rule) => rule.startTime === slot.startTime) ?? sameDay[0];
     if (!match) continue;
-    pairs.push({ rule: match, slot });
+    changing.push({ rule: match, slot });
     remainingCurrent.splice(remainingCurrent.indexOf(match), 1);
     remainingWanted.splice(remainingWanted.indexOf(slot), 1);
   }
 
-  for (const rule of remainingCurrent) await endScheduleSeries(actor, String(rule.seriesId), today, "Horario quitado de la clase");
-  for (const { rule, slot } of pairs) {
-    await changeScheduleSeries(actor, String(rule.seriesId), today, { startTime: slot.startTime, endTime: slot.endTime });
+  return { ending: remainingCurrent, changing, creating: remainingWanted };
+}
+
+function changedRule(rule: ScheduleRule, slot: WeeklyScheduleSlot, today: string) {
+  return {
+    day: slot.day,
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    spaceId: rule.spaceId,
+    professorIds: rule.professorIds ?? [],
+    validFrom: rule.validFrom > today ? rule.validFrom : today,
+    validTo: rule.validTo
+  };
+}
+
+/** Validate the complete desired state before a single schedule document is changed. */
+async function validateWeeklySchedulePlan(
+  actor: Actor,
+  danceClass: any,
+  current: ScheduleRule[],
+  plan: WeeklySchedulePlan,
+  today: string,
+  dbSession?: ClientSession
+) {
+  const excludedSeries = [...new Set(current.map((rule) => String(rule.seriesId)))];
+  const candidates = [
+    ...plan.changing.map(({ rule, slot }) => changedRule(rule, slot, today)),
+    ...plan.creating.map((slot) => ({
+      day: slot.day,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      validFrom: today,
+      professorIds: [] as Types.ObjectId[]
+    }))
+  ];
+
+  for (const candidate of candidates) {
+    await assertRuleFits(actor, danceClass, candidate, excludedSeries, dbSession);
   }
-  for (const slot of remainingWanted) {
-    await createScheduleSeries(actor, classId, { day: slot.day, startTime: slot.startTime, endTime: slot.endTime }, today);
+}
+
+async function endScheduleSeriesInTransaction(
+  actor: Actor,
+  rule: ScheduleRule,
+  fromDate: string,
+  dbSession?: ClientSession
+) {
+  const versions = await loadRules(actor.organizationId, { seriesId: rule.seriesId }, dbSession);
+  for (const version of versions) {
+    if (version.validFrom >= fromDate) {
+      await ClassScheduleModel.deleteOne({ _id: version._id }, { session: dbSession });
+    } else if (!version.validTo || version.validTo >= fromDate) {
+      await ClassScheduleModel.updateOne(
+        { _id: version._id },
+        { $set: { validTo: dayBefore(fromDate), endedReason: "Horario quitado de la clase" } },
+        { session: dbSession }
+      );
+    }
+  }
+  await reconcileFutureSessions(actor, rule.seriesId, fromDate, null, "Horario quitado de la clase", dbSession);
+  await audit(actor, "SCHEDULE_SERIES_ENDED", rule._id, { seriesId: String(rule.seriesId), fromDate, reason: "Horario quitado de la clase" }, dbSession);
+}
+
+async function changeScheduleSeriesInTransaction(
+  actor: Actor,
+  rule: ScheduleRule,
+  slot: WeeklyScheduleSlot,
+  fromDate: string,
+  dbSession?: ClientSession
+) {
+  const next = changedRule(rule, slot, fromDate);
+  let updated: ScheduleRule;
+  if (next.validFrom === rule.validFrom) {
+    await ClassScheduleModel.updateOne(
+      { _id: rule._id },
+      {
+        $set: {
+          day: next.day,
+          startTime: next.startTime,
+          endTime: next.endTime,
+          professorIds: next.professorIds,
+          ...(next.spaceId ? { spaceId: next.spaceId } : {})
+        },
+        ...(next.spaceId ? {} : { $unset: { spaceId: 1 } })
+      },
+      { session: dbSession }
+    );
+    updated = { ...rule, ...next } as ScheduleRule;
+  } else {
+    await ClassScheduleModel.updateOne({ _id: rule._id }, { $set: { validTo: dayBefore(fromDate) } }, { session: dbSession });
+    const [created] = await ClassScheduleModel.create(
+      [{ organizationId: rule.organizationId, branchId: rule.branchId, classId: rule.classId, seriesId: rule.seriesId, ...next, createdByUserId: actor.userId }],
+      { session: dbSession }
+    );
+    updated = created.toObject() as ScheduleRule;
+  }
+  await reconcileFutureSessions(actor, rule.seriesId, fromDate, updated, "Cambio de horario", dbSession);
+  await audit(
+    actor,
+    "SCHEDULE_SERIES_CHANGED",
+    updated._id,
+    {
+      seriesId: String(rule.seriesId),
+      fromDate,
+      before: { day: rule.day, startTime: rule.startTime, endTime: rule.endTime, spaceId: rule.spaceId ?? null },
+      after: { day: next.day, startTime: next.startTime, endTime: next.endTime, spaceId: next.spaceId ?? null },
+      reason: "Cambio de horario"
+    },
+    dbSession
+  );
+}
+
+async function createScheduleSeriesInTransaction(
+  actor: Actor,
+  danceClass: any,
+  slot: WeeklyScheduleSlot,
+  validFrom: string,
+  dbSession?: ClientSession
+) {
+  const [created] = await ClassScheduleModel.create(
+    [
+      {
+        organizationId: danceClass.organizationId,
+        branchId: danceClass.branchId,
+        classId: danceClass._id,
+        seriesId: new Types.ObjectId(),
+        day: slot.day,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        validFrom,
+        professorIds: [],
+        createdByUserId: actor.userId
+      }
+    ],
+    { session: dbSession }
+  );
+  await audit(actor, "SCHEDULE_SERIES_CREATED", created._id, { classId: danceClass._id, ...slot, validFrom }, dbSession);
+}
+
+/**
+ * Compatibility for screens that send the full weekly `schedules` array. It validates the final
+ * weekly state first, then updates rules, future sessions and the read cache in one transaction.
+ */
+export async function applyWeeklySchedules(
+  actor: Actor,
+  classId: string,
+  schedules: WeeklyScheduleSlot[],
+  options: ApplyWeeklySchedulesOptions = {}
+) {
+  assertWeeklyScheduleInput(schedules);
+  const today = academyNow().date;
+
+  const apply = async (dbSession?: ClientSession) => {
+    const danceClass = await loadGroup(actor.organizationId, classId, dbSession);
+    if (isArchivedStatus(danceClass.status)) throw new AppError(409, "La clase está archivada", "CLASS_ARCHIVED");
+    await ensureScheduleRules(actor.organizationId, [danceClass], dbSession);
+    const current = (await loadRules(actor.organizationId, { classIds: [danceClass._id], from: today }, dbSession)).filter(
+      (rule) => ruleCoversDate(rule, today) || rule.validFrom > today
+    );
+    const plan = planWeeklySchedules(current, schedules);
+
+    await validateWeeklySchedulePlan(actor, danceClass, current, plan, today, dbSession);
+
+    for (const rule of plan.ending) await endScheduleSeriesInTransaction(actor, rule, today, dbSession);
+    for (const { rule, slot } of plan.changing) await changeScheduleSeriesInTransaction(actor, rule, slot, today, dbSession);
+    for (const slot of plan.creating) await createScheduleSeriesInTransaction(actor, danceClass, slot, today, dbSession);
+
+    await refreshScheduleCache(actor.organizationId, danceClass._id, dbSession);
+    await generateSessions(actor.organizationId, { ...rollingWindow(today, 0), classIds: [danceClass._id] }, dbSession);
+    return DanceClassModel.findById(danceClass._id).session(dbSession ?? null);
+  };
+
+  if (options.session) {
+    if (!options.lockHeld) await touchLocks(actor.organizationId, [RULES_LOCK_KEY], options.session);
+    return apply(options.session);
   }
 
-  return refreshScheduleCache(actor.organizationId, danceClass._id);
+  await ensureLocks(actor.organizationId, [RULES_LOCK_KEY]);
+  return withTransaction(async (dbSession) => {
+    await touchLocks(actor.organizationId, [RULES_LOCK_KEY], dbSession);
+    return apply(dbSession);
+  });
 }
 
 /** Pauses a group: no regular sessions in [from, to]. Generated untouched sessions are suspended. */
