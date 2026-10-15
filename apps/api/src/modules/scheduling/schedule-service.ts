@@ -50,11 +50,15 @@ export function versionOn(versions: ScheduleRule[], seriesId: unknown, date: str
  * valid from the group's creation day. Idempotent: the unique legacyKey index absorbs races.
  * Also translates the enrollments' legacy slot keys into series ids.
  */
-export async function ensureScheduleRules(organizationId: string, classes: ClassForRules[]) {
+export async function ensureScheduleRules(
+  organizationId: string,
+  classes: ClassForRules[],
+  session?: ClientSession
+) {
   if (!classes.length) return;
   const classIds = classes.map((item) => item._id);
   const withRules = new Set(
-    (await ClassScheduleModel.distinct("classId", { organizationId, classId: { $in: classIds } })).map(String)
+    (await ClassScheduleModel.distinct("classId", { organizationId, classId: { $in: classIds } }).session(session ?? null)).map(String)
   );
   const missing = classes.filter((item) => !withRules.has(String(item._id)) && item.schedules?.length);
   if (!missing.length) return;
@@ -83,7 +87,7 @@ export async function ensureScheduleRules(organizationId: string, classes: Class
       }));
   });
 
-  await ClassScheduleModel.insertMany(documents, { ordered: false }).catch((error: any) => {
+  await ClassScheduleModel.insertMany(documents, { ordered: false, ...(session ? { session } : {}) }).catch((error: any) => {
     const failures = error?.writeErrors ?? [];
     if (!failures.length || failures.some((item: any) => (item.code ?? item.err?.code) !== 11000)) throw error;
   });
@@ -92,7 +96,7 @@ export async function ensureScheduleRules(organizationId: string, classes: Class
     organizationId,
     classId: { $in: missing.map((item) => item._id) },
     legacyKey: { $type: "string" }
-  }).lean<ScheduleRule[]>();
+  }).session(session ?? null).lean<ScheduleRule[]>();
 
   for (const danceClass of missing) {
     const seriesByKey = new Map(
@@ -105,6 +109,7 @@ export async function ensureScheduleRules(organizationId: string, classes: Class
       "seriesIds.0": { $exists: false }
     })
       .select("_id scheduleKeys")
+      .session(session ?? null)
       .lean<any[]>();
     for (const enrollment of enrollments) {
       const seriesIds = (enrollment.scheduleKeys as string[])
@@ -113,7 +118,8 @@ export async function ensureScheduleRules(organizationId: string, classes: Class
       if (seriesIds.length) {
         await EnrollmentModel.updateOne(
           { _id: enrollment._id, "seriesIds.0": { $exists: false } },
-          { $set: { seriesIds } }
+          { $set: { seriesIds } },
+          { session }
         );
       }
     }
