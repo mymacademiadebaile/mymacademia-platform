@@ -176,7 +176,7 @@ export function CalendarLive() {
     <>
       <PageHeader
         title="Calendario"
-        description="Consultá clases de cualquier fecha y abrí su registro de asistencia, alumnos y cobros."
+        description=""
         actionLabel="Nueva clase"
         onAction={() => setClassCreateOpen(true)}
       />

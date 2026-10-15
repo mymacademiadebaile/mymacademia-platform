@@ -291,9 +291,9 @@ export function ReportsLive() {
             </article>
             <article className={`${styles.card} ${styles.reportMetricCard}`}>
               <span className={styles.reportMetricIcon}><CalendarCheck2 size={18} /></span>
-              <span className={styles.cardLabel}>CLASES DEL DÍA</span>
+              <span className={styles.cardLabel}>TURNOS DEL PERÍODO</span>
               <strong className={styles.cardValue}>{data.activity.sessions}</strong>
-              <span className={styles.cardDetail}>{data.activity.completedSessions} completadas · {data.activity.cancelledSessions} canceladas</span>
+              <span className={styles.cardDetail}>{data.activity.completedSessions} completados · {data.activity.cancelledSessions} cancelados</span>
             </article>
           </div>
 

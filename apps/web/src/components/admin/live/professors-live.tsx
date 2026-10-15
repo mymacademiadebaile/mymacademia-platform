@@ -29,6 +29,7 @@ export function ProfessorsLive() {
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [modal, setModal] = useState(false);
+  const [bioShortDraft, setBioShortDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -88,6 +89,11 @@ export function ProfessorsLive() {
     [catalogs]
   );
 
+  function closeModal() {
+    setBioShortDraft("");
+    setModal(false);
+  }
+
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -104,6 +110,7 @@ export function ProfessorsLive() {
           email: form.get("email"),
           password: form.get("password"),
           phone: form.get("phone") || undefined,
+          bioShort: form.get("bioShort") || undefined,
           bio: form.get("bio") || undefined,
           instagram: form.get("instagram") || undefined,
           branchIds: form.getAll("branchIds"),
@@ -111,7 +118,7 @@ export function ProfessorsLive() {
         })
       });
 
-      setModal(false);
+      closeModal();
       toast("Profesor creado correctamente");
       router.push("/admin/professors/" + professor._id);
     } catch (requestError) {
@@ -128,7 +135,10 @@ export function ProfessorsLive() {
         title="Profesores"
         description="Accesos, disciplinas, sedes, clases y alumnos del equipo."
         actionLabel="Nuevo profesor"
-        onAction={() => setModal(true)}
+        onAction={() => {
+          setBioShortDraft("");
+          setModal(true);
+        }}
       />
 
       <div className={styles.filterBar}>
@@ -216,7 +226,7 @@ export function ProfessorsLive() {
         title="Agregar profesor"
         description="Se crea su perfil, acceso, sedes y disciplinas en un solo paso."
         submitting={submitting}
-        onClose={() => setModal(false)}
+        onClose={closeModal}
         onSubmit={create}
       >
         <Field label="Nombre"><input name="firstName" required /></Field>
@@ -235,7 +245,17 @@ export function ProfessorsLive() {
             {catalogs.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
           </select>
         </Field>
-        <Field label="Instagram"><input name="instagram" /></Field>
+        <Field label="Instagram"><input name="instagram" placeholder="@nombre.de.usuario" /></Field>
+        <Field label="Descripción corta para la web" wide>
+          <input
+            name="bioShort"
+            value={bioShortDraft}
+            maxLength={160}
+            placeholder="Ej.: Docente de salsa y bachata, con foco en técnica y disfrute."
+            onChange={(event) => setBioShortDraft(event.target.value)}
+          />
+          <span className={styles.webCounter}>{bioShortDraft.length}/160</span>
+        </Field>
         <Field label="Bio" wide><textarea name="bio" rows={4} /></Field>
       </LiveModal>
     </>

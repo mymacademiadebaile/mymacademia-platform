@@ -536,7 +536,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
         <Field label="Nombre visible"><input name="displayName" defaultValue={professor.displayName} required /></Field>
         <Field label="Email"><input name="email" type="email" defaultValue={user?.email ?? ""} required /></Field>
         <Field label="Teléfono"><input name="phone" defaultValue={professor.phone ?? user?.phone ?? ""} /></Field>
-        <Field label="Instagram"><input name="instagram" defaultValue={professor.instagram ?? ""} /></Field>
+        <Field label="Instagram"><input name="instagram" defaultValue={professor.instagram ?? ""} placeholder="@nombre.de.usuario" /></Field>
         <Field label="Sedes" wide>
           <select name="branchIds" multiple size={Math.min(4, Math.max(2, allBranches.length))} defaultValue={[...selectedBranchIds]} required>
             {allBranches.map((branch) => <option value={branch._id} key={branch._id}>{branch.name}</option>)}

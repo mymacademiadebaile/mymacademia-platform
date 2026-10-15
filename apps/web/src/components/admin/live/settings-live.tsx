@@ -348,7 +348,7 @@ export function SettingsLive() {
                     <input name="cancellationNoticeHours" type="number" min="0" max="168" defaultValue={data.organization.cancellationNoticeHours ?? 6} required />
                     <span>horas</span>
                   </div>
-                  <small>Los cambios entre turnos no tienen costo ni límite.</small>
+                  
                 </label>
               </div>
             </section>

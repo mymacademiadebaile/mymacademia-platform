@@ -269,6 +269,7 @@ adminProfessorsRouter.post("/", async (request, response, next) => {
       disciplineIds: input.disciplineIds,
       displayName: input.displayName,
       phone: input.phone?.trim() || undefined,
+      bioShort: input.bioShort?.trim() || undefined,
       bio: input.bio?.trim() || undefined,
       instagram: input.instagram?.trim() || undefined,
       isActive: true

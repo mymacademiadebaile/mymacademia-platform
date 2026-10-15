@@ -262,10 +262,7 @@ export function DashboardLive() {
             </section>
           </div>
 
-          <div className={styles.notice}>
-            <UsersRound size={15} style={{ verticalAlign: "middle", marginRight: 6 }} />
-            La agenda de hoy se genera desde los horarios configurados y mantiene cada clase como una ocurrencia independiente.
-          </div>
+     
         </>
       )}
     </>
