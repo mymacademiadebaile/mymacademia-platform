@@ -2,8 +2,11 @@
  * Reads the published catalog from the read-only public API (GET /api/public/catalog)
  * and maps it to the website types. Server-side only: pages are rendered on the
  * server and the response is kept in the Next data cache for `REVALIDATE_SECONDS`,
- * so an admin change shows up within about a minute.
+ * so an admin change shows up within about a minute. The public layout is dynamic
+ * to keep deployments independent from API availability at build time, therefore
+ * these reads use unstable_cache instead of per-fetch revalidation.
  */
+import { unstable_cache } from "next/cache";
 import type { DanceStyle, PublicProfessor, PublicSocialLinks, ScheduleEntry, WeekDay } from "./types";
 
 export const REVALIDATE_SECONDS = 60;
@@ -129,9 +132,12 @@ export function mapCatalog(data: ApiCatalog): PublicCatalog {
   return { styles, professors, entries };
 }
 
-export async function fetchCatalogFromApi(): Promise<PublicCatalog> {
+async function fetchCatalogUncached(): Promise<PublicCatalog> {
   const response = await fetch(`${API_URL}/public/catalog`, {
-    next: { revalidate: REVALIDATE_SECONDS, tags: ["public-catalog"] }
+    // The enclosing Next data-cache entry owns caching and revalidation. This
+    // must remain no-store because force-dynamic otherwise overrides fetch
+    // caching in Next 16's previous cache model.
+    cache: "no-store"
   });
   if (!response.ok) {
     throw new Error(`Public API responded ${response.status}`);
@@ -139,10 +145,19 @@ export async function fetchCatalogFromApi(): Promise<PublicCatalog> {
   return mapCatalog((await response.json()) as ApiCatalog);
 }
 
+const fetchCachedCatalog = unstable_cache(fetchCatalogUncached, ["public-catalog-v1"], {
+  revalidate: REVALIDATE_SECONDS,
+  tags: ["public-catalog"]
+});
+
+export async function fetchCatalogFromApi(): Promise<PublicCatalog> {
+  return fetchCachedCatalog();
+}
+
 /** Links shown in the public footer; the API only returns configured, safe social URLs. */
-export async function fetchPublicSocialLinksFromApi(): Promise<PublicSocialLinks> {
+async function fetchPublicSocialLinksUncached(): Promise<PublicSocialLinks> {
   const response = await fetch(`${API_URL}/public/social-links`, {
-    next: { revalidate: REVALIDATE_SECONDS, tags: ["public-social-links"] }
+    cache: "no-store"
   });
   if (!response.ok) {
     throw new Error(`Public social links API responded ${response.status}`);
@@ -150,16 +165,34 @@ export async function fetchPublicSocialLinksFromApi(): Promise<PublicSocialLinks
   return (await response.json()) as PublicSocialLinks;
 }
 
+const fetchCachedPublicSocialLinks = unstable_cache(fetchPublicSocialLinksUncached, ["public-social-links-v1"], {
+  revalidate: REVALIDATE_SECONDS,
+  tags: ["public-social-links"]
+});
+
+export async function fetchPublicSocialLinksFromApi(): Promise<PublicSocialLinks> {
+  return fetchCachedPublicSocialLinks();
+}
+
 interface ApiSiteImages {
   academySpace: Partial<Record<"tall" | "wide" | "detail", { src: string; width?: number; height?: number }>>;
 }
 
-export async function fetchPublicSiteImagesFromApi(): Promise<ApiSiteImages> {
+async function fetchPublicSiteImagesUncached(): Promise<ApiSiteImages> {
   const response = await fetch(`${API_URL}/public/site-images`, {
-    next: { revalidate: REVALIDATE_SECONDS, tags: ["public-site-images"] }
+    cache: "no-store"
   });
   if (!response.ok) {
     throw new Error(`Public site images API responded ${response.status}`);
   }
   return (await response.json()) as ApiSiteImages;
+}
+
+const fetchCachedPublicSiteImages = unstable_cache(fetchPublicSiteImagesUncached, ["public-site-images-v1"], {
+  revalidate: REVALIDATE_SECONDS,
+  tags: ["public-site-images"]
+});
+
+export async function fetchPublicSiteImagesFromApi(): Promise<ApiSiteImages> {
+  return fetchCachedPublicSiteImages();
 }

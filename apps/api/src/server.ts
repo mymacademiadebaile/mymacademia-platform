@@ -1,6 +1,7 @@
 import app from "./app";
 import { env } from "./config/env";
 import { connectDatabase } from "./database/connect";
+import { logger } from "./observability/logger";
 
 async function bootstrap() {
   await connectDatabase();
@@ -11,6 +12,9 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  console.error("Failed to start API", error);
+  logger.fatal(
+    { errorName: error instanceof Error && error.name ? error.name : "UnknownError" },
+    "Failed to start API"
+  );
   process.exit(1);
 });
