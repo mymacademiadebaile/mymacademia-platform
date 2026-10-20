@@ -74,6 +74,24 @@
 .field select[multiple],.fieldWide select[multiple] { min-height: 96px; }
 .field textarea,.fieldWide textarea { resize: vertical; }
 
+.modalFormError {
+  margin-top: 16px;
+  padding: 11px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.modalFormError > svg { flex: 0 0 auto; margin-top: 1px; }
+.modalFormError > div { display: grid; gap: 2px; min-width: 0; }
+.modalFormError strong { font-size: 11px; }
+.modalFormError span { font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.modalFormError:focus-visible { outline: 2px solid #be123c; outline-offset: 2px; }
+
 .modalFooter {
   margin-top: 18px; padding-top: 15px; border-top: 1px solid #eee8f2;
   display: flex; justify-content: flex-end; gap: 8px;

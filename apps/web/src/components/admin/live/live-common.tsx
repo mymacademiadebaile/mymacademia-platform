@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent } from "react";
+import { FormEvent, useEffect, useRef } from "react";
 import { AlertCircle, Check, ChevronLeft, ChevronRight, LoaderCircle, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import type { Paginated } from "./live-types";
@@ -43,7 +43,8 @@ export function LiveModal({
   onClose,
   onSubmit,
   eyebrow = "GESTIÓN",
-  submitLabel = "Guardar"
+  submitLabel = "Guardar",
+  error
 }: {
   open: boolean;
   title: string;
@@ -54,7 +55,15 @@ export function LiveModal({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   eyebrow?: string;
   submitLabel?: string;
+  /** A submission error that must remain visible without dismissing the modal. */
+  error?: string;
 }) {
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
+
   if (!open) return null;
 
   return (
@@ -75,6 +84,15 @@ export function LiveModal({
           </button>
         </div>
         <div className={styles.formGrid}>{children}</div>
+        {error && (
+          <div className={styles.modalFormError} role="alert" tabIndex={-1} ref={errorRef}>
+            <AlertCircle size={17} aria-hidden="true" />
+            <div>
+              <strong>No pudimos guardar los cambios</strong>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
         <div className={styles.modalFooter}>
           <button type="button" className={styles.secondary} onClick={onClose}>
             Cancelar

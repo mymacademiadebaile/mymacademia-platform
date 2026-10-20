@@ -33,6 +33,7 @@ export function ProfessorsLive() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,6 +92,7 @@ export function ProfessorsLive() {
 
   function closeModal() {
     setBioShortDraft("");
+    setFormError("");
     setModal(false);
   }
 
@@ -98,7 +100,7 @@ export function ProfessorsLive() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setSubmitting(true);
-    setError("");
+    setFormError("");
 
     try {
       const professor = await apiFetch<Professor>("/admin/professors", {
@@ -122,7 +124,7 @@ export function ProfessorsLive() {
       toast("Profesor creado correctamente");
       router.push("/admin/professors/" + professor._id);
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      setFormError(apiMessage(requestError));
     } finally {
       setSubmitting(false);
     }
@@ -137,6 +139,7 @@ export function ProfessorsLive() {
         actionLabel="Nuevo profesor"
         onAction={() => {
           setBioShortDraft("");
+          setFormError("");
           setModal(true);
         }}
       />
@@ -228,6 +231,7 @@ export function ProfessorsLive() {
         submitting={submitting}
         onClose={closeModal}
         onSubmit={create}
+        error={formError}
       >
         <Field label="Nombre"><input name="firstName" required /></Field>
         <Field label="Apellido"><input name="lastName" required /></Field>
