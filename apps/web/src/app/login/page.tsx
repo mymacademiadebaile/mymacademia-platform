@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -82,6 +82,10 @@ export default function LoginPage() {
 
       <section className={styles.loginPanel}>
         <form className={styles.form} onSubmit={handleSubmit}>
+          <Link className={styles.homeLink} href="/">
+            <ArrowLeft size={16} aria-hidden="true" />
+            Volver al inicio
+          </Link>
           <div className={styles.mobileBrand}>
             <Image
               src="/mym-academia-logo.png"
