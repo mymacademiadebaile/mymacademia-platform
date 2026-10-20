@@ -30,11 +30,22 @@ export function billingLabel(danceClass: DanceClass) {
   return "$ " + (danceClass.pricePerClass ?? 0).toLocaleString("es-AR") + " por clase o " + monthlyPlansLabel(danceClass);
 }
 
-export function monthlyPlansAvailable(danceClass: DanceClass) {
-  return danceClass.monthlyPrice4 !== undefined || danceClass.monthlyPrice8 !== undefined;
+export function availableMonthlyPlans(danceClass: DanceClass): Array<4 | 8> {
+  const plans: Array<4 | 8> = [];
+  if (danceClass.monthlyPrice4 && danceClass.monthlyPrice4 > 0) plans.push(4);
+  if (danceClass.monthlyPrice8 && danceClass.monthlyPrice8 > 0) plans.push(8);
+  return plans;
 }
 
-export function monthlyPriceFor(danceClass: DanceClass, plan: 4 | 8 = 4) {
+export function monthlyPlansAvailable(danceClass: DanceClass) {
+  return availableMonthlyPlans(danceClass).length > 0;
+}
+
+export function defaultMonthlyPlan(danceClass: DanceClass): 4 | 8 {
+  return availableMonthlyPlans(danceClass)[0] ?? 4;
+}
+
+export function monthlyPriceFor(danceClass: DanceClass, plan: 4 | 8 = defaultMonthlyPlan(danceClass)) {
   return plan === 8
     ? danceClass.monthlyPrice8 ?? danceClass.monthlyPrice ?? 0
     : danceClass.monthlyPrice4 ?? danceClass.monthlyPrice ?? 0;
@@ -42,7 +53,9 @@ export function monthlyPriceFor(danceClass: DanceClass, plan: 4 | 8 = 4) {
 
 export function monthlyPlansLabel(danceClass: DanceClass) {
   if (!monthlyPlansAvailable(danceClass)) return "$ " + (danceClass.monthlyPrice ?? 0).toLocaleString("es-AR") + " mensual";
-  return "$ " + monthlyPriceFor(danceClass, 4).toLocaleString("es-AR") + " / 4 clases · $ " + monthlyPriceFor(danceClass, 8).toLocaleString("es-AR") + " / 8 clases";
+  return availableMonthlyPlans(danceClass)
+    .map((plan) => "$ " + monthlyPriceFor(danceClass, plan).toLocaleString("es-AR") + " / " + plan + " clases")
+    .join(" · ");
 }
 
 export function preferenceForClass(danceClass: DanceClass): BillingPreference | undefined {

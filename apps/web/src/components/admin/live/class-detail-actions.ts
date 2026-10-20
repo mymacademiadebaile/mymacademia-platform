@@ -5,7 +5,7 @@ import { ApiError, apiFetch, apiMessage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { BillingPreference, DanceClass } from "./live-types";
 import type { Enrollment, TrialBooking } from "./class-detail-types";
-import { monthlyPlansAvailable, monthlyPriceFor, normalizedMode, preferenceForClass, preferenceLabel } from "./class-detail-helpers";
+import { availableMonthlyPlans, defaultMonthlyPlan, monthlyPlansAvailable, monthlyPriceFor, normalizedMode, preferenceForClass, preferenceLabel } from "./class-detail-helpers";
 import type { FirstMonthChoice, FirstMonthTarget } from "../billing/first-month-modal";
 import { todayInArgentina } from "@/lib/dates";
 
@@ -109,7 +109,12 @@ export function useClassActions({ id, danceClass, load, setBusy, setError }: Par
         period,
         midMonth: todayInArgentina().slice(8, 10) !== "01",
         plans: monthlyPlansAvailable(danceClass!)
-          ? { price4: monthlyPriceFor(danceClass!, 4), price8: monthlyPriceFor(danceClass!, 8), current: enrollment.monthlyPlan ?? 4 }
+          ? {
+              options: availableMonthlyPlans(danceClass!).map((plan) => ({ plan, price: monthlyPriceFor(danceClass!, plan) })),
+              current: enrollment.monthlyPlan && availableMonthlyPlans(danceClass!).includes(enrollment.monthlyPlan)
+                ? enrollment.monthlyPlan
+                : defaultMonthlyPlan(danceClass!)
+            }
           : undefined
       });
       return;
@@ -132,6 +137,30 @@ export function useClassActions({ id, danceClass, load, setBusy, setError }: Par
       await load();
     } catch (requestError) {
       toast({ title: "No se pudo actualizar", description: apiMessage(requestError), tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changeMonthlyPlan(enrollment: Enrollment, next: 4 | 8) {
+    if (!danceClass || next === (enrollment.monthlyPlan ?? defaultMonthlyPlan(danceClass))) return;
+    const approved = await confirm({
+      title: `Cambiar a ${next} clases mensuales`,
+      description: `Las cuotas ya generadas para ${enrollment.studentId.firstName} no cambian de importe. Las próximas usarán el precio del plan de ${next} clases.`,
+      confirmLabel: "Cambiar plan"
+    });
+    if (!approved) return;
+
+    setBusy(true);
+    try {
+      await apiFetch("/admin/enrollments/" + enrollment._id + "/billing-preference", {
+        method: "PATCH",
+        body: JSON.stringify({ billingPreference: "MONTHLY", monthlyPlan: next })
+      });
+      toast("Plan mensual actualizado");
+      await load();
+    } catch (requestError) {
+      toast({ title: "No se pudo cambiar el plan", description: apiMessage(requestError), tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -313,6 +342,7 @@ export function useClassActions({ id, danceClass, load, setBusy, setError }: Par
     enroll,
     remove,
     changeBilling,
+    changeMonthlyPlan,
     switching,
     cancelSwitch: () => setSwitching(null),
     switchToMonthly,

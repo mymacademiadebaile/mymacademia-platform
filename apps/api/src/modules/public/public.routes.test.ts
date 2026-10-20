@@ -11,7 +11,7 @@ import { DanceClassModel } from "../classes/class.model";
 import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
 import { ProfessorModel } from "../professors/professor.model";
-import { loadPublicCatalog, resetPublicCatalogCache } from "./public.routes";
+import { loadPublicCatalog } from "./public.routes";
 
 let mongod: MongoMemoryServer;
 const app = createApp();
@@ -46,7 +46,6 @@ beforeEach(async () => {
       model.deleteMany({})
     )
   );
-  resetPublicCatalogCache();
 
   const org = await OrganizationModel.create({ name: "M&M", slug: env.PUBLIC_ORGANIZATION_SLUG });
   const branch = await BranchModel.create({ organizationId: org._id, name: "Sede" });
@@ -118,15 +117,15 @@ beforeEach(async () => {
   );
 });
 
-it("coalesces concurrent public-catalog cache misses within one API instance", async () => {
+it("loads each public catalog request directly from the current data", async () => {
   const organizationFindOne = vi.spyOn(OrganizationModel, "findOne");
   const catalogFind = vi.spyOn(CatalogItemModel, "find");
 
   await Promise.all([loadPublicCatalog(), loadPublicCatalog(), loadPublicCatalog()]);
 
-  expect(organizationFindOne).toHaveBeenCalledTimes(1);
-  // One catalog build runs two CatalogItem queries (DISCIPLINE and LEVEL).
-  expect(catalogFind).toHaveBeenCalledTimes(2);
+  expect(organizationFindOne).toHaveBeenCalledTimes(3);
+  // Each catalog build runs two CatalogItem queries (DISCIPLINE and LEVEL).
+  expect(catalogFind).toHaveBeenCalledTimes(6);
   organizationFindOne.mockRestore();
   catalogFind.mockRestore();
 });
@@ -136,7 +135,7 @@ describe("GET /api/public/*", () => {
     const response = await request(app).get("/api/public/catalog");
 
     expect(response.status).toBe(200);
-    expect(response.headers["cache-control"]).toContain("s-maxage=60");
+    expect(response.headers["cache-control"]).toContain("no-store");
     expect(response.body.styles.map((style: { slug: string }) => style.slug)).toEqual(["bachata-sensual"]);
     expect(response.body.professors[0]).toMatchObject({ slug: "ana-perez", disciplines: ["bachata-sensual"] });
     expect(response.body.schedule[0]).toMatchObject({
@@ -179,7 +178,6 @@ describe("GET /api/public/*", () => {
         }
       }
     );
-    resetPublicCatalogCache();
 
     const response = await request(app).get("/api/public/social-links");
 
@@ -201,7 +199,6 @@ describe("GET /api/public/*", () => {
 
   it("drops a rhythm as soon as it is deactivated", async () => {
     await CatalogItemModel.updateOne({ _id: ids.sensual }, { isActive: false });
-    resetPublicCatalogCache();
 
     const response = await request(app).get("/api/public/catalog");
     expect(response.body.styles).toEqual([]);
@@ -271,7 +268,6 @@ describe("admin publishing rules", () => {
     const response = await adminPatch(`/classes/${danceClass!.id}`, { publishOnWeb: false });
     expect(response.status).toBe(200);
 
-    resetPublicCatalogCache();
     const catalog = await request(app).get("/api/public/catalog");
     expect(catalog.body.schedule).toEqual([]);
   });

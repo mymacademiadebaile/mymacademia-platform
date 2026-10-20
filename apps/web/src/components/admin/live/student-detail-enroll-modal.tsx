@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import type { BillingPreference, DanceClass } from "./live-types";
 import { Field, LiveModal } from "./live-common";
 import {
+  availableMonthlyPlans,
   billingPreferenceLabel,
   classBillingMode,
   monthlyPlansAvailable,
@@ -88,8 +89,9 @@ export function StudentEnrollModal({
       {selectedClass && selectedBillingPreference === "MONTHLY" && monthlyPlansAvailable(selectedClass) && (
         <Field label="Plan mensual" wide>
           <select value={selectedMonthlyPlan} onChange={(event) => onMonthlyPlanChange(Number(event.target.value) as 4 | 8)}>
-            <option value={4}>4 clases · {"$ " + monthlyPriceFor(selectedClass, 4).toLocaleString("es-AR")}</option>
-            <option value={8}>8 clases · {"$ " + monthlyPriceFor(selectedClass, 8).toLocaleString("es-AR")}</option>
+            {availableMonthlyPlans(selectedClass).map((plan) => (
+              <option key={plan} value={plan}>{plan} clases · {"$ " + monthlyPriceFor(selectedClass, plan).toLocaleString("es-AR")}</option>
+            ))}
           </select>
         </Field>
       )}

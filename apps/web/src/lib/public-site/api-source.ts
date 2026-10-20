@@ -1,15 +1,10 @@
 /**
  * Reads the published catalog from the read-only public API (GET /api/public/catalog)
  * and maps it to the website types. Server-side only: pages are rendered on the
- * server and the response is kept in the Next data cache for `REVALIDATE_SECONDS`,
- * so an admin change shows up within about a minute. The public layout is dynamic
- * to keep deployments independent from API availability at build time, therefore
- * these reads use unstable_cache instead of per-fetch revalidation.
+ * server. Public content is deliberately read with `no-store`, so a change
+ * published from the backoffice is reflected on the next request.
  */
-import { unstable_cache } from "next/cache";
 import type { DanceStyle, PublicProfessor, PublicSocialLinks, ScheduleEntry, WeekDay } from "./types";
-
-export const REVALIDATE_SECONDS = 60;
 
 // Browser requests use the same-origin `/api` path. Server components instead
 // use Vercel's private service binding when it is available, because Node's
@@ -134,9 +129,7 @@ export function mapCatalog(data: ApiCatalog): PublicCatalog {
 
 async function fetchCatalogUncached(): Promise<PublicCatalog> {
   const response = await fetch(`${API_URL}/public/catalog`, {
-    // The enclosing Next data-cache entry owns caching and revalidation. This
-    // must remain no-store because force-dynamic otherwise overrides fetch
-    // caching in Next 16's previous cache model.
+    // Do not retain public editorial data after a request.
     cache: "no-store"
   });
   if (!response.ok) {
@@ -145,13 +138,8 @@ async function fetchCatalogUncached(): Promise<PublicCatalog> {
   return mapCatalog((await response.json()) as ApiCatalog);
 }
 
-const fetchCachedCatalog = unstable_cache(fetchCatalogUncached, ["public-catalog-v1"], {
-  revalidate: REVALIDATE_SECONDS,
-  tags: ["public-catalog"]
-});
-
 export async function fetchCatalogFromApi(): Promise<PublicCatalog> {
-  return fetchCachedCatalog();
+  return fetchCatalogUncached();
 }
 
 /** Links shown in the public footer; the API only returns configured, safe social URLs. */
@@ -165,13 +153,8 @@ async function fetchPublicSocialLinksUncached(): Promise<PublicSocialLinks> {
   return (await response.json()) as PublicSocialLinks;
 }
 
-const fetchCachedPublicSocialLinks = unstable_cache(fetchPublicSocialLinksUncached, ["public-social-links-v1"], {
-  revalidate: REVALIDATE_SECONDS,
-  tags: ["public-social-links"]
-});
-
 export async function fetchPublicSocialLinksFromApi(): Promise<PublicSocialLinks> {
-  return fetchCachedPublicSocialLinks();
+  return fetchPublicSocialLinksUncached();
 }
 
 interface ApiSiteImages {
@@ -188,11 +171,6 @@ async function fetchPublicSiteImagesUncached(): Promise<ApiSiteImages> {
   return (await response.json()) as ApiSiteImages;
 }
 
-const fetchCachedPublicSiteImages = unstable_cache(fetchPublicSiteImagesUncached, ["public-site-images-v1"], {
-  revalidate: REVALIDATE_SECONDS,
-  tags: ["public-site-images"]
-});
-
 export async function fetchPublicSiteImagesFromApi(): Promise<ApiSiteImages> {
-  return fetchCachedPublicSiteImages();
+  return fetchPublicSiteImagesUncached();
 }

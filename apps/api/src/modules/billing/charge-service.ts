@@ -9,6 +9,7 @@ import { DanceClassModel } from "../classes/class.model";
 import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { billingModeOn, enrollmentPeriods, isEnrollmentValidOn } from "../enrollments/enrollment-validity";
+import { resolveMonthlyPlan } from "../classes/monthly-plans";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { loadRoster } from "../sessions/roster-service";
 import { HolidayModel } from "../scheduling/holiday.model";
@@ -53,7 +54,8 @@ export function priceCents(
   kind: "MONTHLY_FEE" | "CLASS_FEE"
 ) {
   if (kind === "MONTHLY_FEE") {
-    const packagePrice = enrollment?.monthlyPlan === 8
+    const plan = resolveMonthlyPlan(danceClass, enrollment?.monthlyPlan);
+    const packagePrice = plan === 8
       ? danceClass.monthlyPrice8
       : danceClass.monthlyPrice4;
     return enrollment?.priceOverride?.monthlyCents ?? toCents(packagePrice ?? danceClass.monthlyPrice ?? 0);

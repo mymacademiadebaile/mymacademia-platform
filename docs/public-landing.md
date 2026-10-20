@@ -171,7 +171,7 @@ Reglas de relación:
 | `GET /api/public/professors` | nombre, `bioShort`, `bio` (párrafos), foto, Instagram (URL), video (https), disciplinas |
 | `GET /api/public/schedule` | una fila por día y horario: clase, ritmo, profesores publicados, niveles |
 
-Privacidad: cada consulta elige campos explícitos y la respuesta se arma con una lista blanca en `apps/api/src/modules/public/public-projection.ts`. Nunca salen `User`, email, teléfono, `userId`, `organizationId`, precios, capacidad, facturación, alumnos, pagos ni inscripciones. Hay tests que lo verifican (`public-projection.test.ts` y `public.routes.test.ts`). El video y las fotos solo se aceptan por https, y el Instagram se normaliza a una URL de instagram.com o se descarta. Las respuestas llevan `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`.
+Privacidad: cada consulta elige campos explícitos y la respuesta se arma con una lista blanca en `apps/api/src/modules/public/public-projection.ts`. Nunca salen `User`, email, teléfono, `userId`, `organizationId`, precios, capacidad, facturación, alumnos, pagos ni inscripciones. Hay tests que lo verifican (`public-projection.test.ts` y `public.routes.test.ts`). El video y las fotos solo se aceptan por https, y el Instagram se normaliza a una URL de instagram.com o se descarta. Las respuestas llevan `Cache-Control: no-store, max-age=0`, por lo que una actualización publicada aparece en la siguiente solicitud.
 
 La organización se elige con `PUBLIC_ORGANIZATION_SLUG` (por defecto `mym-academia`).
 

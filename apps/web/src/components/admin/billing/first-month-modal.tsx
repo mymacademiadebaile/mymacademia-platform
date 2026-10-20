@@ -12,7 +12,7 @@ export type FirstMonthTarget = {
   /** YYYY-MM of the month that already started. */
   period: string;
   /** Present when the plan (4 or 8 classes) must be chosen too. */
-  plans?: { price4: number; price8: number; current: 4 | 8 };
+  plans?: { options: Array<{ plan: 4 | 8; price: number }>; current: 4 | 8 };
 };
 
 export type FirstMonthChoice = { policy: MidMonthPolicy; customAmount?: number; plan?: 4 | 8 };
@@ -70,8 +70,9 @@ export function FirstMonthModal({
       {target?.plans && (
         <Field label="Plan mensual" wide>
           <select name="plan" defaultValue={target.plans.current}>
-            <option value={4}>4 clases · {formatMoney(target.plans.price4)}</option>
-            <option value={8}>8 clases · {formatMoney(target.plans.price8)}</option>
+            {target.plans.options.map(({ plan, price }) => (
+              <option key={plan} value={plan}>{plan} clases · {formatMoney(price)}</option>
+            ))}
           </select>
         </Field>
       )}

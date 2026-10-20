@@ -53,8 +53,8 @@ export function useClassEdit({ id, danceClass, load, setBusy, setError }: Params
           capacity: Number(form.get("capacity")),
           billingMode: editBillingMode,
           pricePerClass: Number(form.get("pricePerClass") || 0),
-          monthlyPrice4: form.get("monthlyPrice4") === null ? undefined : Number(form.get("monthlyPrice4") || 0),
-          monthlyPrice8: form.get("monthlyPrice8") === null ? undefined : Number(form.get("monthlyPrice8") || 0),
+          monthlyPrice4: form.get("monthlyPrice4") === null ? undefined : form.get("monthlyPrice4") ? Number(form.get("monthlyPrice4")) : null,
+          monthlyPrice8: form.get("monthlyPrice8") === null ? undefined : form.get("monthlyPrice8") ? Number(form.get("monthlyPrice8")) : null,
           freeTrialEnabled: form.get("freeTrialEnabled") === "on",
           schedules: editSchedules
         })

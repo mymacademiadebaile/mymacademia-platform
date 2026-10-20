@@ -16,6 +16,7 @@ import {
   billingPreferenceLabel,
   classBillingMode,
   defaultBillingPreference,
+  defaultMonthlyPlan,
   scheduleKey
 } from "./student-detail-helpers";
 import type { AccountCharge, Enrollment, StudentDetail } from "./student-detail-types";
@@ -111,7 +112,7 @@ export function StudentDetailLive({ id }: { id: string }) {
     const danceClass = availableClasses.find((item) => item._id === classId);
     setSelectedClassId(classId);
     setSelectedBillingPreference(defaultBillingPreference(danceClass));
-    setSelectedMonthlyPlan(4);
+    setSelectedMonthlyPlan(danceClass ? defaultMonthlyPlan(danceClass) : 4);
     setSelectedScheduleKeys(danceClass?.schedules[0] ? [scheduleKey(danceClass.schedules[0])] : []);
   }
 

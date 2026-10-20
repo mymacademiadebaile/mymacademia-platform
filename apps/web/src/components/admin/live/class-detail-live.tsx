@@ -19,7 +19,7 @@ import type {
 import { ErrorBlock, fetchAllPaginated, LoadingBlock, WebSwitch } from "./live-common";
 import { GroupSchedulesPanel } from "../scheduling/group-schedules-panel";
 import type { EnrollmentResponse, TrialBooking, TrialResponse } from "./class-detail-types";
-import { preferenceForClass } from "./class-detail-helpers";
+import { defaultMonthlyPlan, preferenceForClass } from "./class-detail-helpers";
 import { useClassActions } from "./class-detail-actions";
 import { useClassCharge } from "./class-detail-charge";
 import { useClassEdit } from "./class-detail-edit";
@@ -74,7 +74,7 @@ export function ClassDetailLive({ id }: { id: string }) {
       setProfessors(professorList);
       setCatalogs(catalogList);
       setBillingPreference(preferenceForClass(classData) ?? "PER_CLASS");
-      setMonthlyPlan(4);
+      setMonthlyPlan(defaultMonthlyPlan(classData));
     } catch (requestError) {
       setError(apiMessage(requestError));
     }
@@ -175,7 +175,7 @@ export function ClassDetailLive({ id }: { id: string }) {
               { studentId, billingPreference, monthlyPlan, startDate, joinPolicy, joinCustomAmount, selectedSeries },
               () => {
                 setStudentId("");
-                setMonthlyPlan(4);
+                setMonthlyPlan(defaultMonthlyPlan(danceClass));
                 setJoinPolicy("");
                 setJoinCustomAmount("");
               }
@@ -208,6 +208,7 @@ export function ClassDetailLive({ id }: { id: string }) {
           enrollments={enrollments.items}
           busy={busy}
           onChangeBilling={(enrollment, next) => void actions.changeBilling(enrollment, next)}
+          onChangeMonthlyPlan={(enrollment, next) => void actions.changeMonthlyPlan(enrollment, next)}
           onCharge={charge.openCharge}
           onRemove={(enrollment) => void actions.remove(enrollment)}
         />

@@ -80,6 +80,8 @@ export type SessionDetail = {
     billingMode: BillingMode;
     pricePerClass: number;
     monthlyPrice: number;
+    monthlyPrice4: number | null;
+    monthlyPrice8: number | null;
     professors: Array<{ id: string; displayName: string }>;
   };
   participants: SessionParticipant[];

@@ -89,8 +89,8 @@ export function ClassCreateModal({
           capacity: Number(form.get("capacity")),
           billingMode,
           pricePerClass: Number(form.get("pricePerClass") || 0),
-          monthlyPrice4: Number(form.get("monthlyPrice4") || 0),
-          monthlyPrice8: Number(form.get("monthlyPrice8") || 0),
+          monthlyPrice4: form.get("monthlyPrice4") ? Number(form.get("monthlyPrice4")) : undefined,
+          monthlyPrice8: form.get("monthlyPrice8") ? Number(form.get("monthlyPrice8")) : undefined,
           freeTrialEnabled,
           schedules,
           defaultSpaceId: classSpaceId || undefined
@@ -162,8 +162,11 @@ export function ClassCreateModal({
       {(billingMode === "PER_CLASS" || billingMode === "BOTH") && <Field label="Precio por clase (ARS)"><input name="pricePerClass" type="number" min={1} step="1" required /></Field>}
       {(billingMode === "MONTHLY" || billingMode === "BOTH") && (
         <>
-          <Field label="Mensual · 4 clases (ARS)"><input name="monthlyPrice4" type="number" min={1} step="1" required /></Field>
-          <Field label="Mensual · 8 clases (ARS)"><input name="monthlyPrice8" type="number" min={1} step="1" required /></Field>
+          <Field label="Mensual · 4 clases (ARS)"><input name="monthlyPrice4" type="number" min={1} step="1" placeholder="Opcional" /></Field>
+          <Field label="Mensual · 8 clases (ARS)">
+            <input name="monthlyPrice8" type="number" min={1} step="1" placeholder="Opcional" />
+            <small>Completá al menos uno de los dos planes.</small>
+          </Field>
         </>
       )}
       <Field label="Clase de prueba" wide>

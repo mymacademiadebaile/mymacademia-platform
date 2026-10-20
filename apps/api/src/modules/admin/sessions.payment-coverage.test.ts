@@ -163,6 +163,16 @@ describe("GET /admin/sessions/:id: historical payment coverage", () => {
     expect(await ChargeModel.countDocuments({ organizationId: ids.org, studentId: ctx.student._id, kind: "CLASS_FEE" })).toBe(0);
   });
 
+  it("returns the configured monthly plan prices", async () => {
+    const ctx = await setup("MONTHLY", "MONTHLY");
+    await DanceClassModel.updateOne({ _id: ctx.danceClass._id }, { monthlyPrice4: 28000, monthlyPrice8: 50000 });
+
+    const response = await auth(request(app).get(`/api/admin/sessions/${ctx.session._id}`));
+
+    expect(response.status).toBe(200);
+    expect(response.body.class).toMatchObject({ pricePerClass: 8000, monthlyPrice4: 28000, monthlyPrice8: 50000 });
+  });
+
   it("PER_CLASS payment keeps covering the session after switching to MONTHLY", async () => {
     const ctx = await setup("BOTH", "PER_CLASS");
     const paid = await addPayment(ctx, "PER_CLASS", SESSION_DATE, "PAID");

@@ -229,6 +229,8 @@ adminSessionsRouter.get("/:id", async (request, response, next) => {
         billingMode: danceClass.billingMode ?? "MONTHLY",
         pricePerClass: danceClass.pricePerClass ?? 0,
         monthlyPrice: danceClass.monthlyPrice ?? 0,
+        monthlyPrice4: danceClass.monthlyPrice4 ?? null,
+        monthlyPrice8: danceClass.monthlyPrice8 ?? null,
         professors: (danceClass.professorIds ?? []).map((professor: any) => ({
           id: String(professor._id),
           displayName: professor.displayName,

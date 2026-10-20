@@ -1,4 +1,5 @@
 import type { BillingPreference, DanceClass } from "./live-types";
+export { availableMonthlyPlans, defaultMonthlyPlan, monthlyPlansAvailable, monthlyPriceFor } from "./class-detail-helpers";
 
 export function whatsappHref(phone?: string, name?: string) {
   if (!phone) return "";
@@ -27,16 +28,6 @@ export function billingPreferenceLabel(
   if (mode === "PER_CLASS") return "Por clase";
   if (mode === "MONTHLY") return "Mensual";
   return preference === "MONTHLY" ? "Mensual" : "Por clase";
-}
-
-export function monthlyPlansAvailable(danceClass?: DanceClass) {
-  return danceClass?.monthlyPrice4 !== undefined || danceClass?.monthlyPrice8 !== undefined;
-}
-
-export function monthlyPriceFor(danceClass: DanceClass, plan: 4 | 8) {
-  return plan === 8
-    ? danceClass.monthlyPrice8 ?? danceClass.monthlyPrice ?? 0
-    : danceClass.monthlyPrice4 ?? danceClass.monthlyPrice ?? 0;
 }
 
 const dayLabels: Record<string, string> = {

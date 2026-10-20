@@ -268,6 +268,19 @@ export function SessionDrawer({
   const active = status === "SCHEDULED" || status === "IN_PROGRESS";
   const professorsShown = data?.professors?.length ? data.professors : data?.class.professors ?? [];
   const spaceName = data?.spaceId ? spaces.find((item) => item._id === data.spaceId)?.name ?? "Pista" : "Sin pista";
+  const priceOptions = data
+    ? [
+        ...(["PER_CLASS", "BOTH"].includes(data.class.billingMode) && data.class.pricePerClass > 0
+          ? [{ label: "Por clase", price: data.class.pricePerClass }]
+          : []),
+        ...(["MONTHLY", "BOTH"].includes(data.class.billingMode) && data.class.monthlyPrice4 && data.class.monthlyPrice4 > 0
+          ? [{ label: "4 clases", price: data.class.monthlyPrice4 }]
+          : []),
+        ...(["MONTHLY", "BOTH"].includes(data.class.billingMode) && data.class.monthlyPrice8 && data.class.monthlyPrice8 > 0
+          ? [{ label: "8 clases", price: data.class.monthlyPrice8 }]
+          : [])
+      ]
+    : [];
 
   return (
     <>
@@ -379,6 +392,20 @@ export function SessionDrawer({
                   </div>
                 )}
               </div>
+
+              {priceOptions.length > 0 && (
+                <section className={styles.monthlyPricing} aria-labelledby="prices-title">
+                  <h3 id="prices-title">Precios</h3>
+                  <div className={styles.monthlyPricingGrid}>
+                    {priceOptions.map((option) => (
+                      <div key={option.label}>
+                        <span>{option.label}</span>
+                        <strong>{formatMoney(option.price)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <section className={styles.section}>
                 <div className={styles.actionRow} style={{ justifyContent: "space-between", alignItems: "center" }}>

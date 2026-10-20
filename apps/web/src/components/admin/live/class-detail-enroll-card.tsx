@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import type { MidMonthPolicy } from "@mym/shared";
 import type { BillingPreference, DanceClass, Student } from "./live-types";
 import {
+  availableMonthlyPlans,
   dayLabels,
   monthlyPlansAvailable,
   monthlyPlansLabel,
@@ -75,8 +76,9 @@ export function ClassEnrollCard(props: Props) {
           <div className={styles.enrollStep}>
             <label className={styles.enrollLabel}><b>{num()}</b>Plan mensual</label>
             <select value={monthlyPlan} onChange={(event) => props.onMonthlyPlanChange(Number(event.target.value) as 4 | 8)}>
-              <option value={4}>Plan de 4 clases · {"$ " + monthlyPriceFor(danceClass, 4).toLocaleString("es-AR")}</option>
-              <option value={8}>Plan de 8 clases · {"$ " + monthlyPriceFor(danceClass, 8).toLocaleString("es-AR")}</option>
+              {availableMonthlyPlans(danceClass).map((plan) => (
+                <option key={plan} value={plan}>Plan de {plan} clases · {"$ " + monthlyPriceFor(danceClass, plan).toLocaleString("es-AR")}</option>
+              ))}
             </select>
           </div>
         )}

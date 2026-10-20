@@ -4,8 +4,9 @@ import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { OrganizationModel } from "../core/organization.model";
 import { BranchModel } from "../core/branch.model";
-import { resetPublicSiteImagesCache, resetPublicSocialLinksCache } from "../public/public.routes";
 import {
+  confirmAcademySpaceImageUpload,
+  createAcademySpaceImageUploadSignature,
   deleteAcademySpaceImage,
   landingImageUpload,
   type AcademySpaceImageSlot,
@@ -56,6 +57,10 @@ const academySpaceImageLabels: Record<AcademySpaceImageSlot, string> = {
   wide: "foto horizontal",
   detail: "foto de detalle"
 };
+
+const completeLandingImageUploadSchema = z.object({
+  publicId: z.string().trim().min(1)
+});
 
 adminSettingsRouter.get("/", async (request, response, next) => {
   try {
@@ -114,7 +119,6 @@ adminSettingsRouter.put("/", async (request, response, next) => {
     organization.timezone = input.timezone;
     organization.cancellationNoticeHours = input.cancellationNoticeHours;
     await organization.save();
-    resetPublicSocialLinksCache();
 
     await AuditLogModel.create({
       organizationId,
@@ -146,6 +150,50 @@ adminSettingsRouter.put("/", async (request, response, next) => {
   }
 });
 
+/** Credentials for a browser → Cloudinary image upload, scoped to one collage slot. */
+adminSettingsRouter.post("/landing-images/:slot/signature", async (request, response, next) => {
+  try {
+    const slot = academySpaceImageSlotSchema.parse(request.params.slot);
+    response.json(createAcademySpaceImageUploadSignature(request.auth!.organizationId, slot));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Saves a direct Cloudinary upload only after checking its immutable public id and metadata. */
+adminSettingsRouter.post("/landing-images/:slot/complete", async (request, response, next) => {
+  try {
+    const slot = academySpaceImageSlotSchema.parse(request.params.slot);
+    const { publicId } = completeLandingImageUploadSchema.parse(request.body);
+    const organizationId = request.auth!.organizationId;
+    const organization = await OrganizationModel.findById(organizationId);
+    if (!organization) {
+      throw new AppError(404, "Organización no encontrada", "ORGANIZATION_NOT_FOUND");
+    }
+
+    const result = await confirmAcademySpaceImageUpload(String(organizationId), slot, publicId);
+    organization.set(`academySpaceImages.${slot}`, {
+      url: result.secure_url,
+      width: result.width,
+      height: result.height
+    });
+    await organization.save();
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "LANDING_IMAGE_UPDATED",
+      entityType: "Organization",
+      entityId: organization._id,
+      metadata: { section: "academy-space", slot, label: academySpaceImageLabels[slot] }
+    });
+
+    response.json({ images: organization.academySpaceImages });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminSettingsRouter.post(
   "/landing-images/:slot",
   landingImageUpload.single("file"),
@@ -169,7 +217,6 @@ adminSettingsRouter.post(
         height: result.height
       });
       await organization.save();
-      resetPublicSiteImagesCache();
 
       await AuditLogModel.create({
         organizationId,
@@ -203,7 +250,6 @@ adminSettingsRouter.delete("/landing-images/:slot", async (request, response, ne
         { _id: organization._id },
         { $unset: { [`academySpaceImages.${slot}`]: 1 } }
       );
-      resetPublicSiteImagesCache();
 
       await AuditLogModel.create({
         organizationId,

@@ -9,6 +9,7 @@ import { withTransaction } from "../../common/transaction";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { createMonthlyChargeForEnrollment, planMonthlyCharge } from "../billing/charge-service";
 import { DanceClassModel, ENROLLABLE_CLASS_STATUSES } from "../classes/class.model";
+import { resolveMonthlyPlan } from "../classes/monthly-plans";
 import { resolveBillingPreference } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import {
@@ -56,6 +57,7 @@ const updateSeriesSchema = z.object({ seriesIds: z.array(objectIdSchema).min(1).
 const moveEnrollmentSchema = z.object({
   targetClassId: objectIdSchema,
   billingPreference: billingPreferenceSchema.optional(),
+  monthlyPlan: monthlyPlanSchema.optional(),
   scheduleKeys: z.array(z.string().min(1).max(64)).min(1).max(14).optional(),
   seriesIds: z.array(objectIdSchema).min(1).max(14).optional(),
   date: calendarDateSchema.optional()
@@ -181,8 +183,8 @@ adminEnrollmentsRouter.post("/", async (request, response, next) => {
       await assertSeriesCapacity(organizationId, danceClass, seriesIds, rules, dbSession, existing?._id);
 
       const billingPreference = resolveBillingPreference(danceClass.billingMode, input.billingPreference, existing?.billingPreference);
-      const monthlyPlan = billingPreference === "MONTHLY" && input.monthlyPlan !== undefined
-        ? input.monthlyPlan
+      const monthlyPlan = billingPreference === "MONTHLY"
+        ? resolveMonthlyPlan(danceClass, input.monthlyPlan)
         : undefined;
       const conditions = {
         branchId: danceClass.branchId,
@@ -351,6 +353,9 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
         input.billingPreference,
         enrollment.billingPreference ?? targetExisting?.billingPreference
       );
+      const monthlyPlan = billingPreference === "MONTHLY"
+        ? resolveMonthlyPlan(targetClass, input.monthlyPlan)
+        : undefined;
       const sourceClassId = enrollment.classId;
       closeEnrollment(enrollment, addDays(date, -1), "Cambio de clase");
       await enrollment.save({ session: dbSession });
@@ -362,6 +367,7 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
         targetExisting.branchId = targetClass.branchId;
         targetExisting.seriesIds = seriesIds;
         targetExisting.scheduleKeys = keysOf(rules, seriesIds);
+        targetExisting.monthlyPlan = monthlyPlan;
         target = await targetExisting.save({ session: dbSession });
       } else {
         [target] = await EnrollmentModel.create(
@@ -371,6 +377,7 @@ adminEnrollmentsRouter.post("/:id/move", async (request, response, next) => {
             classId: targetClass._id,
             studentId: student._id,
             ...newEnrollmentFields({ startDate: date, billingPreference, userId }),
+            ...(monthlyPlan ? { monthlyPlan } : {}),
             seriesIds,
             scheduleKeys: keysOf(rules, seriesIds)
           }],
@@ -424,9 +431,12 @@ adminEnrollmentsRouter.patch("/:id/billing-preference", async (request, response
       throw new AppError(422, "El cambio de modalidad no puede regir desde un mes anterior", "RETROACTIVE_BILLING_CHANGE");
     }
     const previous = enrollment.billingPreference;
+    const previousPlan = enrollment.monthlyPlan;
     const billingPreference = resolveBillingPreference(danceClass.billingMode, input.billingPreference);
     recordBillingChange(enrollment, billingPreference, effectiveDate, request.auth!.userId);
-    if (billingPreference === "MONTHLY" && input.monthlyPlan) enrollment.monthlyPlan = input.monthlyPlan;
+    if (billingPreference === "MONTHLY") {
+      enrollment.monthlyPlan = resolveMonthlyPlan(danceClass, input.monthlyPlan ?? enrollment.monthlyPlan);
+    }
     await enrollment.save();
 
     await AuditLogModel.create({
@@ -435,7 +445,7 @@ adminEnrollmentsRouter.patch("/:id/billing-preference", async (request, response
       action: "ENROLLMENT_BILLING_UPDATED",
       entityType: "Enrollment",
       entityId: enrollment._id,
-      metadata: { classId: enrollment.classId, studentId: enrollment.studentId, from: previous, billingPreference, effectiveDate }
+      metadata: { classId: enrollment.classId, studentId: enrollment.studentId, from: previous, billingPreference, previousPlan, monthlyPlan: enrollment.monthlyPlan, effectiveDate }
     });
 
     const monthly = billingPreference === "MONTHLY"

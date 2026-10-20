@@ -3,7 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import type { BillingMode, Branch, CatalogItem, DanceClass, Professor } from "./live-types";
 import { Field, LiveModal } from "./live-common";
 import type { ScheduleDraft } from "./class-detail-types";
-import { dayLabels, monthlyPriceFor, refId } from "./class-detail-helpers";
+import { availableMonthlyPlans, dayLabels, refId } from "./class-detail-helpers";
 import styles from "./class-detail-modals.module.css";
 
 type Props = {
@@ -50,6 +50,13 @@ export function ClassEditModal({
   const selectableSegments = segments.filter((item) => item.isActive || selectedSegmentIds.includes(item._id));
   const selectableLevels = levels.filter((item) => item.isActive || selectedLevelIds.includes(item._id));
   const inactiveSuffix = (item: { isActive: boolean }) => (item.isActive ? "" : " (inactivo)");
+  const hasConfiguredMonthlyPlan = availableMonthlyPlans(danceClass).length > 0;
+  const monthlyPrice4 = danceClass.monthlyPrice4 && danceClass.monthlyPrice4 > 0
+    ? danceClass.monthlyPrice4
+    : !hasConfiguredMonthlyPlan ? danceClass.monthlyPrice || "" : "";
+  const monthlyPrice8 = danceClass.monthlyPrice8 && danceClass.monthlyPrice8 > 0
+    ? danceClass.monthlyPrice8
+    : "";
 
   return (
     <LiveModal
@@ -83,10 +90,11 @@ export function ClassEditModal({
       {(editBillingMode === "MONTHLY" || editBillingMode === "BOTH") && (
         <>
           <Field label="Mensual · 4 clases (ARS)">
-            <input name="monthlyPrice4" type="number" min={1} step="1" defaultValue={monthlyPriceFor(danceClass, 4)} required />
+            <input name="monthlyPrice4" type="number" min={1} step="1" defaultValue={monthlyPrice4} placeholder="Opcional" />
           </Field>
           <Field label="Mensual · 8 clases (ARS)">
-            <input name="monthlyPrice8" type="number" min={1} step="1" defaultValue={monthlyPriceFor(danceClass, 8)} required />
+            <input name="monthlyPrice8" type="number" min={1} step="1" defaultValue={monthlyPrice8} placeholder="Opcional" />
+            <small>Completá al menos uno. Los alumnos activos conservan su plan.</small>
           </Field>
         </>
       )}

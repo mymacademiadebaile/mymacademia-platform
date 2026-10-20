@@ -9,6 +9,7 @@ import { UserModel } from "../auth/user.model";
 import { ChargeModel } from "../billing/charge.model";
 import { CatalogItemModel } from "../catalogs/catalog.model";
 import { DanceClassModel, type DanceClass } from "../classes/class.model";
+import { availableMonthlyPlans } from "../classes/monthly-plans";
 import { BranchModel } from "../core/branch.model";
 import { enrollmentReconciliation } from "../enrollments/billing-preference";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
@@ -67,11 +68,8 @@ const classBodySchema = z.object({
     context.addIssue({ code: "custom", path: ["endDate"], message: "La fecha de fin debe ser posterior al inicio" });
   }
   if (["MONTHLY", "BOTH"].includes(value.billingMode)) {
-    if (!value.monthlyPrice4 || value.monthlyPrice4 <= 0) {
-      context.addIssue({ code: "custom", path: ["monthlyPrice4"], message: "Indicá el precio del plan mensual de 4 clases" });
-    }
-    if (!value.monthlyPrice8 || value.monthlyPrice8 <= 0) {
-      context.addIssue({ code: "custom", path: ["monthlyPrice8"], message: "Indicá el precio del plan mensual de 8 clases" });
+    if (!availableMonthlyPlans(value).length && value.monthlyPrice <= 0) {
+      context.addIssue({ code: "custom", path: ["monthlyPrice4"], message: "Indicá el precio de al menos un plan mensual" });
     }
   }
   const keys = new Set<string>();
@@ -148,6 +146,7 @@ const listQuerySchema = z.object({
 });
 
 type ScheduleInput = z.infer<typeof scheduleSchema>;
+type DanceClassUpdate = z.infer<typeof updateDanceClassSchema>;
 
 function overlaps(a: ScheduleInput, b: { day: string; startTime: string; endTime: string }) {
   return a.day === b.day && a.startTime < b.endTime && b.startTime < a.endTime;
@@ -295,6 +294,60 @@ const actorOf = (request: Express.Request) => ({
   organizationId: request.auth!.organizationId,
   userId: request.auth!.userId
 });
+
+function classSnapshot(item: HydratedDocument<DanceClass>) {
+  return {
+    branchId: item.branchId.toString(),
+    name: item.name,
+    professorIds: item.professorIds.map((value) => value.toString()),
+    disciplineIds: item.disciplineIds.map((value) => value.toString()),
+    segmentIds: item.segmentIds.map((value) => value.toString()),
+    levelIds: item.levelIds.map((value) => value.toString()),
+    capacity: item.capacity,
+    billingMode: item.billingMode ?? "MONTHLY",
+    pricePerClass: item.pricePerClass ?? 0,
+    monthlyPrice: item.monthlyPrice ?? 0,
+    monthlyPrice4: item.monthlyPrice4 ?? null,
+    monthlyPrice8: item.monthlyPrice8 ?? null,
+    freeTrialEnabled: item.freeTrialEnabled ?? false,
+    schedules: item.schedules,
+    status: item.status,
+    publishOnWeb: item.publishOnWeb ?? true
+  };
+}
+
+function applyClassUpdate(item: HydratedDocument<DanceClass>, input: DanceClassUpdate) {
+  const billingModeChanged = input.billingMode !== undefined && input.billingMode !== item.billingMode;
+  const archiving = (input.status === "INACTIVE" || input.status === "ARCHIVED") && !isArchivedStatus(item.status);
+  const unarchiving = input.status === "ACTIVE" && isArchivedStatus(item.status);
+
+  if (input.branchId !== undefined) item.branchId = new Types.ObjectId(input.branchId);
+  if (input.name !== undefined) item.name = input.name;
+  if (input.professorIds !== undefined) item.professorIds = input.professorIds.map((value) => new Types.ObjectId(value));
+  if (input.disciplineIds !== undefined) item.disciplineIds = input.disciplineIds.map((value) => new Types.ObjectId(value));
+  if (input.segmentIds !== undefined) item.segmentIds = input.segmentIds.map((value) => new Types.ObjectId(value));
+  if (input.levelIds !== undefined) item.levelIds = input.levelIds.map((value) => new Types.ObjectId(value));
+  if (input.capacity !== undefined) item.capacity = input.capacity;
+  if (input.billingMode !== undefined) item.billingMode = input.billingMode;
+  if (input.pricePerClass !== undefined) item.pricePerClass = input.pricePerClass;
+  if (input.monthlyPrice !== undefined) item.monthlyPrice = input.monthlyPrice;
+  if (input.monthlyPrice4 !== undefined) {
+    item.monthlyPrice4 = input.monthlyPrice4 ?? undefined;
+  }
+  if (input.monthlyPrice8 !== undefined) item.monthlyPrice8 = input.monthlyPrice8 ?? undefined;
+  if (input.monthlyPrice4 !== undefined || input.monthlyPrice8 !== undefined) {
+    item.monthlyPrice = item.monthlyPrice4 || item.monthlyPrice8 || 0;
+  }
+  if (input.freeTrialEnabled !== undefined) item.freeTrialEnabled = input.freeTrialEnabled;
+  if (unarchiving) {
+    item.status = "ACTIVE";
+    item.archivedAt = undefined;
+  }
+  if (input.publishOnWeb !== undefined) item.publishOnWeb = input.publishOnWeb;
+  if (input.defaultSpaceId !== undefined) item.defaultSpaceId = input.defaultSpaceId ? new Types.ObjectId(input.defaultSpaceId) : undefined;
+
+  return { archiving, billingModeChanged };
+}
 
 /** Active enrollments per current recurring slot (capacity is evaluated per slot). */
 async function seriesOccupancy(organizationId: string, danceClass: any) {
@@ -459,7 +512,7 @@ adminClassesRouter.post("/", async (request, response, next) => {
         organizationId,
         ...fields,
         ...(["MONTHLY", "BOTH"].includes(input.billingMode)
-          ? { monthlyPrice: monthlyPrice4 ?? fields.monthlyPrice, monthlyPrice4, monthlyPrice8 }
+          ? { monthlyPrice: monthlyPrice4 ?? monthlyPrice8 ?? fields.monthlyPrice, monthlyPrice4, monthlyPrice8 }
           : {}),
         defaultSpaceId,
         status: "ACTIVE"
@@ -532,6 +585,37 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
 
     if (!item) {
       throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
+    }
+
+    const nextBillingMode = input.billingMode ?? item.billingMode;
+    if (nextBillingMode === "MONTHLY" || nextBillingMode === "BOTH") {
+      const nextPrices = {
+        monthlyPrice4: input.monthlyPrice4 === undefined ? item.monthlyPrice4 : input.monthlyPrice4,
+        monthlyPrice8: input.monthlyPrice8 === undefined ? item.monthlyPrice8 : input.monthlyPrice8
+      };
+      if (!availableMonthlyPlans(nextPrices).length && !((input.monthlyPrice ?? item.monthlyPrice) > 0 && input.monthlyPrice4 === undefined && input.monthlyPrice8 === undefined)) {
+        throw new AppError(422, "Indicá el precio de al menos un plan mensual", "MONTHLY_PLAN_REQUIRED");
+      }
+      const availableNext = availableMonthlyPlans(nextPrices);
+      const unavailablePlans = ([4, 8] as const).filter((plan) => !availableNext.includes(plan));
+      if (availableNext.length && unavailablePlans.length && (input.monthlyPrice4 !== undefined || input.monthlyPrice8 !== undefined)) {
+        const implicitPlan = availableMonthlyPlans(item)[0];
+        const activePlan = await EnrollmentModel.findOne({
+          organizationId,
+          classId: item._id,
+          status: "ACTIVE",
+          ...(item.billingMode === "BOTH" ? { billingPreference: "MONTHLY" } : {}),
+          $or: [
+            { monthlyPlan: { $in: unavailablePlans } },
+            ...(implicitPlan && unavailablePlans.includes(implicitPlan)
+              ? [{ monthlyPlan: { $exists: false } }]
+              : [])
+          ]
+        }).select("monthlyPlan").lean();
+        if (activePlan) {
+          throw new AppError(409, `Hay alumnos activos que pagan el plan de ${activePlan.monthlyPlan ?? implicitPlan} clases`, "MONTHLY_PLAN_IN_USE");
+        }
+      }
     }
 
     const merged = {

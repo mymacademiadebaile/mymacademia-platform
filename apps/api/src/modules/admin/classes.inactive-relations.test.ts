@@ -136,3 +136,27 @@ describe("PATCH /admin/classes/:id with inactive related items", () => {
     expect(response.body.error).toBe("INVALID_DISCIPLINES");
   });
 });
+
+describe("POST /admin/classes with monthly plans", () => {
+  it("creates a monthly class with only the 8-class price", async () => {
+    const response = await request(app)
+      .post("/api/admin/classes")
+      .set(auth())
+      .send({
+        branchId,
+        name: "Clase de ocho",
+        professorIds: [professorId],
+        disciplineIds: [activeDisciplineId],
+        segmentIds: [segmentId],
+        levelIds: [levelId],
+        capacity: 20,
+        billingMode: "MONTHLY",
+        monthlyPrice8: 50000,
+        schedules: [{ day: "FRIDAY", startTime: "20:00", endTime: "21:00" }]
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ monthlyPrice8: 50000, monthlyPrice: 50000 });
+    expect(response.body.monthlyPrice4).toBeUndefined();
+  });
+});

@@ -327,3 +327,83 @@ describe("PATCH /admin/classes/:id: billingMode change reconciles ACTIVE enrollm
     expect(metadata.enrollmentsReconciled).toBe(1);
   });
 });
+
+describe("PATCH /admin/classes/:id: monthly plans", () => {
+  it("allows a class to offer only 4 or only 8 classes and keeps the legacy price in sync", async () => {
+    const danceClass = await createClass("MONTHLY");
+
+    const four = await patchClass(danceClass._id, { monthlyPrice4: 28000, monthlyPrice8: null });
+    expect(four.status).toBe(200);
+    expect(four.body).toMatchObject({ monthlyPrice4: 28000, monthlyPrice: 28000 });
+    expect(four.body.monthlyPrice8).toBeUndefined();
+
+    const eight = await patchClass(danceClass._id, { monthlyPrice4: null, monthlyPrice8: 50000 });
+    expect(eight.status).toBe(200);
+    expect(eight.body).toMatchObject({ monthlyPrice8: 50000, monthlyPrice: 50000 });
+    expect(eight.body.monthlyPrice4).toBeUndefined();
+
+    const neither = await patchClass(danceClass._id, { monthlyPrice4: null, monthlyPrice8: null });
+    expect(neither.status).toBe(422);
+  });
+
+  it("does not remove a plan used by an active monthly student", async () => {
+    const danceClass = await createClass("MONTHLY");
+    await patchClass(danceClass._id, { monthlyPrice4: 28000, monthlyPrice8: 50000 });
+    const { enrollment } = await enroll(danceClass._id, { billingPreference: "MONTHLY" });
+    enrollment.monthlyPlan = 8;
+    await enrollment.save();
+
+    const response = await patchClass(danceClass._id, { monthlyPrice8: null });
+    expect(response.status).toBe(409);
+    expect((await DanceClassModel.findById(danceClass._id))?.monthlyPrice8).toBe(50000);
+  });
+
+  it("does not replace a legacy student's 4-class plan with an 8-only price", async () => {
+    const danceClass = await createClass("MONTHLY");
+    const { enrollment } = await enroll(danceClass._id, { billingPreference: "MONTHLY" });
+    enrollment.monthlyPlan = 4;
+    await enrollment.save();
+
+    const response = await patchClass(danceClass._id, { monthlyPrice4: null, monthlyPrice8: 50000 });
+    expect(response.status).toBe(409);
+    expect((await DanceClassModel.findById(danceClass._id))?.monthlyPrice8).toBeUndefined();
+  });
+
+  it("enrolls a student in the available plan and rejects an unavailable one", async () => {
+    const danceClass = await createClass("MONTHLY");
+    await patchClass(danceClass._id, { monthlyPrice4: null, monthlyPrice8: 50000 });
+    const student = await StudentModel.create({
+      organizationId: ids.org,
+      branchId: ids.branch,
+      firstName: "Alumno",
+      lastName: "Mensual"
+    });
+    const post = (monthlyPlan?: 4 | 8) => request(app)
+      .post("/api/admin/enrollments")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ classId: danceClass._id, studentId: student._id, billingPreference: "MONTHLY", monthlyPlan });
+
+    const unavailable = await post(4);
+    expect(unavailable.status).toBe(422);
+    expect(await EnrollmentModel.countDocuments({ classId: danceClass._id, studentId: student._id })).toBe(0);
+
+    const enrolled = await post();
+    expect(enrolled.status).toBe(201);
+    expect(enrolled.body.monthlyPlan).toBe(8);
+  });
+
+  it("lets an active monthly student choose between the two available plans", async () => {
+    const danceClass = await createClass("MONTHLY");
+    await patchClass(danceClass._id, { monthlyPrice4: 28000, monthlyPrice8: 50000 });
+    const { enrollment } = await enroll(danceClass._id, { billingPreference: "MONTHLY" });
+
+    const response = await request(app)
+      .patch(`/api/admin/enrollments/${enrollment._id}/billing-preference`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ billingPreference: "MONTHLY", monthlyPlan: 8 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.monthlyPlan).toBe(8);
+    expect((await EnrollmentModel.findById(enrollment._id))?.monthlyPlan).toBe(8);
+  });
+});
