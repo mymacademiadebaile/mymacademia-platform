@@ -337,6 +337,10 @@ describe("PATCH /admin/classes/:id: monthly plans", () => {
     expect(four.body).toMatchObject({ monthlyPrice4: 28000, monthlyPrice: 28000 });
     expect(four.body.monthlyPrice8).toBeUndefined();
 
+    const zeroForEight = await patchClass(danceClass._id, { monthlyPrice4: 35000, monthlyPrice8: 0 });
+    expect(zeroForEight.status).toBe(200);
+    expect(zeroForEight.body).toMatchObject({ monthlyPrice4: 35000, monthlyPrice8: 0, monthlyPrice: 35000 });
+
     const eight = await patchClass(danceClass._id, { monthlyPrice4: null, monthlyPrice8: 50000 });
     expect(eight.status).toBe(200);
     expect(eight.body).toMatchObject({ monthlyPrice8: 50000, monthlyPrice: 50000 });

@@ -37,6 +37,8 @@ export function useClassEdit({ id, danceClass, load, setBusy, setError }: Params
   async function saveClass(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const monthlyPrice4 = Number(form.get("monthlyPrice4") || 0);
+    const monthlyPrice8 = Number(form.get("monthlyPrice8") || 0);
     setBusy(true);
     setError("");
 
@@ -53,8 +55,8 @@ export function useClassEdit({ id, danceClass, load, setBusy, setError }: Params
           capacity: Number(form.get("capacity")),
           billingMode: editBillingMode,
           pricePerClass: Number(form.get("pricePerClass") || 0),
-          monthlyPrice4: form.get("monthlyPrice4") === null ? undefined : form.get("monthlyPrice4") ? Number(form.get("monthlyPrice4")) : null,
-          monthlyPrice8: form.get("monthlyPrice8") === null ? undefined : form.get("monthlyPrice8") ? Number(form.get("monthlyPrice8")) : null,
+          monthlyPrice4: form.get("monthlyPrice4") === null ? undefined : monthlyPrice4 > 0 ? monthlyPrice4 : null,
+          monthlyPrice8: form.get("monthlyPrice8") === null ? undefined : monthlyPrice8 > 0 ? monthlyPrice8 : null,
           freeTrialEnabled: form.get("freeTrialEnabled") === "on",
           schedules: editSchedules
         })

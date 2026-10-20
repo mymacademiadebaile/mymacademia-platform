@@ -90,11 +90,11 @@ export function ClassEditModal({
       {(editBillingMode === "MONTHLY" || editBillingMode === "BOTH") && (
         <>
           <Field label="Mensual · 4 clases (ARS)">
-            <input name="monthlyPrice4" type="number" min={1} step="1" defaultValue={monthlyPrice4} placeholder="Opcional" />
+            <input name="monthlyPrice4" type="number" min={0} step="1" defaultValue={monthlyPrice4} placeholder="Opcional" />
           </Field>
           <Field label="Mensual · 8 clases (ARS)">
-            <input name="monthlyPrice8" type="number" min={1} step="1" defaultValue={monthlyPrice8} placeholder="Opcional" />
-            <small>Completá al menos uno. Los alumnos activos conservan su plan.</small>
+            <input name="monthlyPrice8" type="number" min={0} step="1" defaultValue={monthlyPrice8} placeholder="Opcional" />
+            <small>Dejá vacío o en 0 el plan que no ofrecés. Completá al menos uno; los alumnos activos conservan su plan.</small>
           </Field>
         </>
       )}
