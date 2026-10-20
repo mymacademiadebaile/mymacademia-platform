@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight, LayoutGrid, List, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
@@ -13,6 +13,31 @@ import styles from "./live.module.css";
 
 function disciplineName(value: CatalogItem | string) {
   return typeof value === "string" ? value : value.name;
+}
+
+type ProfessorView = "cards" | "list";
+
+function ProfessorAvatar({ professor }: { professor: Professor }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const initials = professor.displayName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  if (professor.avatarUrl && !imageFailed) {
+    return (
+      <img
+        className={`${styles.avatar} ${styles.avatarImage}`}
+        src={professor.avatarUrl}
+        alt={`Foto de ${professor.displayName}`}
+        onError={() => setImageFailed(true)}
+      />
+    );
+  }
+
+  return <span className={styles.avatar} aria-label={`Iniciales de ${professor.displayName}`}>{initials}</span>;
 }
 
 export function ProfessorsLive() {
@@ -28,6 +53,7 @@ export function ProfessorsLive() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
+  const [view, setView] = useState<ProfessorView>("cards");
   const [modal, setModal] = useState(false);
   const [bioShortDraft, setBioShortDraft] = useState("");
   const [loading, setLoading] = useState(true);
@@ -85,6 +111,11 @@ export function ProfessorsLive() {
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  useEffect(() => {
+    const storedView = window.localStorage.getItem("admin-professors-view");
+    if (storedView === "cards" || storedView === "list") setView(storedView);
+  }, []);
+
   const selectedDisciplines = useMemo(
     () => new Set(catalogs.map((item) => item._id)),
     [catalogs]
@@ -94,6 +125,11 @@ export function ProfessorsLive() {
     setBioShortDraft("");
     setFormError("");
     setModal(false);
+  }
+
+  function changeView(nextView: ProfessorView) {
+    setView(nextView);
+    window.localStorage.setItem("admin-professors-view", nextView);
   }
 
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -178,6 +214,26 @@ export function ProfessorsLive() {
           <option value="inactive">Inactivos</option>
           <option value="all">Todos</option>
         </select>
+        <div className={styles.viewToggle} role="group" aria-label="Vista de profesores">
+          <button
+            type="button"
+            className={view === "cards" ? styles.viewToggleActive : ""}
+            aria-label="Ver profesores en tarjetas"
+            aria-pressed={view === "cards"}
+            onClick={() => changeView("cards")}
+          >
+            <LayoutGrid size={17} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={view === "list" ? styles.viewToggleActive : ""}
+            aria-label="Ver profesores en lista"
+            aria-pressed={view === "list"}
+            onClick={() => changeView("list")}
+          >
+            <List size={18} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
@@ -185,30 +241,49 @@ export function ProfessorsLive() {
 
       {(items.length > 0 || !loading) && (
         <>
-          <div className={styles.liveGrid3}>
+          <div className={view === "cards" ? styles.liveGrid3 : styles.listCard}>
             {items.length === 0 && <div className={styles.stateBlock}>No hay profesores para estos filtros.</div>}
-            {items.map((professor) => (
-              <Link className={styles.cardLink} href={`/admin/professors/${professor._id}`} key={professor._id}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span className={styles.avatar}>{professor.displayName.slice(0, 2).toUpperCase()}</span>
-                  <span className={professor.isActive ? styles.pill : styles.pillOff}>
-                    {professor.isActive ? "Activo" : "Inactivo"}
-                  </span>
-                </div>
-                <strong className={styles.cardTitle}>{professor.displayName}</strong>
-                <span className={styles.cardDetail}>
-                  {professor.userId?.email || professor.phone || "Sin contacto"}
-                </span>
-                <div className={styles.tagRow}>
-                  {professor.disciplineIds?.slice(0, 4).map((discipline) => (
-                    <span key={typeof discipline === "string" ? discipline : discipline._id}>
-                      {disciplineName(discipline)}
+            {view === "cards"
+              ? items.map((professor) => (
+                  <Link className={styles.cardLink} href={`/admin/professors/${professor._id}`} key={professor._id}>
+                    <div className={styles.professorCardHeader}>
+                      <ProfessorAvatar professor={professor} />
+                      <span className={professor.isActive ? styles.pill : styles.pillOff}>
+                        {professor.isActive ? "Activo" : "Inactivo"}
+                      </span>
+                    </div>
+                    <strong className={styles.cardTitle}>{professor.displayName}</strong>
+                    <span className={styles.cardDetail}>
+                      {professor.userId?.email || professor.phone || "Sin contacto"}
                     </span>
-                  ))}
-                </div>
-                <div className={styles.cardFooterLink}>Ver perfil <ChevronRight size={15} /></div>
-              </Link>
-            ))}
+                    <div className={styles.tagRow}>
+                      {professor.disciplineIds?.slice(0, 4).map((discipline) => (
+                        <span key={typeof discipline === "string" ? discipline : discipline._id}>
+                          {disciplineName(discipline)}
+                        </span>
+                      ))}
+                    </div>
+                    <div className={styles.cardFooterLink}>Ver perfil <ChevronRight size={15} /></div>
+                  </Link>
+                ))
+              : items.map((professor) => (
+                  <Link className={`${styles.listRowLink} ${styles.professorListRow}`} href={`/admin/professors/${professor._id}`} key={professor._id}>
+                    <ProfessorAvatar professor={professor} />
+                    <div className={styles.rowBody}>
+                      <strong>{professor.displayName}</strong>
+                      <small>{professor.userId?.email || professor.phone || "Sin contacto"}</small>
+                    </div>
+                    <span className={styles.listDisciplines}>
+                      {professor.disciplineIds?.length
+                        ? professor.disciplineIds.slice(0, 3).map(disciplineName).join(" · ")
+                        : "Sin disciplinas"}
+                    </span>
+                    <span className={professor.isActive ? styles.pill : styles.pillOff}>
+                      {professor.isActive ? "Activo" : "Inactivo"}
+                    </span>
+                    <ChevronRight className={styles.listChevron} size={17} aria-hidden="true" />
+                  </Link>
+                ))}
           </div>
           <PaginationControls
             page={page}

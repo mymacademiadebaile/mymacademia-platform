@@ -155,6 +155,7 @@
 .cardLink:hover { transform: translateY(-1px); border-color: #d9cbea; box-shadow: 0 12px 32px rgba(48,27,59,.075); }
 
 .cardTopLine { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.professorCardHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cardTitle { display: block; margin-top: 14px; font-size: 14px; }
 .cardLabel { color: #7b7281; font-size: 11px; font-weight: 750; }
 .cardValue { display: block; margin: 11px 0 5px; font-size: 28px; letter-spacing: -.04em; }
@@ -192,6 +193,7 @@
   width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
   background: #f0e9fb; color: #5b21b6; font-size: 11px; font-weight: 900;
 }
+.avatarImage { object-fit: cover; }
 
 .pill,.pillWarn,.pillOff { padding: 5px 8px; border-radius: 999px; font-size: 9px; font-weight: 900; }
 .pill { color: #166534; background: #dcfce7; }
@@ -223,13 +225,51 @@
 
 .filterBar {
   margin-bottom: 14px; padding: 12px; display: grid;
-  grid-template-columns: minmax(220px,1fr) 180px 180px 150px;
+  grid-template-columns: minmax(220px,1fr) 180px 180px 150px auto;
   gap: 9px; align-items: center; border: 1px solid #e8e1ec; border-radius: 17px; background: white;
 }
 
 .searchInline { min-height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 8px; border: 1px solid #e6dfea; border-radius: 11px; }
 .searchInline input { width: 100%; border: 0; outline: 0; background: transparent; }
 .filterBar > select { min-height: 40px; padding: 0 9px; border: 1px solid #e6dfea; border-radius: 11px; background: white; }
+
+.viewToggle {
+  min-height: 40px;
+  padding: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #e6dfea;
+  border-radius: 11px;
+  background: #faf8fb;
+}
+.viewToggle button {
+  width: 36px;
+  min-height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #776d7d;
+  cursor: pointer;
+}
+.viewToggle button:hover { color: #5b21b6; }
+.viewToggle button:focus-visible { outline: 2px solid #7c3aed; outline-offset: 2px; }
+.viewToggle .viewToggleActive { background: #5b21b6; color: white; box-shadow: 0 2px 5px rgba(91,33,182,.24); }
+
+.professorListRow { min-height: 76px; }
+.listDisciplines {
+  width: min(32vw, 360px);
+  overflow: hidden;
+  color: #665d70;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.listChevron { flex: 0 0 auto; color: #7c3aed; }
 
 .checkboxFilter { display: flex; align-items: center; gap: 7px; color: #655b6b; font-size: 10px; font-weight: 800; }
 
@@ -254,6 +294,8 @@
 @media (max-width:680px) {
   .liveGrid4,.liveGrid3,.formGrid,.filterBar { grid-template-columns: 1fr; }
   .searchInline { grid-column: auto; }
+  .viewToggle { justify-self: start; }
+  .listDisciplines { display: none; }
   .fieldWide { grid-column: auto; }
   .modal { padding: 18px; }
   .scheduleEditorRow { grid-template-columns: 1fr 1fr; }
