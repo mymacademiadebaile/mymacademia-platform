@@ -19,7 +19,7 @@ import {
   UserRound
 } from "lucide-react";
 import { PageHeader } from "../admin-ui";
-import { apiFetch, apiMessage } from "@/lib/api";
+import { apiFetch, apiMessage, uploadAcademySpaceImage } from "@/lib/api";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { Branch } from "./live-types";
 import { ErrorBlock, Field, LiveModal, LoadingBlock } from "./live-common";
@@ -213,14 +213,17 @@ export function SettingsLive() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      setError("La imagen debe pesar como máximo 20 MB.");
+      toast({ title: "La imagen supera el máximo de 20 MB", tone: "error" });
+      return;
+    }
 
-    const form = new FormData();
-    form.append("file", file);
     setLandingImageBusy(slot);
     setError("");
 
     try {
-      await apiFetch(`/admin/settings/landing-images/${slot}`, { method: "POST", body: form });
+      await uploadAcademySpaceImage(slot, file);
       toast(`${ACADEMY_SPACE_IMAGES[slot].title} actualizada`);
       await load();
     } catch (requestError) {
@@ -457,7 +460,7 @@ export function SettingsLive() {
               })}
             </div>
             <p className={styles.landingImageNote}>
-              Formatos admitidos: JPG, PNG o WEBP de hasta 4 MB. La landing puede tardar hasta un minuto en reflejar el cambio.
+              Formatos admitidos: JPG, PNG o WEBP de hasta 20 MB. La landing puede tardar hasta un minuto en reflejar el cambio.
             </p>
           </section>
 

@@ -92,7 +92,19 @@ type ProfessorVideoUploadSignature = {
 
 type CloudinaryUploadResponse = {
   public_id?: string;
+  secure_url?: string;
   error?: { message?: string };
+};
+
+type AcademySpaceImageUploadSignature = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  publicId: string;
+  uploadPublicId: string;
+  allowedFormats: string;
 };
 
 /** Uploads the file browser → Cloudinary, so the video never crosses Vercel. */
@@ -127,6 +139,41 @@ export async function uploadProfessorIntroVideo(
   }
 
   return apiFetch<{ introVideoUrl: string }>(completionPath, {
+    method: "POST",
+    body: JSON.stringify({ publicId: ticket.publicId })
+  });
+}
+
+/** Uploads a landing image directly to Cloudinary, avoiding Vercel's request-size limit. */
+export async function uploadAcademySpaceImage(slot: "tall" | "wide" | "detail", file: File) {
+  const ticket = await apiFetch<AcademySpaceImageUploadSignature>(
+    `/admin/settings/landing-images/${slot}/signature`,
+    { method: "POST" }
+  );
+  const form = new FormData();
+  form.append("file", file);
+  form.append("api_key", ticket.apiKey);
+  form.append("timestamp", String(ticket.timestamp));
+  form.append("signature", ticket.signature);
+  form.append("folder", ticket.folder);
+  form.append("public_id", ticket.uploadPublicId);
+  form.append("overwrite", "true");
+  form.append("allowed_formats", ticket.allowedFormats);
+
+  const uploadResponse = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(ticket.cloudName)}/image/upload`,
+    { method: "POST", body: form }
+  );
+  const upload = (await uploadResponse.json().catch(() => ({}))) as CloudinaryUploadResponse;
+
+  if (!uploadResponse.ok) {
+    throw new Error(upload.error?.message ?? "No pudimos cargar la imagen");
+  }
+  if (upload.public_id !== ticket.publicId || !upload.secure_url) {
+    throw new Error("Cloudinary devolvió una imagen no esperada");
+  }
+
+  return apiFetch(`/admin/settings/landing-images/${slot}/complete`, {
     method: "POST",
     body: JSON.stringify({ publicId: ticket.publicId })
   });

@@ -8,7 +8,7 @@ const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const IMAGE_FORMATS = "jpg,jpeg,png,webp";
 const MAX_LANDING_IMAGE_BYTES = 20 * 1024 * 1024;
 
-/** Landing photos are intentionally kept below Vercel's serverless request limit. */
+/** Compatibility endpoint for older clients that still upload through the API. */
 export const landingImageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 4 * 1024 * 1024 },
