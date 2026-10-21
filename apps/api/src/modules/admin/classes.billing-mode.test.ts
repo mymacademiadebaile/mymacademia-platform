@@ -329,6 +329,18 @@ describe("PATCH /admin/classes/:id: billingMode change reconciles ACTIVE enrollm
 });
 
 describe("PATCH /admin/classes/:id: monthly plans", () => {
+  it("removes the optional 8-class price from a per-class-or-monthly class", async () => {
+    const danceClass = await createClass("BOTH");
+    await patchClass(danceClass._id, { monthlyPrice4: 45000, monthlyPrice8: 1 });
+
+    const response = await patchClass(danceClass._id, { monthlyPrice8: null });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ billingMode: "BOTH", monthlyPrice4: 45000, monthlyPrice: 45000 });
+    expect(response.body.monthlyPrice8).toBeUndefined();
+    expect((await DanceClassModel.findById(danceClass._id))?.monthlyPrice8).toBeUndefined();
+  });
+
   it("allows a class to offer only 4 or only 8 classes and keeps the legacy price in sync", async () => {
     const danceClass = await createClass("MONTHLY");
 
