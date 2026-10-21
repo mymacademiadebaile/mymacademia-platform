@@ -62,7 +62,7 @@
   margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
 }
 
-.field,.fieldWide { display: grid; gap: 6px; }
+.field,.fieldWide { display: grid; align-content: start; gap: 6px; }
 .fieldWide { grid-column: 1 / -1; }
 .field > span,.fieldWide > span { color: #655b6b; font-size: 10px; font-weight: 850; }
 
