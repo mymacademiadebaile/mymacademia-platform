@@ -118,7 +118,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use((_request, response) => {
     response.status(404).json({
       error: "NOT_FOUND",
-      message: "Route not found"
+      message: "La ruta solicitada no existe"
     });
   });
 

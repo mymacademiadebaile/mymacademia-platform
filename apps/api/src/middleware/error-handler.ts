@@ -4,6 +4,34 @@ import { MulterError } from "multer";
 import { ZodError } from "zod";
 import { AppError } from "../common/http/app-error";
 
+type ValidationIssue = {
+  code: string;
+  message: string;
+  minimum?: number | bigint;
+  maximum?: number | bigint;
+};
+
+function spanishValidationMessage(issue: ValidationIssue): string {
+  // Custom schema messages already describe the business rule. All remaining
+  // Zod defaults are replaced so raw library messages never reach the UI.
+  if (issue.code === "custom") return issue.message;
+  if (issue.code === "too_small") {
+    return issue.minimum === undefined
+      ? "El valor ingresado es demasiado corto"
+      : `El valor debe tener al menos ${issue.minimum} caracteres`;
+  }
+  if (issue.code === "too_big") {
+    return issue.maximum === undefined
+      ? "El valor ingresado es demasiado largo"
+      : `El valor no puede superar los ${issue.maximum} caracteres`;
+  }
+  if (issue.code === "invalid_type") return "Completá este campo con el formato correcto";
+  if (issue.code === "invalid_format") return "El formato ingresado no es válido";
+  if (issue.code === "invalid_value") return "El valor seleccionado no es válido";
+  if (issue.code === "unrecognized_keys") return "La solicitud contiene campos no permitidos";
+  return "El valor ingresado no es válido";
+}
+
 /** Client mistakes that libraries raise as plain errors. They must never look like a server failure. */
 function clientError(error: unknown): AppError | undefined {
   if (error instanceof MulterError) {
@@ -33,7 +61,10 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   if (error instanceof ZodError) {
     response.status(400).json({
       error: "VALIDATION_ERROR",
-      issues: error.issues
+      issues: error.issues.map((issue) => ({
+        ...issue,
+        message: spanishValidationMessage(issue)
+      }))
     });
     return;
   }
@@ -57,6 +88,6 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   );
   response.status(500).json({
     error: "INTERNAL_SERVER_ERROR",
-    message: "Unexpected server error"
+    message: "Ocurrió un error inesperado en el servidor"
   });
 };

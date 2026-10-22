@@ -12,7 +12,7 @@ export function getCloudinary() {
   ) {
     throw new AppError(
       503,
-      "Cloudinary is not configured",
+      "El servicio de archivos no está configurado",
       "CLOUDINARY_NOT_CONFIGURED"
     );
   }
@@ -47,7 +47,7 @@ export function uploadBuffer(
       },
       (error, result) => {
         if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed"));
+          reject(error ?? new Error("No se pudo cargar el archivo"));
           return;
         }
 
@@ -81,7 +81,7 @@ export function uploadPrivateBuffer(
       },
       (error, result) => {
         if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed"));
+          reject(error ?? new Error("No se pudo cargar el archivo"));
           return;
         }
 

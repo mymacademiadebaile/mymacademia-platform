@@ -69,7 +69,7 @@ authRouter.post("/refresh", async (request, response, next) => {
     const refreshToken = request.cookies?.mym_refresh as string | undefined;
 
     if (!refreshToken) {
-      response.status(401).json({ error: "AUTH_REQUIRED", message: "Authentication required" });
+      response.status(401).json({ error: "AUTH_REQUIRED", message: "Necesitás iniciar sesión para continuar" });
       return;
     }
 
@@ -82,7 +82,7 @@ authRouter.post("/refresh", async (request, response, next) => {
 
     if (!payload.sub || !payload.organizationId || !payload.role || payload.tokenType !== "refresh") {
       response.clearCookie("mym_refresh", clearRefreshCookieOptions);
-      response.status(401).json({ error: "INVALID_TOKEN", message: "Invalid or expired token" });
+      response.status(401).json({ error: "INVALID_TOKEN", message: "Tu sesión no es válida o venció" });
       return;
     }
 
@@ -104,7 +104,7 @@ authRouter.post("/refresh", async (request, response, next) => {
   } catch (error) {
     response.clearCookie("mym_refresh", clearRefreshCookieOptions);
     if (error instanceof jwt.JsonWebTokenError) {
-      response.status(401).json({ error: "INVALID_TOKEN", message: "Invalid or expired token" });
+      response.status(401).json({ error: "INVALID_TOKEN", message: "Tu sesión no es válida o venció" });
       return;
     }
     next(error);

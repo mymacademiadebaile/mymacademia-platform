@@ -41,7 +41,7 @@ import { billingModeOn } from "../enrollments/enrollment-validity";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
 import { privateAssetUrl, uploadPrivateBuffer } from "../../services/cloudinary";
-import { sendEmail } from "../../services/mailer";
+import { mailFailureMessage, sendEmail } from "../../services/mailer";
 import { NotificationLogModel } from "../notifications/notification-log.model";
 import { duplicateChargeError, loadChargeContext } from "../payments/payment-charge";
 import { ensureReceiptSequence } from "../payments/sequence.model";
@@ -310,7 +310,7 @@ adminBillingRouter.post("/charges/:id/remind", async (request, response, next) =
       await NotificationLogModel.create({
         ...log,
         status: "FAILED",
-        errorMessage: mailError instanceof Error ? mailError.message : "Unknown email error"
+        errorMessage: mailFailureMessage(mailError)
       });
       throw mailError;
     }
@@ -745,7 +745,7 @@ adminBillingRouter.post("/collections/:id/receipt/email", async (request, respon
       await NotificationLogModel.create({
         ...log,
         status: "FAILED",
-        errorMessage: mailError instanceof Error ? mailError.message : "No se pudo enviar el recibo"
+        errorMessage: mailFailureMessage(mailError)
       });
       throw mailError;
     }

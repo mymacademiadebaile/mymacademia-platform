@@ -4,8 +4,9 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sendEmail = vi.hoisted(() => vi.fn());
+const mailFailureMessage = vi.hoisted(() => vi.fn(() => "No se pudo enviar el correo. Intentá nuevamente más tarde."));
 const uploadPrivateBuffer = vi.hoisted(() => vi.fn());
-vi.mock("../../services/mailer", () => ({ sendEmail }));
+vi.mock("../../services/mailer", () => ({ sendEmail, mailFailureMessage }));
 vi.mock("../../services/cloudinary", () => ({
   uploadPrivateBuffer,
   privateAssetUrl: () => "https://signed.example/proof?expires=300"

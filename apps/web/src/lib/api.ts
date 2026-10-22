@@ -4,13 +4,18 @@ const API_URL = (
 ).replace(/\/+$/, "");
 
 export class ApiError extends Error {
+  public readonly status: number;
+  public readonly payload: unknown;
+
   constructor(
-    public readonly status: number,
-    public readonly payload: unknown,
-    message = "API request failed"
+    status: number,
+    payload: unknown,
+    message = "No se pudo completar la solicitud"
   ) {
     super(message);
     this.name = "ApiError";
+    this.status = status;
+    this.payload = payload;
   }
 }
 
@@ -190,11 +195,13 @@ export function apiMessage(error: unknown): string {
     const validationMessage = payload.issues?.find((issue) => issue.message)?.message;
     if (validationMessage) return validationMessage;
 
-    return payload.message ?? payload.error ?? "No pudimos completar la operación.";
+    return payload.message ?? "No pudimos completar la operación.";
   }
 
   if (error instanceof Error) {
-    return error.message;
+    // Fetch and third-party providers can return English or technical errors.
+    // The UI must only expose a clear Spanish message to the end user.
+    return "No pudimos completar la operación. Probá nuevamente.";
   }
 
   return "No pudimos completar la operación.";

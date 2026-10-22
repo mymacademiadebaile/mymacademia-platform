@@ -20,7 +20,7 @@ export const requireAuth: RequestHandler = (request, _response, next) => {
   const token = bearerToken ?? cookieToken;
 
   if (!token) {
-    next(new AppError(401, "Authentication required", "AUTH_REQUIRED"));
+    next(new AppError(401, "Necesitás iniciar sesión para continuar", "AUTH_REQUIRED"));
     return;
   }
 
@@ -33,7 +33,7 @@ export const requireAuth: RequestHandler = (request, _response, next) => {
       !USER_ROLES.includes(payload.role) ||
       payload.tokenType === "refresh"
     ) {
-      throw new Error("Invalid token payload");
+      throw new Error("El token no tiene un formato válido");
     }
 
     request.auth = {
@@ -44,19 +44,19 @@ export const requireAuth: RequestHandler = (request, _response, next) => {
 
     next();
   } catch {
-    next(new AppError(401, "Invalid or expired token", "INVALID_TOKEN"));
+    next(new AppError(401, "Tu sesión no es válida o venció", "INVALID_TOKEN"));
   }
 };
 
 export function requireRole(...roles: UserRole[]): RequestHandler {
   return (request, _response, next) => {
     if (!request.auth) {
-      next(new AppError(401, "Authentication required", "AUTH_REQUIRED"));
+      next(new AppError(401, "Necesitás iniciar sesión para continuar", "AUTH_REQUIRED"));
       return;
     }
 
     if (!roles.includes(request.auth.role)) {
-      next(new AppError(403, "Insufficient permissions", "FORBIDDEN"));
+      next(new AppError(403, "No tenés permisos para realizar esta acción", "FORBIDDEN"));
       return;
     }
 

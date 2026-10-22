@@ -7,7 +7,7 @@ function createTransporter() {
   if (!env.SMTP_USER || !env.SMTP_PASSWORD) {
     throw new AppError(
       503,
-      "Email service is not configured",
+      "El servicio de correo no está configurado",
       "MAILER_NOT_CONFIGURED"
     );
   }
@@ -33,6 +33,11 @@ export interface SendEmailInput {
     content: Buffer;
     contentType?: string;
   }>;
+}
+
+/** Never persist provider diagnostics in user-visible communication history. */
+export function mailFailureMessage(_error: unknown): string {
+  return "No se pudo enviar el correo. Intentá nuevamente más tarde.";
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {

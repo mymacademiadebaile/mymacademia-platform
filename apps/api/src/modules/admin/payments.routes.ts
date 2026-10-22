@@ -10,7 +10,7 @@ import { AppError } from "../../common/http/app-error";
 import { academyDateOf, classDateKey, toDateOnly } from "../../common/dates";
 import { privateAssetUrl, uploadPrivateBuffer } from "../../services/cloudinary";
 import { CollectionModel } from "../billing/collection.model";
-import { sendEmail } from "../../services/mailer";
+import { mailFailureMessage, sendEmail } from "../../services/mailer";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { NotificationLogModel } from "../notifications/notification-log.model";
 import {
@@ -464,7 +464,7 @@ adminPaymentsRouter.post("/:id/receipt/email", async (request, response, next) =
         subject,
         message: text,
         status: "FAILED",
-        errorMessage: mailError instanceof Error ? mailError.message : "No se pudo enviar el recibo"
+        errorMessage: mailFailureMessage(mailError)
       });
       throw mailError;
     }
@@ -927,7 +927,7 @@ adminPaymentsRouter.post("/:id/remind", async (request, response, next) => {
         subject: "Recordatorio de pago - M&M Academia",
         message,
         status: "FAILED",
-        errorMessage: mailError instanceof Error ? mailError.message : "Unknown email error"
+        errorMessage: mailFailureMessage(mailError)
       });
 
       throw mailError;

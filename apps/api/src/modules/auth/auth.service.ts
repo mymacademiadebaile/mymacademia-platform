@@ -20,7 +20,7 @@ function createToken(user: TokenUser, tokenType: TokenType, expiresIn: string) {
   const userId = user.id ?? user._id?.toString();
 
   if (!userId) {
-    throw new Error("Cannot create an authentication token without a user id");
+    throw new Error("No se pudo crear el token de acceso porque falta el identificador de usuario");
   }
 
   return jwt.sign(
@@ -52,13 +52,13 @@ export async function login(input: LoginInput) {
     (await UserModel.findOne({ userName: input.login, isActive: true }).select("+passwordHash"));
 
   if (!user) {
-    throw new AppError(401, "Invalid email or password", "INVALID_CREDENTIALS");
+    throw new AppError(401, "El email o la contraseña no son correctos", "INVALID_CREDENTIALS");
   }
 
   const passwordMatches = await bcrypt.compare(input.password, user.passwordHash);
 
   if (!passwordMatches) {
-    throw new AppError(401, "Invalid email or password", "INVALID_CREDENTIALS");
+    throw new AppError(401, "El email o la contraseña no son correctos", "INVALID_CREDENTIALS");
   }
 
   const accessToken = createAccessToken(user);

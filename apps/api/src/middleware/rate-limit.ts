@@ -11,7 +11,7 @@ export const apiRateLimiter = rateLimit({
   skip: (request) => request.method === "OPTIONS",
   message: {
     error: "RATE_LIMIT_EXCEEDED",
-    message: "Too many requests. Please try again later."
+    message: "Recibimos demasiadas solicitudes. Probá nuevamente en unos minutos."
   }
 });
 
@@ -24,6 +24,6 @@ export const authRateLimiter = rateLimit({
   skip: (request) => request.method === "OPTIONS",
   message: {
     error: "RATE_LIMIT_EXCEEDED",
-    message: "Too many attempts. Please try again later."
+    message: "Superaste la cantidad de intentos permitidos. Probá nuevamente más tarde."
   }
 });

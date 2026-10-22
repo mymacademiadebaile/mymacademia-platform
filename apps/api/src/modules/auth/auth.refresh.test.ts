@@ -42,6 +42,22 @@ afterAll(async () => {
 });
 
 describe("authentication refresh", () => {
+  it("returns Spanish messages for authentication and validation failures", async () => {
+    const invalidCredentials = await request(app)
+      .post("/api/auth/login")
+      .send({ email, password: "wrong-password" });
+    expect(invalidCredentials.status).toBe(401);
+    expect(invalidCredentials.body.message).toBe("El email o la contraseña no son correctos");
+
+    const missingPassword = await request(app).post("/api/auth/login").send({ email });
+    expect(missingPassword.status).toBe(400);
+    expect(missingPassword.body.issues[0].message).toBe("Completá este campo con el formato correcto");
+
+    const noSession = await request(app).get("/api/auth/me");
+    expect(noSession.status).toBe(401);
+    expect(noSession.body.message).toBe("Necesitás iniciar sesión para continuar");
+  });
+
   it("issues a long-lived refresh cookie and uses it to renew access", async () => {
     const login = await request(app).post("/api/auth/login").send({ email, password });
 

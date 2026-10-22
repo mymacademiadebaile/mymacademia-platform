@@ -2,7 +2,7 @@ import { Router } from "express";
 import { containsText } from "../../common/regex";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
-import { sendEmail } from "../../services/mailer";
+import { mailFailureMessage, sendEmail } from "../../services/mailer";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { NotificationLogModel } from "../notifications/notification-log.model";
@@ -19,7 +19,7 @@ const audienceSchema = z.object({
     context.addIssue({
       code: "custom",
       path: ["classId"],
-      message: "classId is required for CLASS audience"
+      message: "Seleccioná la clase destinataria"
     });
   }
 
@@ -27,7 +27,7 @@ const audienceSchema = z.object({
     context.addIssue({
       code: "custom",
       path: ["studentId"],
-      message: "studentId is required for STUDENT audience"
+      message: "Seleccioná el alumno destinatario"
     });
   }
 });
@@ -214,7 +214,7 @@ adminCommunicationsRouter.post("/email", async (request, response, next) => {
           subject: input.subject,
           message: personalizedMessage,
           status: "FAILED",
-          errorMessage: mailError instanceof Error ? mailError.message : "Unknown email error"
+          errorMessage: mailFailureMessage(mailError)
         });
       }
     }
@@ -339,7 +339,7 @@ adminCommunicationsRouter.post("/history/:id/retry", async (request, response, n
 
       response.json(log);
     } catch (mailError) {
-      log.errorMessage = mailError instanceof Error ? mailError.message : "Unknown email error";
+      log.errorMessage = mailFailureMessage(mailError);
       await log.save();
 
       await AuditLogModel.create({

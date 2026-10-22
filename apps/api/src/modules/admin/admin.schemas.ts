@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CALENDAR_DATE_PATTERN, isCalendarDate, toDateOnly, toReceivedAt } from "../../common/dates";
 
-export const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
+export const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, "El identificador no es válido");
 
 export const optionalBooleanQuery = z
   .enum(["true", "false"])

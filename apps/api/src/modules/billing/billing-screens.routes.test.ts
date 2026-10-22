@@ -4,7 +4,8 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sendEmail = vi.hoisted(() => vi.fn());
-vi.mock("../../services/mailer", () => ({ sendEmail }));
+const mailFailureMessage = vi.hoisted(() => vi.fn(() => "No se pudo enviar el correo. Intentá nuevamente más tarde."));
+vi.mock("../../services/mailer", () => ({ sendEmail, mailFailureMessage }));
 
 import { createApp } from "../../app";
 import { academyInstant } from "../../common/dates";
@@ -287,7 +288,9 @@ describe("POST /billing/charges/:id/remind and receipt email", () => {
     const failing = await openCharge(withMail.student._id, withMail.danceClass._id);
     sendEmail.mockRejectedValueOnce(new Error("SMTP caído"));
     expect((await admin(request(app).post(`/api/admin/billing/charges/${failing}/remind`))).status).toBe(500);
-    expect(await NotificationLogModel.findOne({ studentId: withMail.student._id, status: "FAILED" }).lean()).toMatchObject({ errorMessage: "SMTP caído" });
+    expect(await NotificationLogModel.findOne({ studentId: withMail.student._id, status: "FAILED" }).lean()).toMatchObject({
+      errorMessage: "No se pudo enviar el correo. Intentá nuevamente más tarde."
+    });
 
     const noMail = await setup("BOTH");
     const withoutEmail = await openCharge(noMail.student._id, noMail.danceClass._id);
