@@ -34,6 +34,7 @@ const navigation = [
   { href: "/admin/calendar", label: "Calendario", icon: CalendarRange },
   { href: "/admin/professors", label: "Profesores", icon: Sparkles },
   { href: "/admin/students", label: "Alumnos", icon: UsersRound },
+  { href: "/admin/contacts", label: "Contactos", icon: MessageCircle },
   { href: "/admin/payments", label: "Pagos", icon: CreditCard },
   { href: "/admin/communications", label: "Comunicaciones", icon: MessageCircleMore },
   { href: "/admin/reports", label: "Reportes", icon: BarChart3 },

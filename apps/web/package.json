@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@mym/shared": "workspace:*",
@@ -18,10 +19,10 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
-    "typescript": "^5.9.2",
-    "@playwright/test": "^1.64.1"
+    "typescript": "^5.9.2"
   }
 }

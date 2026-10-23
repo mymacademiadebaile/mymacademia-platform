@@ -1,0 +1,38 @@
+import { expect, test } from "@playwright/test";
+
+test("reception creates an interested person, reserves, records attendance and converts without losing identity", async ({ page }) => {
+  const marker = await page.request.get("http://localhost:4000/__test/isolated");
+  expect((await marker.json()).isolated, "E2E must only run against the ephemeral fixture").toBe(true);
+  const login = await page.request.post("http://localhost:4000/api/auth/login", { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
+  expect(login.ok()).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/admin/contacts");
+  await expect(page.getByRole("heading", { name: "Contactos e interesados" })).toBeVisible();
+  await page.getByRole("button", { name: "Crear contacto", exact: true }).click();
+  const firstName = `Interesada ${Date.now()}`;
+  await page.getByLabel("Nombre", { exact: true }).fill(firstName);
+  await page.getByLabel("Apellido", { exact: true }).fill("Verificación");
+  await page.getByRole("combobox", { name: "Sede", exact: true }).selectOption({ label: "Sede Centro" });
+  await page.getByRole("combobox", { name: "Procedencia" }).selectOption("INSTAGRAM");
+  await page.getByRole("button", { name: "Guardar contacto" }).click();
+  await expect(page.getByRole("heading", { name: `${firstName} Verificación` })).toBeVisible();
+  const id = page.url().split("/").at(-1);
+  await page.getByRole("combobox", { name: "Clase y horario" }).selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Confirmar reserva" }).click();
+  await expect(page.getByRole("status")).toContainText("Prueba reservada");
+  const detail = await (await page.request.get(`http://localhost:4000/api/admin/contacts/${id}`)).json();
+  expect(detail.student).toBeNull();
+  await page.getByRole("button", { name: "Registrar presente", exact: true }).click();
+  await expect(page.getByText("Asistencia confirmada", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Convertir a inscripción" }).click();
+  await page.getByRole("button", { name: "Confirmar inscripción" }).click();
+  await expect(page.getByRole("link", { name: "Ficha académica y cuenta corriente" })).toBeVisible();
+  const converted = await (await page.request.get(`http://localhost:4000/api/admin/contacts/${id}`)).json();
+  expect(converted.student._id).toBe(id);
+  expect(converted.trials[0].consumedAt).toBeTruthy();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: "../../artifacts/contacts-desktop.png", fullPage: true, animations: "disabled" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "../../artifacts/contacts-mobile.png", fullPage: true, animations: "disabled" });
+  expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
+});
