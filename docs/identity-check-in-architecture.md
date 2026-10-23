@@ -54,3 +54,19 @@ El dry-run sobre la conexión configurada encontró 2 contactos faltantes, 1 asi
 - API: Vitest/Supertest con MongoMemoryReplSet; no SMTP real.
 - Navegador: `pnpm --filter @mym/web test:e2e`. Inicia API efímera y frontend local; exige `/__test/isolated` antes de escribir datos. Usuario de fixture `admin@example.test`, contraseña `LocalDemoOnly-1234`, exclusivos de esa base temporal.
 - El fixture nunca usa la URI real: genera su propio replica set antes de importar la aplicación y dirige SMTP a localhost:1. No es un seed de despliegue.
+
+## QR, dispositivos y kiosco
+
+Administración → Contactos → ficha → Generar QR. Se entrega un PNG descargable/imprimible. Sólo se conserva SHA-256 del token aleatorio de 256 bits; el original no se puede recuperar al reabrir la ficha. Renovar revoca el anterior y no cambia la identidad. El QR habilita exclusivamente check-in; no autentica al futuro portal.
+
+Administración → Recepción → Dispositivos → Autorizar nuevo dispositivo. Ingresar el código en `/check-in` de la tablet dentro de 10 minutos. Es de un solo uso; la autorización dura 8 horas en cookie HttpOnly, SameSite Strict, Secure en producción, con path limitado. El kiosco cierra cookies administrativas de ese navegador; generar el código desde otra computadora es el flujo recomendado. Cada tablet está ligada a organización/sede y puede revocarse inmediatamente. Los verificadores nunca se devuelven en los listados.
+
+El primer toque habilita audio y cámara (requiere HTTPS fuera de localhost). La cámara decodifica QR localmente con jsQR: no transmite ni guarda imágenes. Sólo se envía el token a la API propia. Una única sesión elegible se confirma automáticamente; con varias se selecciona una. La ventana por dispositivo comienza 45 minutos antes y termina 20 minutos después del inicio, limitada también por fin de sesión y día argentino; es editable por administración. Se respetan estado, sede, inscripción vigente, prueba/cortesía y snapshot. Una inscripción legítima de último momento se agrega como una sola fila auditada; no recalcula el historial.
+
+Los tokens/dispositivos y la elegibilidad se vuelven a verificar dentro de la transacción de asistencia. Actualizar lastUsedAt/lastSeenAt serializa una revocación concurrente. Los controles de origen y rate limiting se suman al rate limiter general existente. Los límites en memoria heredan la limitación de ese middleware: son por instancia; un despliegue distribuido puede sumar un almacén compartido o protección de plataforma.
+
+Después de la respuesta persistida se reproducen dos tonos ascendentes (éxito), uno suave (duplicado) o dos descendentes (error). El volumen y silenciado provienen del dispositivo. Un pago pendiente se informa sin montos y no bloquea ni convierte un éxito en error. Pantalla de resultado se limpia a los 7 segundos; selección a los 20. Las imágenes de cámara y el token no se guardan en almacenamiento del navegador. Ocultar/cerrar la pantalla detiene la cámara. El botón de ayuda deriva a identificación asistida por recepción; no hay búsqueda pública de personas.
+
+Recepción muestra presentes, origen, sesión, saldo pendiente/vencido/a favor, pagos parciales, último recordatorio y enlaces a ficha/sesión. Los saldos salen de balance-service. Los intentos fallidos guardan sólo dispositivo, código de error y fecha, con retención de 30 días. No guardan QR, IP, cuerpo de solicitud ni importes.
+
+Pruebas Chromium decodifican un QR real mediante video generado desde canvas (sin cámara física), confirman su persistencia por API y verifican tonos, duplicado, error de servidor, silenciado y limpieza de pantalla. Queda una prueba de aceptación física de cámara/altavoces en la tablet elegida: las pruebas automatizadas no demuestran calidad óptica ni volumen del hardware.

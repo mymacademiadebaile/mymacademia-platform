@@ -10,6 +10,7 @@ import { TrialBookingModel } from "../trials/trial-booking.model";
 import { ClassAttendanceModel, type AttendanceStatus, type ParticipantType } from "./class-attendance.model";
 import { ClassSessionModel } from "./class-session.model";
 import { SessionBookingModel } from "./session-booking.model";
+import { DanceSpaceModel } from "../scheduling/dance-space.model";
 
 /** Shape of the error thrown by an unordered bulkWrite: duplicate-key failures carry code 11000. */
 interface BulkWriteError {
@@ -27,6 +28,7 @@ export interface RosterSession {
   status: string;
   seriesId?: Types.ObjectId;
   rosterFrozenAt?: Date;
+  spaceId?: Types.ObjectId;
 }
 
 export interface RosterEntry {
@@ -229,9 +231,22 @@ export async function assertSeatAvailable(
 ) {
   const roster = await loadRoster(organizationId, session, { dbSession });
   const occupied = roster.filter((item) => item.studentId !== excludingStudentId).length;
-  if (occupied >= capacity) {
+  const space = session.spaceId ? await DanceSpaceModel.findOne({ _id: session.spaceId, organizationId }).session(dbSession ?? null) : null;
+  const actualCapacity = space?.capacity ? Math.min(capacity, space.capacity) : capacity;
+  if (occupied >= actualCapacity) {
     throw new AppError(409, "La clase no tiene cupo disponible", "SESSION_CAPACITY_REACHED");
   }
+}
+
+/** A frozen snapshot stays immutable; only this one valid late enrollment can be appended explicitly. */
+export async function attendanceParticipant(organizationId: string, session: RosterSession, participantId: string, dbSession?: ClientSession) {
+  const existing = (await loadRoster(organizationId, session, { dbSession })).find((item) => item.studentId === participantId);
+  if (existing) return existing;
+  if (!session.rosterFrozenAt || sessionHasEnded(session)) return undefined;
+  if (await ClassAttendanceModel.exists({ organizationId, sessionId: session._id, studentId: participantId, removedAt: { $exists: true } }).session(dbSession ?? null)) return undefined;
+  const derived = await loadRoster(organizationId, { _id: session._id, classId: session.classId, sessionDate: session.sessionDate,
+    startTime: session.startTime, endTime: session.endTime, status: session.status, seriesId: session.seriesId, spaceId: session.spaceId }, { dbSession });
+  return derived.find((item) => item.studentId === participantId && item.participantType === "ENROLLMENT");
 }
 
 export { ensureLocks, touchLocks };

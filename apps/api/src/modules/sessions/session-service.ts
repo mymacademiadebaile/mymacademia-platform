@@ -19,7 +19,7 @@ import { ClassSessionModel } from "./class-session.model";
 import { DanceClassModel } from "../classes/class.model";
 import { ensureClassCharge } from "../billing/charge-service";
 import { withRequiredTransaction } from "../../common/required-transaction";
-import { ensureLocks, touchLocks, sessionLockKey, freezeIfEnded, freezeRoster, loadRoster } from "./roster-service";
+import { attendanceParticipant, assertSeatAvailable, ensureLocks, touchLocks, sessionLockKey, freezeIfEnded, freezeRoster, loadRoster } from "./roster-service";
 
 export type BillingType = "PER_CLASS" | "MONTHLY" | "FREE";
 export type SessionPhase = "SCHEDULED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
@@ -229,9 +229,18 @@ export async function setSessionAttendance(
       throw new AppError(422, "La clase no se dicta en esta fecha", "SESSION_NOT_ACTIVE");
     }
     await options.validate?.(current, dbSession);
-    const roster = await loadRoster(organizationId, current, { dbSession });
-    const participant = roster.find((item) => item.studentId === String(studentId));
+    const participant = await attendanceParticipant(organizationId, current, String(studentId), dbSession);
     if (!participant) throw new AppError(422, "La persona no pertenece a esta clase del día", "STUDENT_NOT_IN_SESSION");
+    if (current.rosterFrozenAt && !participant.persisted) {
+      const danceClass = await DanceClassModel.findOne({ _id: current.classId, organizationId }).session(dbSession);
+      if (!danceClass) throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
+      await assertSeatAvailable(organizationId, current, danceClass.capacity, dbSession, studentId);
+      await ClassAttendanceModel.create([{ organizationId, sessionId: current._id, studentId, contactId: studentId,
+        enrollmentId: participant.enrollmentId, participantType: "ENROLLMENT", status: "EXPECTED", addedByUserId: actorUserId,
+        note: "Incorporación de último momento con inscripción vigente" }], { session: dbSession });
+      await AuditLogModel.create([{ organizationId, actorUserId, action: "LATE_ENROLLMENT_PARTICIPANT_ADDED", entityType: "ClassAttendance",
+        metadata: { sessionId: current._id, contactId: studentId, origin: options.origin ?? "ADMIN" } }], { session: dbSession });
+    }
     await freezeRoster(organizationId, current, dbSession);
     const attendance = await ClassAttendanceModel.findOne({ organizationId, sessionId: current._id, studentId }).session(dbSession);
     if (!attendance) throw new AppError(409, "No se pudo confirmar la lista de la clase", "ROSTER_NOT_PERSISTED");

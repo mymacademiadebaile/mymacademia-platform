@@ -16,6 +16,9 @@ Trabajar en `main`, sin ramas ni PR, preservar cambios del usuario y publicar s�
 - Identidad/contactos/pruebas implementados: inscripción directa y desde prueba, oportunidades, identidad estable sin alumnos ficticios, beneficio único por grupo, cortesías con motivo, backoffice y migración aditiva. Ver arquitectura/manual en `identity-check-in-architecture.md`.
 - Validación de identidad: suite completa aprobada con 418 tests API + 9 web antes de la extracción final de conversión; luego 40 tests focalizados (12 identidad/migración + 28 inscripciones) aprobados, typecheck/lint y build API aprobados. Build web 16.4.3 y E2E Chromium UI→API→replica set→UI aprobados. Capturas desktop/móvil generadas en artifacts (no versionadas).
 - Migración: dry-run configurado reporta 2 contactos faltantes, 1 asistencia sin identidad, 0 pruebas y 0 ambigüedades. Sólo se aplicó en bases efímeras de tests; la base configurada no recibió escrituras.
+- Identidad publicada en `fec738e`; backoffice publicado en `4ae8fcb`; parche Next en `e6bd1e8`.
+- QR/dispositivos/kiosco/recepción implementados: hashes, activación de un uso y 8 h, cámara local, tonos, privacidad, avisos financieros, altas legítimas en snapshot congelado. Validación aprobada: 431 tests API, 10 web (incluye un test SEO ajeno), typecheck/lint/build y 3 E2E Chromium (identidad, QR completo y regresión SEO ajena). La cámara de E2E usa un video de canvas con QR real; pendiente aceptación física en tablet.
+- Se detectaron cambios concurrentes ajenos de SEO (env examples, layout, public-site/site, docs públicos y sus tests). Preservar y excluir de los commits de esta tarea, junto al CSS del login. No restaurar esos archivos.
 - Próxima etapa después del commit de identidad: QR/dispositivos/kiosco, recepción financiera y recordatorios.
 - No se aplicaron migraciones ni despliegues.
 

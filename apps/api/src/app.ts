@@ -16,6 +16,7 @@ import { connectDatabase } from "./database/connect";
 import { internalRouter, requireCronAuthorization } from "./modules/internal/internal.routes";
 import { logger } from "./observability/logger";
 import { randomUUID } from "node:crypto";
+import { checkInRouter } from "./modules/check-in/check-in.routes";
 
 interface CreateAppOptions {
   connectDatabaseOnRequest?: boolean;
@@ -113,6 +114,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/api/admin", databaseRequestMiddleware, adminRouter);
   app.use("/api/professor", databaseRequestMiddleware, professorPortalRouter);
   app.use("/api/public", databaseRequestMiddleware, publicRouter);
+  app.use("/api/check-in", databaseRequestMiddleware, checkInRouter);
   app.use("/api/internal", requireCronAuthorization, databaseRequestMiddleware, internalRouter);
 
   app.use((_request, response) => {
