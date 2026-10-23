@@ -21,7 +21,8 @@
     "seed:public-demo": "pnpm --filter @mym/shared build && tsx src/scripts/seed-public-demo.ts",
     "migrate:scheduling-billing": "pnpm --filter @mym/shared build && tsx src/scripts/migrate-scheduling-billing.ts",
     "payments:purge-legacy": "pnpm --filter @mym/shared build && tsx src/scripts/purge-legacy-payments.ts",
-    "jobs:daily": "pnpm --filter @mym/shared build && tsx src/scripts/daily-jobs.ts"
+    "jobs:daily": "pnpm --filter @mym/shared build && tsx src/scripts/daily-jobs.ts",
+    "migrate:identity": "tsx src/scripts/migrate-identity.ts"
   },
   "dependencies": {
     "@mym/shared": "workspace:*",

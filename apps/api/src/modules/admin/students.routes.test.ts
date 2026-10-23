@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../../app";
@@ -9,7 +9,7 @@ import { BranchModel } from "../core/branch.model";
 import { OrganizationModel } from "../core/organization.model";
 import { StudentModel } from "../students/student.model";
 
-let mongod: MongoMemoryServer;
+let mongod: MongoMemoryReplSet;
 const app = createApp();
 
 const ids = {} as Record<string, Types.ObjectId>;
@@ -47,7 +47,7 @@ async function createStudent(branchId: Types.ObjectId, firstName: string) {
 }
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongod.getUri());
 
   const org = await OrganizationModel.create({ name: "Test", slug: "test" });

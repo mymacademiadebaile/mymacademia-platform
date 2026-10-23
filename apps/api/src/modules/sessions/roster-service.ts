@@ -4,6 +4,7 @@ import { AppError } from "../../common/http/app-error";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { enrollmentMatchesSeries, isEnrollmentValidOn } from "../enrollments/enrollment-validity";
 import { ensureLocks, touchLocks } from "../scheduling/resource-lock.model";
+import { ContactModel } from "../contacts/contact.model";
 import { StudentModel } from "../students/student.model";
 import { TrialBookingModel } from "../trials/trial-booking.model";
 import { ClassAttendanceModel, type AttendanceStatus, type ParticipantType } from "./class-attendance.model";
@@ -64,8 +65,8 @@ async function deriveRoster(organizationId: string, session: RosterSession, dbSe
     TrialBookingModel.find({
       organizationId,
       classId: session.classId,
-      status: { $in: ["SCHEDULED", "COMPLETED"] },
-      scheduledFor: { $gte: start, $lt: end }
+      status: { $in: ["SCHEDULED", "COMPLETED", "CONVERTED"] },
+      $or: [{ sessionId: session._id }, { sessionId: { $exists: false }, scheduledFor: { $gte: start, $lt: end } }]
     })
       .session(dbSession ?? null)
       .lean()
@@ -97,7 +98,7 @@ async function deriveRoster(organizationId: string, session: RosterSession, dbSe
     if (enrolled.has(studentId)) continue;
     entries.push({
       studentId,
-      participantType: "TRIAL",
+      participantType: trial.kind === "COURTESY" ? "COURTESY" : "TRIAL",
       trialId: String(trial._id),
       attendanceStatus: "EXPECTED",
       persisted: false
@@ -117,7 +118,10 @@ async function deriveRoster(organizationId: string, session: RosterSession, dbSe
           .lean()
       ).map((item) => String(item._id))
     );
-    return entries.filter((item) => active.has(item.studentId));
+    const activeContacts = new Set((await ContactModel.find({ organizationId, isActive: true,
+      _id: { $in: entries.filter((item) => ["TRIAL", "COURTESY"].includes(item.participantType)).map((item) => item.studentId) }
+    }).session(dbSession ?? null).select("_id").lean()).map((item) => String(item._id)));
+    return entries.filter((item) => active.has(item.studentId) || activeContacts.has(item.studentId));
   }
 
   return entries;
@@ -265,10 +269,10 @@ export async function rosterBatch(organizationId: string, sessions: RosterSessio
     TrialBookingModel.find({
       organizationId,
       classId: { $in: classIds },
-      status: { $in: ["SCHEDULED", "COMPLETED"] },
+      status: { $in: ["SCHEDULED", "COMPLETED", "CONVERTED"] },
       scheduledFor: { $gte: first, $lt: last }
     })
-      .select("classId studentId scheduledFor")
+      .select("classId studentId scheduledFor sessionId kind")
       .lean()
   ]);
 
@@ -335,10 +339,11 @@ export async function rosterBatch(organizationId: string, sessions: RosterSessio
       const { start, end } = academyDayBounds(session.sessionDate);
       for (const trial of trials) {
         if (String(trial.classId) !== String(session.classId)) continue;
+        if (trial.sessionId && !trial.sessionId.equals(session._id)) continue;
         if (trial.scheduledFor < start || trial.scheduledFor >= end) continue;
         const studentId = String(trial.studentId);
         if (!entries.has(studentId)) {
-          entries.set(studentId, { studentId, participantType: "TRIAL", attendanceStatus: "EXPECTED" });
+          entries.set(studentId, { studentId, participantType: trial.kind === "COURTESY" ? "COURTESY" : "TRIAL", attendanceStatus: "EXPECTED" });
         }
       }
     }

@@ -4,7 +4,8 @@ import { academyNow } from "../../common/dates";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { effectivePaymentStatus } from "../payments/payment-status";
-import { TrialBookingModel } from "../trials/trial-booking.model";
+import { settleTrialAttendance } from "../trials/trial-service";
+import { ContactModel } from "../contacts/contact.model";
 import {
   ATTENDANCE_STATUSES,
   ClassAttendanceModel,
@@ -156,11 +157,12 @@ export async function loadSessionParticipants(
 
   const studentIds = roster.map((item) => new Types.ObjectId(item.studentId));
   const enrollmentIds = roster.filter((item) => item.enrollmentId).map((item) => new Types.ObjectId(item.enrollmentId!));
-  const [students, enrollments] = await Promise.all([
+  const [students, contacts, enrollments] = await Promise.all([
     StudentModel.find({ organizationId, _id: { $in: studentIds } }).select("firstName lastName email phone").lean<any[]>(),
+    ContactModel.find({ organizationId, _id: { $in: studentIds } }).select("firstName lastName email phone").lean(),
     EnrollmentModel.find({ organizationId, _id: { $in: enrollmentIds } }).lean<any[]>()
   ]);
-  const studentById = new Map(students.map((item) => [String(item._id), item]));
+  const studentById = new Map([...contacts, ...students].map((item) => [String(item._id), item]));
   const enrollmentById = new Map(enrollments.map((item) => [String(item._id), item]));
 
   const participants = roster
@@ -168,7 +170,7 @@ export async function loadSessionParticipants(
     .map((item) => {
       const enrollment = item.enrollmentId ? enrollmentById.get(item.enrollmentId) : undefined;
       const billingType: BillingType =
-        item.participantType === "TRIAL"
+        ["TRIAL", "COURTESY"].includes(item.participantType)
           ? "FREE"
           : resolvedBillingPreference(danceClass, enrollment ? billingModeOn(enrollment, session.sessionDate) : "PER_CLASS");
       return { ...item, student: studentById.get(item.studentId), billingType };
@@ -253,19 +255,17 @@ export async function setSessionAttendance(
         chargeCreated = !result.covered && Boolean(result.created);
       }
     }
+    if (participant.trialId && ["PRESENT", "ABSENT"].includes(status)) {
+      await settleTrialAttendance(organizationId, participant.trialId, current._id, status, dbSession);
+    }
     if (!duplicate) {
+      attendance.contactId = new Types.ObjectId(studentId);
       attendance.status = status;
       attendance.updatedByUserId = new Types.ObjectId(actorUserId);
       attendance.recordedAt = new Date();
       attendance.origin = options.origin ?? "ADMIN";
       attendance.deviceId = options.deviceId ? new Types.ObjectId(options.deviceId) : undefined;
       await attendance.save({ session: dbSession });
-      if (participant.trialId && status === "PRESENT") {
-        await TrialBookingModel.updateOne(
-          { _id: participant.trialId, organizationId, status: "SCHEDULED" },
-          { $set: { status: "COMPLETED" } }, { session: dbSession }
-        );
-      }
       await AuditLogModel.create([{
         organizationId, actorUserId, action: "CLASS_ATTENDANCE_UPDATED", entityType: "ClassAttendance", entityId: attendance._id,
         metadata: { sessionId: current._id, classId: current.classId, studentId, previousStatus, status,

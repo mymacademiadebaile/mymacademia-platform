@@ -20,7 +20,9 @@ export type ParticipantType = (typeof PARTICIPANT_TYPES)[number];
 export interface ClassAttendance {
   organizationId: Types.ObjectId;
   sessionId: Types.ObjectId;
+  /** Compatibility participant key: Contact._id, also Student._id when an academic profile exists. */
   studentId: Types.ObjectId;
+  contactId?: Types.ObjectId;
   status: AttendanceStatus;
   /** Absent on rows written by the system when the roster is frozen. */
   updatedByUserId?: Types.ObjectId;
@@ -43,7 +45,8 @@ const classAttendanceSchema = new Schema<ClassAttendance>(
   {
     organizationId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
     sessionId: { type: Schema.Types.ObjectId, ref: "ClassSession", required: true, index: true },
-    studentId: { type: Schema.Types.ObjectId, ref: "Student", required: true, index: true },
+    contactId: { type: Schema.Types.ObjectId, ref: "Contact" },
+    studentId: { type: Schema.Types.ObjectId, ref: "Contact", required: true, index: true },
     status: { type: String, enum: ATTENDANCE_STATUSES, default: "EXPECTED" },
     updatedByUserId: { type: Schema.Types.ObjectId, ref: "User" },
     participantType: { type: String, enum: PARTICIPANT_TYPES, default: "ENROLLMENT" },

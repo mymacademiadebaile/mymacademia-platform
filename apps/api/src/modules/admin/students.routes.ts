@@ -1,3 +1,8 @@
+import { createHash } from "node:crypto";
+import { withRequiredTransaction } from "../../common/required-transaction";
+import { ContactModel } from "../contacts/contact.model";
+import { resolveContact } from "../contacts/contact-service";
+import { ensureLocks, touchLocks } from "../scheduling/resource-lock.model";
 import { Router } from "express";
 import { containsText } from "../../common/regex";
 import { Types } from "mongoose";
@@ -195,47 +200,59 @@ adminStudentsRouter.post("/", async (request, response, next) => {
 
     await assertAssignableBranch(organizationId, input.branchId);
 
-    if (normalizedEmail) {
-      const duplicate = await StudentModel.exists({
+    const keys = [normalizedEmail ? `identity:email:${createHash("sha256").update(normalizedEmail).digest("hex")}` : `student-create:${new Types.ObjectId()}`];
+    await ensureLocks(organizationId, keys);
+    const result = await withRequiredTransaction(async (dbSession) => {
+      await touchLocks(organizationId, keys, dbSession);
+      if (normalizedEmail && await ContactModel.exists({ organizationId, email: normalizedEmail }).session(dbSession)) {
+        throw new AppError(409, "Ya existe un contacto con ese email; reutilizá su identidad desde Contactos", "CONTACT_MATCH_REQUIRES_REVIEW");
+      }
+      if (normalizedEmail) {
+        const duplicate = await StudentModel.exists({
+          organizationId,
+          email: normalizedEmail,
+          isActive: true
+        }).session(dbSession);
+
+        if (duplicate) {
+          throw new AppError(
+            409,
+            "Ya existe un alumno activo con ese email",
+            "STUDENT_EMAIL_ALREADY_EXISTS"
+          );
+        }
+      }
+
+      const [student] = await StudentModel.create([{
         organizationId,
+        ...input,
         email: normalizedEmail,
+        phone: input.phone?.trim() || undefined,
+        guardianName: input.guardianName?.trim() || undefined,
+        guardianPhone: input.guardianPhone?.trim() || undefined,
+        notes: input.notes?.trim() || undefined,
         isActive: true
-      });
+      }], { session: dbSession });
+      const contact = await resolveContact(organizationId, String(student._id), dbSession);
+      student.contactId = contact._id;
+      await student.save({ session: dbSession });
 
-      if (duplicate) {
-        throw new AppError(
-          409,
-          "Ya existe un alumno activo con ese email",
-          "STUDENT_EMAIL_ALREADY_EXISTS"
-        );
-      }
-    }
+      await AuditLogModel.create([{
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "STUDENT_CREATED",
+        entityType: "Student",
+        entityId: student._id,
+        metadata: {
+          branchId: student.branchId,
+          firstName: student.firstName,
+          lastName: student.lastName
+        }
+      }], { session: dbSession });
 
-    const student = await StudentModel.create({
-      organizationId,
-      ...input,
-      email: normalizedEmail,
-      phone: input.phone?.trim() || undefined,
-      guardianName: input.guardianName?.trim() || undefined,
-      guardianPhone: input.guardianPhone?.trim() || undefined,
-      notes: input.notes?.trim() || undefined,
-      isActive: true
+      return student;
     });
-
-    await AuditLogModel.create({
-      organizationId,
-      actorUserId: request.auth!.userId,
-      action: "STUDENT_CREATED",
-      entityType: "Student",
-      entityId: student._id,
-      metadata: {
-        branchId: student.branchId,
-        firstName: student.firstName,
-        lastName: student.lastName
-      }
-    });
-
-    response.status(201).json(student);
+    response.status(201).json(result);
   } catch (error) {
     next(error);
   }
@@ -247,104 +264,114 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
     const input = updateStudentSchema.parse(request.body);
     const organizationId = request.auth!.organizationId;
 
-    const student = await StudentModel.findOne({
-      _id: id,
-      organizationId
-    });
+    const keys = [`contact:${id}`]; await ensureLocks(organizationId, keys);
+    const result = await withRequiredTransaction(async (dbSession) => {
+      await touchLocks(organizationId, keys, dbSession);
+      const student = await StudentModel.findOne({
+        _id: id,
+        organizationId
+      }).session(dbSession);
 
-    if (!student) {
-      throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
-    }
+      if (!student) {
+        throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
+      }
 
-    // An unchanged (possibly inactive) branch is a historical reference and stays valid.
-    if (input.branchId !== undefined && input.branchId !== student.branchId.toString()) {
-      await assertAssignableBranch(organizationId, input.branchId);
-    }
+      // An unchanged (possibly inactive) branch is a historical reference and stays valid.
+      if (input.branchId !== undefined && input.branchId !== student.branchId.toString()) {
+        await assertAssignableBranch(organizationId, input.branchId);
+      }
 
-    const normalizedEmail =
-      input.email === undefined ? undefined : input.email.trim().toLowerCase() || undefined;
+      const normalizedEmail =
+        input.email === undefined ? undefined : input.email.trim().toLowerCase() || undefined;
 
-    if (normalizedEmail && normalizedEmail !== student.email) {
-      const duplicate = await StudentModel.exists({
+      if (normalizedEmail && normalizedEmail !== student.email) {
+        const duplicate = await StudentModel.exists({
+          organizationId,
+          email: normalizedEmail,
+          isActive: true,
+          _id: { $ne: student._id }
+        });
+
+        if (duplicate) {
+          throw new AppError(
+            409,
+            "Ya existe un alumno activo con ese email",
+            "STUDENT_EMAIL_ALREADY_EXISTS"
+          );
+        }
+      }
+
+      const before = {
+        branchId: student.branchId.toString(),
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email ?? "",
+        phone: student.phone ?? "",
+        birthDate: student.birthDate?.toISOString() ?? "",
+        guardianName: student.guardianName ?? "",
+        guardianPhone: student.guardianPhone ?? "",
+        notes: student.notes ?? "",
+        isActive: student.isActive
+      };
+
+      if (input.branchId !== undefined) student.branchId = new Types.ObjectId(input.branchId);
+      if (input.firstName !== undefined) student.firstName = input.firstName;
+      if (input.lastName !== undefined) student.lastName = input.lastName;
+      if (input.email !== undefined) student.email = normalizedEmail;
+      if (input.phone !== undefined) student.phone = input.phone.trim() || undefined;
+      if (input.birthDate !== undefined) student.birthDate = input.birthDate;
+      if (input.guardianName !== undefined) student.guardianName = input.guardianName.trim() || undefined;
+      if (input.guardianPhone !== undefined) student.guardianPhone = input.guardianPhone.trim() || undefined;
+      if (input.notes !== undefined) student.notes = input.notes.trim() || undefined;
+      if (input.isActive !== undefined) student.isActive = input.isActive;
+
+      const deactivated = before.isActive && input.isActive === false;
+      const contact = await resolveContact(organizationId, id, dbSession);
+      student.contactId = contact._id;
+      contact.set({ firstName: student.firstName, lastName: student.lastName, branchId: student.branchId,
+        email: student.email, phone: student.phone, isActive: student.isActive });
+      await contact.save({ session: dbSession });
+      await student.save({ session: dbSession });
+
+      // A student who leaves the academy stops taking seats. Enrollments close today; history,
+      // attendance and pending debts stay (and can still be collected).
+      let enrollmentsClosed = 0;
+      if (deactivated) {
+        const open = await EnrollmentModel.find({ organizationId, studentId: student._id, status: "ACTIVE" }).session(dbSession);
+        for (const enrollment of open) {
+          closeEnrollment(enrollment, academyNow().date, "Alumno dado de baja");
+          await enrollment.save({ session: dbSession });
+        }
+        enrollmentsClosed = open.length;
+      }
+
+      await AuditLogModel.create([{
         organizationId,
-        email: normalizedEmail,
-        isActive: true,
-        _id: { $ne: student._id }
-      });
+        actorUserId: request.auth!.userId,
+        action: "STUDENT_UPDATED",
+        entityType: "Student",
+        entityId: student._id,
+        metadata: {
+          before,
+          after: {
+            branchId: student.branchId.toString(),
+            firstName: student.firstName,
+            lastName: student.lastName,
+            email: student.email ?? "",
+            phone: student.phone ?? "",
+            birthDate: student.birthDate?.toISOString() ?? "",
+            guardianName: student.guardianName ?? "",
+            guardianPhone: student.guardianPhone ?? "",
+            notes: student.notes ?? "",
+            isActive: student.isActive
+          },
+          ...(deactivated ? { enrollmentsClosed } : {})
+        }
+      }], { session: dbSession });
 
-      if (duplicate) {
-        throw new AppError(
-          409,
-          "Ya existe un alumno activo con ese email",
-          "STUDENT_EMAIL_ALREADY_EXISTS"
-        );
-      }
-    }
-
-    const before = {
-      branchId: student.branchId.toString(),
-      firstName: student.firstName,
-      lastName: student.lastName,
-      email: student.email ?? "",
-      phone: student.phone ?? "",
-      birthDate: student.birthDate?.toISOString() ?? "",
-      guardianName: student.guardianName ?? "",
-      guardianPhone: student.guardianPhone ?? "",
-      notes: student.notes ?? "",
-      isActive: student.isActive
-    };
-
-    if (input.branchId !== undefined) student.branchId = new Types.ObjectId(input.branchId);
-    if (input.firstName !== undefined) student.firstName = input.firstName;
-    if (input.lastName !== undefined) student.lastName = input.lastName;
-    if (input.email !== undefined) student.email = normalizedEmail;
-    if (input.phone !== undefined) student.phone = input.phone.trim() || undefined;
-    if (input.birthDate !== undefined) student.birthDate = input.birthDate;
-    if (input.guardianName !== undefined) student.guardianName = input.guardianName.trim() || undefined;
-    if (input.guardianPhone !== undefined) student.guardianPhone = input.guardianPhone.trim() || undefined;
-    if (input.notes !== undefined) student.notes = input.notes.trim() || undefined;
-    if (input.isActive !== undefined) student.isActive = input.isActive;
-
-    const deactivated = before.isActive && input.isActive === false;
-    await student.save();
-
-    // A student who leaves the academy stops taking seats. Enrollments close today; history,
-    // attendance and pending debts stay (and can still be collected).
-    let enrollmentsClosed = 0;
-    if (deactivated) {
-      const open = await EnrollmentModel.find({ organizationId, studentId: student._id, status: "ACTIVE" });
-      for (const enrollment of open) {
-        closeEnrollment(enrollment, academyNow().date, "Alumno dado de baja");
-        await enrollment.save();
-      }
-      enrollmentsClosed = open.length;
-    }
-
-    await AuditLogModel.create({
-      organizationId,
-      actorUserId: request.auth!.userId,
-      action: "STUDENT_UPDATED",
-      entityType: "Student",
-      entityId: student._id,
-      metadata: {
-        before,
-        after: {
-          branchId: student.branchId.toString(),
-          firstName: student.firstName,
-          lastName: student.lastName,
-          email: student.email ?? "",
-          phone: student.phone ?? "",
-          birthDate: student.birthDate?.toISOString() ?? "",
-          guardianName: student.guardianName ?? "",
-          guardianPhone: student.guardianPhone ?? "",
-          notes: student.notes ?? "",
-          isActive: student.isActive
-        },
-        ...(deactivated ? { enrollmentsClosed } : {})
-      }
+      return student;
     });
-
-    response.json(student);
+    response.json(result);
   } catch (error) {
     next(error);
   }
