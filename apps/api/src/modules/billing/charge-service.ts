@@ -331,28 +331,28 @@ export async function createMonthlyChargeForEnrollment(
  * 3. an existing class fee (also of the original session when rescheduled) is returned as is;
  * 4. otherwise a new CLASS_FEE is created, due on the class day.
  */
-export async function ensureClassCharge(actor: Actor, sessionId: string, studentId: string) {
-  const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).lean<any>();
+export async function ensureClassCharge(actor: Actor, sessionId: string, studentId: string, dbSession?: ClientSession) {
+  const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).session(dbSession ?? null).lean<any>();
   if (!session) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
   if (!["SCHEDULED", "IN_PROGRESS", "COMPLETED"].includes(session.status)) {
     throw new AppError(409, "No se cobran clases suspendidas, canceladas o reprogramadas", "SESSION_NOT_BILLABLE");
   }
-  const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId: actor.organizationId }).lean<any>();
+  const danceClass = await DanceClassModel.findOne({ _id: session.classId, organizationId: actor.organizationId }).session(dbSession ?? null).lean<any>();
   if (!danceClass) throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
   if (danceClass.billingMode === "FREE") throw new AppError(409, "La clase no tiene costo", "SESSION_NOT_BILLABLE");
 
-  const roster = await loadRoster(actor.organizationId, session);
+  const roster = await loadRoster(actor.organizationId, session, { dbSession });
   const participant = roster.find((item) => item.studentId === String(studentId));
   if (!participant) throw new AppError(422, "El alumno no forma parte de esta clase", "STUDENT_NOT_IN_SESSION");
-  if (participant.participantType === "TRIAL") throw new AppError(409, "Las clases de prueba no se cobran", "SESSION_NOT_BILLABLE");
+  if (["TRIAL", "COURTESY"].includes(participant.participantType)) throw new AppError(409, "Las clases de prueba no se cobran", "SESSION_NOT_BILLABLE");
 
   const period = periodOf(session.sessionDate);
-  if (await hasMonthlyCoverage(actor.organizationId, studentId, session.classId, period)) {
+  if (await hasMonthlyCoverage(actor.organizationId, studentId, session.classId, period, dbSession)) {
     return { covered: true as const, reason: "MONTHLY" as const };
   }
 
   const enrollment = participant.enrollmentId
-    ? await EnrollmentModel.findOne({ _id: participant.enrollmentId, organizationId: actor.organizationId }).lean<any>()
+    ? await EnrollmentModel.findOne({ _id: participant.enrollmentId, organizationId: actor.organizationId }).session(dbSession ?? null).lean<any>()
     : null;
   if (danceClass.billingMode === "MONTHLY" || (enrollment && billingModeOn(enrollment, session.sessionDate) === "MONTHLY" && isEnrollmentValidOn(enrollment, session.sessionDate))) {
     if (participant.participantType === "ENROLLMENT") {
@@ -364,7 +364,7 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
     }
   }
 
-  const { lineage, rootSessionId, rootDate } = await coveringSessions(actor.organizationId, session._id);
+  const { lineage, rootSessionId, rootDate } = await coveringSessions(actor.organizationId, session._id, dbSession);
   const existing = await ChargeModel.findOne({
     organizationId: actor.organizationId,
     studentId,
@@ -372,7 +372,7 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
     kind: "CLASS_FEE",
     status: { $ne: "VOID" },
     $or: [{ sessionId: { $in: lineage } }, { sessionId: { $exists: false }, serviceDate: rootDate ?? session.sessionDate }]
-  });
+  }).session(dbSession ?? null);
   if (existing) return { covered: false as const, charge: existing, created: false };
 
   const legacy = await unmirroredLegacyPayments({
@@ -382,7 +382,7 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
     paymentType: "PER_CLASS",
     status: { $ne: "CANCELLED" },
     sessionId: { $in: lineage }
-  });
+  }, dbSession);
   if (legacy.length) {
     throw new AppError(409, "La clase ya tiene un pago registrado en el sistema anterior", "CHARGE_ALREADY_EXISTS");
   }
@@ -391,7 +391,7 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
   if (listCents <= 0) throw new AppError(422, "La clase no tiene precio por clase configurado", "ZERO_PRICE");
 
   try {
-    const charge = await ChargeModel.create({
+    const [charge] = await ChargeModel.create([{
       organizationId: actor.organizationId,
       branchId: danceClass.branchId,
       studentId,
@@ -412,20 +412,20 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
       origin: "SESSION",
       chargeKey: classChargeKey(studentId, rootSessionId),
       createdByUserId: actor.userId
-    });
+    }], { session: dbSession });
     if (actor.userId) {
-      await AuditLogModel.create({
+      await AuditLogModel.create([{
         organizationId: actor.organizationId,
         actorUserId: actor.userId,
         action: "CHARGE_CREATED",
         entityType: "Charge",
         entityId: charge._id,
         metadata: { kind: "CLASS_FEE", sessionId: rootSessionId, studentId, amountCents: listCents }
-      });
+      }], { session: dbSession });
     }
     return { covered: false as const, charge, created: true };
   } catch (error) {
-    if (isDuplicateKey(error)) {
+    if (isDuplicateKey(error) && !dbSession) {
       const charge = await ChargeModel.findOne({ organizationId: actor.organizationId, chargeKey: classChargeKey(studentId, rootSessionId) });
       if (charge) return { covered: false as const, charge, created: false };
     }

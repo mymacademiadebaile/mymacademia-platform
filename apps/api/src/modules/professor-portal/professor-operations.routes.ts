@@ -448,7 +448,8 @@ professorOperationsRouter.patch(
         session,
         studentId,
         status,
-        context.userId
+        context.userId,
+        { origin: "PROFESSOR" }
       );
 
       response.json({ studentId, status: attendance.status });

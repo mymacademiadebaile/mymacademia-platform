@@ -10,7 +10,7 @@ export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
  * - AUTHORIZED: added by the administration for this session only (drop-in, guest);
  * - MAKEUP: attends to recover a class missed elsewhere.
  */
-export const PARTICIPANT_TYPES = ["ENROLLMENT", "TRIAL", "AUTHORIZED", "MAKEUP"] as const;
+export const PARTICIPANT_TYPES = ["ENROLLMENT", "TRIAL", "AUTHORIZED", "MAKEUP", "COURTESY"] as const;
 export type ParticipantType = (typeof PARTICIPANT_TYPES)[number];
 
 /**
@@ -35,6 +35,8 @@ export interface ClassAttendance {
   removedAt?: Date;
   recordedAt?: Date;
   note?: string;
+  origin?: "ADMIN" | "PROFESSOR" | "KIOSK" | "PORTAL";
+  deviceId?: Types.ObjectId;
 }
 
 const classAttendanceSchema = new Schema<ClassAttendance>(
@@ -51,6 +53,8 @@ const classAttendanceSchema = new Schema<ClassAttendance>(
     sourceSessionId: { type: Schema.Types.ObjectId, ref: "ClassSession" },
     removedAt: { type: Date },
     recordedAt: { type: Date },
+    origin: { type: String, enum: ["ADMIN", "PROFESSOR", "KIOSK", "PORTAL"] },
+    deviceId: { type: Schema.Types.ObjectId, ref: "CheckInDevice" },
     note: { type: String, trim: true, maxlength: 300 }
   },
   { timestamps: true }

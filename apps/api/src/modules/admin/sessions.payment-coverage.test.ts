@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../../app";
@@ -21,7 +21,7 @@ type PaymentStatus = "PAID" | "PENDING" | "CANCELLED";
 
 const SESSION_DATE = "2026-09-05";
 
-let mongod: MongoMemoryServer;
+let mongod: MongoMemoryReplSet;
 const app = createApp();
 const ids = {} as Record<string, Types.ObjectId>;
 let token: string;
@@ -111,7 +111,7 @@ const changePreference = (enrollmentId: Types.ObjectId, billingPreference: Payme
   });
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongod.getUri());
 
   const org = await OrganizationModel.create({ name: "Test", slug: "test" });

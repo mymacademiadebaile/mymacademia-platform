@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Types, type ClientSession } from "mongoose";
 import { AppError } from "../../common/http/app-error";
 import { academyNow } from "../../common/dates";
 import { AuditLogModel } from "../audit/audit-log.model";
@@ -14,7 +14,11 @@ import {
 import { billingModeOn } from "../enrollments/enrollment-validity";
 import { StudentModel } from "../students/student.model";
 import { sessionCoverage, type CoverageResult } from "../billing/coverage-service";
-import { freezeIfEnded, freezeRoster, loadRoster } from "./roster-service";
+import { ClassSessionModel } from "./class-session.model";
+import { DanceClassModel } from "../classes/class.model";
+import { ensureClassCharge } from "../billing/charge-service";
+import { withRequiredTransaction } from "../../common/required-transaction";
+import { ensureLocks, touchLocks, sessionLockKey, freezeIfEnded, freezeRoster, loadRoster } from "./roster-service";
 
 export type BillingType = "PER_CLASS" | "MONTHLY" | "FREE";
 export type SessionPhase = "SCHEDULED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
@@ -203,62 +207,71 @@ export async function loadSessionParticipants(
  * roster: from then on later enrollment changes do not alter who was in this class.
  * Caller must already have authorised the session.
  */
+export type AttendanceOrigin = "ADMIN" | "PROFESSOR" | "KIOSK" | "PORTAL";
+
 export async function setSessionAttendance(
   organizationId: string,
-  session: SessionLike & { seriesId?: Types.ObjectId; rosterFrozenAt?: Date },
+  session: SessionLike,
   studentId: string,
   status: AttendanceStatus,
-  actorUserId: string
+  actorUserId: string,
+  options: { origin?: AttendanceOrigin; deviceId?: string; reason?: string; validate?: (session: SessionLike, dbSession: ClientSession) => Promise<void> } = {}
 ) {
-  if (["CANCELLED", "SUSPENDED", "RESCHEDULED"].includes(session.status)) {
-    throw new AppError(422, "La clase no se dicta en esta fecha", "SESSION_NOT_ACTIVE");
-  }
-
-  const roster = await loadRoster(organizationId, session);
-  const participant = roster.find((item) => item.studentId === String(studentId));
-  if (!participant) {
-    throw new AppError(
-      422,
-      "El alumno no pertenece a esta clase del día",
-      "STUDENT_NOT_IN_SESSION"
-    );
-  }
-
-  await freezeRoster(organizationId, session);
-
-  const attendance = await ClassAttendanceModel.findOneAndUpdate(
-    { organizationId, sessionId: session._id, studentId },
-    {
-      $set: { status, updatedByUserId: new Types.ObjectId(actorUserId), recordedAt: new Date() },
-      $setOnInsert: {
-        participantType: participant.participantType,
-        ...(participant.enrollmentId ? { enrollmentId: new Types.ObjectId(participant.enrollmentId) } : {}),
-        ...(participant.trialId ? { trialId: new Types.ObjectId(participant.trialId) } : {})
-      }
-    },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
-
-  if (participant.trialId && status === "PRESENT") {
-    await TrialBookingModel.updateOne(
-      { _id: participant.trialId, organizationId, status: "SCHEDULED" },
-      { $set: { status: "COMPLETED" } }
-    );
-  }
-
-  await AuditLogModel.create({
-    organizationId,
-    actorUserId,
-    action: "CLASS_ATTENDANCE_UPDATED",
-    entityType: "ClassAttendance",
-    entityId: attendance._id,
-    metadata: {
-      sessionId: session._id,
-      classId: session.classId,
-      studentId,
-      status
+  await ensureLocks(organizationId, [sessionLockKey(session._id)]);
+  return withRequiredTransaction(async (dbSession) => {
+    await touchLocks(organizationId, [sessionLockKey(session._id)], dbSession);
+    // Re-read after acquiring the lock: never trust the route's stale session snapshot.
+    const current = await ClassSessionModel.findOne({ _id: session._id, organizationId }).session(dbSession);
+    if (!current) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
+    if (["CANCELLED", "SUSPENDED", "RESCHEDULED"].includes(current.status)) {
+      throw new AppError(422, "La clase no se dicta en esta fecha", "SESSION_NOT_ACTIVE");
     }
+    await options.validate?.(current, dbSession);
+    const roster = await loadRoster(organizationId, current, { dbSession });
+    const participant = roster.find((item) => item.studentId === String(studentId));
+    if (!participant) throw new AppError(422, "La persona no pertenece a esta clase del día", "STUDENT_NOT_IN_SESSION");
+    await freezeRoster(organizationId, current, dbSession);
+    const attendance = await ClassAttendanceModel.findOne({ organizationId, sessionId: current._id, studentId }).session(dbSession);
+    if (!attendance) throw new AppError(409, "No se pudo confirmar la lista de la clase", "ROSTER_NOT_PERSISTED");
+    const previousStatus = attendance.status;
+    const duplicate = previousStatus === status;
+    if (previousStatus === "PRESENT" && status !== "PRESENT" && options.origin !== "ADMIN") {
+      throw new AppError(403, "Solicitá a administración la corrección de un presente", "ATTENDANCE_CORRECTION_REQUIRED");
+    }
+    if (previousStatus === "PRESENT" && status !== "PRESENT" && !options.reason?.trim()) {
+      throw new AppError(422, "Indicá el motivo de la corrección; los cargos y las pruebas se concilian por separado", "REASON_REQUIRED");
+    }
+    let chargeCreated = false;
+    if (status === "PRESENT" && !["TRIAL", "COURTESY"].includes(participant.participantType)) {
+      const danceClass = await DanceClassModel.findOne({ _id: current.classId, organizationId }).session(dbSession);
+      if (!danceClass) throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
+      const enrollment = participant.enrollmentId
+        ? await EnrollmentModel.findOne({ _id: participant.enrollmentId, organizationId }).session(dbSession)
+        : null;
+      if (resolvedBillingPreference(danceClass, enrollment ? billingModeOn(enrollment, current.sessionDate) : "PER_CLASS") === "PER_CLASS") {
+        const result = await ensureClassCharge({ organizationId, userId: actorUserId }, String(current._id), studentId, dbSession);
+        chargeCreated = !result.covered && Boolean(result.created);
+      }
+    }
+    if (!duplicate) {
+      attendance.status = status;
+      attendance.updatedByUserId = new Types.ObjectId(actorUserId);
+      attendance.recordedAt = new Date();
+      attendance.origin = options.origin ?? "ADMIN";
+      attendance.deviceId = options.deviceId ? new Types.ObjectId(options.deviceId) : undefined;
+      await attendance.save({ session: dbSession });
+      if (participant.trialId && status === "PRESENT") {
+        await TrialBookingModel.updateOne(
+          { _id: participant.trialId, organizationId, status: "SCHEDULED" },
+          { $set: { status: "COMPLETED" } }, { session: dbSession }
+        );
+      }
+      await AuditLogModel.create([{
+        organizationId, actorUserId, action: "CLASS_ATTENDANCE_UPDATED", entityType: "ClassAttendance", entityId: attendance._id,
+        metadata: { sessionId: current._id, classId: current.classId, studentId, previousStatus, status,
+          origin: options.origin ?? "ADMIN", deviceId: options.deviceId, reason: options.reason }
+      }], { session: dbSession });
+    }
+    return Object.assign(attendance, { chargeCreated, duplicate });
   });
-
-  return attendance;
 }

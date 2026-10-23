@@ -25,6 +25,7 @@ import { ClassSessionModel } from "../sessions/class-session.model";
 import { loadRoster } from "../sessions/roster-service";
 import { setSessionAttendance } from "../sessions/session-service";
 import { StudentModel } from "../students/student.model";
+import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { studentBalances } from "./balance-service";
 import { ensureClassCharge, generateMonthlyCharges } from "./charge-service";
 import { ChargeModel } from "./charge.model";
@@ -148,6 +149,44 @@ beforeAll(async () => {
 }, 120_000);
 
 beforeEach(() => at(NOW));
+
+describe("central attendance atomicity", () => {
+  it("serializes two channels and creates one obligation without collecting a payment", async () => {
+    const danceClass = await group({ billingMode: "PER_CLASS", slots: [{ day: "WEDNESDAY", startTime: "18:00", endTime: "19:00" }] });
+    const person = await student();
+    await enroll(danceClass._id, person._id, "PER_CLASS");
+    const [session] = await sessionsOf(danceClass._id, "2026-10-07", "2026-10-07");
+    const results = await Promise.all([
+      setSessionAttendance(String(ids.org), session, String(person._id), "PRESENT", String(ids.admin), { origin: "ADMIN" }),
+      setSessionAttendance(String(ids.org), session, String(person._id), "PRESENT", String(ids.admin), { origin: "PROFESSOR" })
+    ]);
+    expect(results.filter((item) => item.chargeCreated)).toHaveLength(1);
+    expect(results.filter((item) => item.duplicate)).toHaveLength(1);
+    expect(await ChargeModel.countDocuments({ studentId: person._id })).toBe(1);
+    expect(await ClassAttendanceModel.countDocuments({ sessionId: session._id, status: "PRESENT" })).toBe(1);
+    expect((await studentBalances(String(ids.org), [person._id])).get(String(person._id))?.pendingCents).toBe(800000);
+  });
+
+  it("rolls back the snapshot and attendance when generating the obligation fails", async () => {
+    const danceClass = await group({ billingMode: "PER_CLASS", slots: [{ day: "WEDNESDAY", startTime: "18:00", endTime: "19:00" }] });
+    const person = await student();
+    await enroll(danceClass._id, person._id, "PER_CLASS");
+    const [session] = await sessionsOf(danceClass._id, "2026-10-07", "2026-10-07");
+    const failure = vi.spyOn(ChargeModel, "create").mockRejectedValueOnce(new Error("simulated persistence failure"));
+    try {
+      await expect(setSessionAttendance(String(ids.org), session, String(person._id), "PRESENT", String(ids.admin))).rejects.toThrow("simulated");
+    } finally {
+      failure.mockRestore();
+    }
+    expect(await ClassAttendanceModel.countDocuments({ sessionId: session._id })).toBe(0);
+    expect((await ClassSessionModel.findById(session._id))?.rosterFrozenAt).toBeUndefined();
+    expect(await ChargeModel.countDocuments({ studentId: person._id })).toBe(0);
+    await setSessionAttendance(String(ids.org), session, String(person._id), "PRESENT", String(ids.admin));
+    await expect(setSessionAttendance(String(ids.org), session, String(person._id), "ABSENT", String(ids.admin), { origin: "PROFESSOR" })).rejects.toMatchObject({ code: "ATTENDANCE_CORRECTION_REQUIRED" });
+    await setSessionAttendance(String(ids.org), session, String(person._id), "ABSENT", String(ids.admin), { origin: "ADMIN", reason: "Corrección de recepción" });
+    expect(await ChargeModel.countDocuments({ studentId: person._id, status: "OPEN" })).toBe(1);
+  });
+});
 
 afterAll(async () => {
   vi.useRealTimers();
