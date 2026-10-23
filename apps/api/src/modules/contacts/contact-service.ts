@@ -11,7 +11,7 @@ export async function resolveContact(organizationId: string, id: string, dbSessi
   if (!student) throw new AppError(404, "Contacto no encontrado", "CONTACT_NOT_FOUND");
   return ContactModel.findOneAndUpdate({ _id: student._id, organizationId }, {
     $setOnInsert: { organizationId, branchId: student.branchId, firstName: student.firstName, lastName: student.lastName,
-      email: student.email, phone: student.phone, isActive: student.isActive, source: { platform: "LEGACY_STUDENT" } }
+      email: student.email, phone: student.phone, isActive: true, source: { platform: "LEGACY_STUDENT" } }
   }, { upsert: true, new: true, session: dbSession });
 }
 

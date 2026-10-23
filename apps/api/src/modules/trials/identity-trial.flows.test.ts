@@ -71,7 +71,7 @@ describe("identity and trial invariants", () => {
     expect(await StudentModel.exists({ _id: contact._id })).toBeNull();
     const participants = await loadSessionParticipants(String(org), session, danceClass);
     expect(participants).toHaveLength(1);
-    expect(participants[0]).toMatchObject({ studentId: String(contact._id), billingType: "FREE", participantType: "TRIAL" });
+    expect(participants[0]).toMatchObject({ studentId: String(contact._id), billingType: "FREE", participantType: "TRIAL", academicProfile: false });
     expect(booking.contactId?.equals(contact._id)).toBe(true);
     expect((await TrialBenefitModel.findOne({ contactId: contact._id }))?.consumedAt).toBeUndefined();
   });
@@ -174,6 +174,41 @@ describe("identity and trial invariants", () => {
     await bookTrial(actor(), { contactId: String(contact._id), sessionId: String(session._id), kind: "COURTESY", notes: "Cortesía por invitación" });
     await mark(session, contact._id);
     expect(await ChargeModel.countDocuments({ studentId: contact._id })).toBe(0);
+  });
+
+  it("keeps a former student's contact available for another interest and reactivates the academic profile", async () => {
+    const contact = await person(), first = await group(), next = await group();
+    await convertContact(actor(), String(contact._id), { classId: String(first.danceClass._id) });
+    const response = await auth(request(app).patch(`/api/admin/students/${contact._id}`)).send({ isActive: false });
+    expect(response.status).toBe(200);
+    expect((await ContactModel.findById(contact._id))?.isActive).toBe(true);
+    const trial = await bookTrial(actor(), { contactId: String(contact._id), sessionId: String(next.session._id) });
+    await convertTrial(actor(), String(trial._id), {});
+    expect((await StudentModel.findById(contact._id))?.isActive).toBe(true);
+    expect(await StudentModel.countDocuments({ _id: contact._id })).toBe(1);
+    const report = await runIdentityMigration(mongoose.connection.db!);
+    expect(report.issues.some((issue) => issue.trialId === String(trial._id))).toBe(false);
+    expect((await TrialBenefitModel.findOne({ contactId: contact._id }))?.consumedAt).toBeUndefined();
+  });
+
+  it("blocks an unverified free roster row without recording attendance or a charge", async () => {
+    const contact = await person(), { session } = await group();
+    await ClassAttendanceModel.create({ organizationId: org, branchId: branch, classId: session.classId, sessionId: session._id,
+      studentId: contact._id, contactId: contact._id, participantType: "COURTESY", status: "EXPECTED" });
+    await ClassSessionModel.updateOne({ _id: session._id }, { $set: { rosterFrozenAt: new Date() } });
+    await expect(mark(session, contact._id)).rejects.toMatchObject({ code: "GRATUITY_REQUIRES_REVIEW" });
+    expect((await ClassAttendanceModel.findOne({ sessionId: session._id, studentId: contact._id }))?.status).toBe("EXPECTED");
+    expect(await ChargeModel.countDocuments({ studentId: contact._id })).toBe(0);
+  });
+
+  it("refuses incompatible identity links before applying any migration writes", async () => {
+    const student = await StudentModel.create({ organizationId: org, branchId: branch, firstName: "Vínculo", lastName: "Inválido", contactId: new Types.ObjectId() });
+    try {
+      const report = await runIdentityMigration(mongoose.connection.db!);
+      expect(report.issues).toContainEqual({ studentId: String(student._id), reason: "IDENTITY_SCOPE_OR_LINK_MISMATCH" });
+      await expect(runIdentityMigration(mongoose.connection.db!, true)).rejects.toThrow("REQUIRES_REVIEW");
+      expect(await ContactModel.findById(student._id)).toBeNull();
+    } finally { await StudentModel.deleteOne({ _id: student._id }); }
   });
 
   it("refuses ambiguous migration before writing even an unrelated contact", async () => {

@@ -8,19 +8,23 @@ export async function runIdentityMigration(db: Database, apply = false) {
   const students = await db.collection("students").find({}).toArray();
   const contacts = await db.collection("contacts").find({}).toArray();
   const trials = await db.collection("trialbookings").find({}).toArray();
-  const known = new Set([...students, ...contacts].map((item) => String(item._id)));
+  const known = new Map([...students, ...contacts].map((item) => [String(item._id), String(item.organizationId)]));
   const writes: Array<() => Promise<unknown>> = [];
   const report = { mode: apply ? "APPLY_LOCAL" : "DRY_RUN", students: students.length, contactsMissing: 0,
     attendanceMissingIdentity: await db.collection("classattendances").countDocuments({ contactId: { $exists: false } }),
-    trials: trials.length, issues: [] as Array<{ trialId: string; reason: string }> };
+    trials: trials.length, issues: [] as Array<{ trialId?: string; studentId?: string; reason: string }> };
   for (const student of students) {
+    const linked = contacts.find((contact) => contact._id.equals(student._id));
+    if ((linked && String(linked.organizationId) !== String(student.organizationId)) || (student.contactId && String(student.contactId) !== String(student._id))) {
+      report.issues.push({ studentId: String(student._id), reason: "IDENTITY_SCOPE_OR_LINK_MISMATCH" }); continue;
+    }
     if (!contacts.some((contact) => contact._id.equals(student._id))) {
       report.contactsMissing++;
       writes.push(() => db.collection("contacts").updateOne({ _id: student._id }, { $setOnInsert: {
         organizationId: student.organizationId, branchId: student.branchId, firstName: student.firstName, lastName: student.lastName,
         ...(student.email ? { email: student.email } : {}), ...(student.phone ? { phone: student.phone } : {}),
         source: { platform: "LEGACY_STUDENT", firstContactAt: student.createdAt },
-        preferences: { emailReminders: true, marketing: false }, isActive: student.isActive, createdAt: student.createdAt, updatedAt: new Date()
+        preferences: { emailReminders: true, marketing: false }, isActive: true, createdAt: student.createdAt, updatedAt: new Date()
       } }, { upsert: true }));
     }
     writes.push(() => db.collection("students").updateOne({ _id: student._id }, { $set: { contactId: student._id } }));
@@ -31,6 +35,11 @@ export async function runIdentityMigration(db: Database, apply = false) {
     let sessionId = trial.sessionId;
     const issue = (reason: string) => report.issues.push({ trialId: String(trial._id), reason });
     if (!known.has(String(trial.studentId))) { issue("IDENTITY_NOT_FOUND"); continue; }
+    if (known.get(String(trial.studentId)) !== String(trial.organizationId)) { issue("IDENTITY_SCOPE_MISMATCH"); continue; }
+    if (trial.contactId && String(trial.contactId) !== String(trial.studentId)) { issue("IDENTITY_LINK_MISMATCH"); continue; }
+    if (sessionId && !await db.collection("classsessions").findOne({ _id: sessionId, organizationId: trial.organizationId, classId: trial.classId })) {
+      issue("SESSION_SCOPE_MISMATCH"); continue;
+    }
     if (!sessionId) {
       const date = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit", day: "2-digit" }).format(trial.scheduledFor);
       const sessions = await db.collection("classsessions").find({ organizationId: trial.organizationId, classId: trial.classId, sessionDate: date }).toArray();
@@ -38,16 +47,19 @@ export async function runIdentityMigration(db: Database, apply = false) {
       else { issue("SESSION_AMBIGUOUS"); continue; }
     }
     const present = await db.collection("classattendances").findOne({ organizationId: trial.organizationId, trialId: trial._id, status: "PRESENT" });
-    if (!present && ["COMPLETED", "CONVERTED"].includes(trial.status) && !trial.consumedAt) { issue("COMPLETION_WITHOUT_ATTENDANCE_EVIDENCE"); continue; }
+    const legacyConversion = trial.status === "CONVERTED" && (!trial.kind || !trial.sessionId || !trial.contactId);
+    if (!present && (trial.status === "COMPLETED" || legacyConversion) && !trial.consumedAt) { issue("COMPLETION_WITHOUT_ATTENDANCE_EVIDENCE"); continue; }
     const filter = { organizationId: trial.organizationId, contactId: trial.contactId ?? trial.studentId, classId: trial.classId };
     const key = `${filter.organizationId}:${filter.contactId}:${filter.classId}`;
     const prior = await db.collection("trialbenefits").findOne(filter);
     const isTrial = trial.kind !== "COURTESY";
     if (isTrial && (present || trial.consumedAt)) {
+      if (active.has(key)) { issue("ACTIVE_RESERVATION_AFTER_CONSUMPTION"); continue; }
       const old = consumed.get(key) ?? (prior?.consumedBookingId ? String(prior.consumedBookingId) : undefined);
       if (old && old !== String(trial._id)) { issue("DUPLICATE_CONSUMPTION"); continue; }
       consumed.set(key, String(trial._id));
     } else if (isTrial && trial.status === "SCHEDULED") {
+      if (consumed.has(key) || prior?.consumedAt) { issue("ACTIVE_RESERVATION_AFTER_CONSUMPTION"); continue; }
       if (active.has(key) || (prior?.activeBookingId && !prior.activeBookingId.equals(trial._id))) { issue("DUPLICATE_ACTIVE_RESERVATION"); continue; }
       active.set(key, String(trial._id));
     }

@@ -18,14 +18,14 @@ export function ContactDetail({ id }: { id: string }) {
   const [date, setDate] = useState(todayInArgentina), [kind, setKind] = useState("TRIAL");
   const [error, setError] = useState(""), [message, setMessage] = useState(""), [busy, setBusy] = useState(false), [edit, setEdit] = useState(false);
   const [convert, setConvert] = useState<TrialBookingView | null>(null);
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     const [detail, catalog] = await Promise.all([
-      apiFetch<ContactDetailResponse>(`/admin/contacts/${id}`),
-      apiFetch<Array<{ _id: string; name: string }>>("/admin/classes")
+      apiFetch<ContactDetailResponse>(`/admin/contacts/${id}`, { signal }),
+      apiFetch<Array<{ _id: string; name: string }>>("/admin/classes", { signal })
     ]);
-    setData(detail); setClasses(catalog);
+    if (!signal?.aborted) { setData(detail); setClasses(catalog); }
   }, [id]);
-  useEffect(() => { void load().catch((error) => setError(apiMessage(error))); }, [load]);
+  useEffect(() => { const controller = new AbortController(); setData(null); void load(controller.signal).catch((error) => { if (!controller.signal.aborted) setError(apiMessage(error)); }); return () => controller.abort(); }, [load]);
   useEffect(() => {
     const controller = new AbortController(); setSessions([]);
     void apiFetch<{ items: SessionOption[] }>(`/admin/sessions?date=${date}`, { signal: controller.signal })

@@ -329,7 +329,7 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
       const contact = await resolveContact(organizationId, id, dbSession);
       student.contactId = contact._id;
       contact.set({ firstName: student.firstName, lastName: student.lastName, branchId: student.branchId,
-        email: student.email, phone: student.phone, isActive: student.isActive });
+        email: student.email, phone: student.phone, ...(input.isActive === true ? { isActive: true } : {}) });
       await contact.save({ session: dbSession });
       await student.save({ session: dbSession });
 

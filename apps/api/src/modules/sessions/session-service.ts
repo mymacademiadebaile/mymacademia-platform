@@ -137,6 +137,7 @@ export type SessionParticipant = {
   studentId: string;
   student: { firstName: string; lastName: string; email?: string; phone?: string };
   participantType: ParticipantType;
+  academicProfile: boolean;
   enrollmentId?: string;
   trialId?: string;
   attendanceStatus: AttendanceStatus;
@@ -158,11 +159,12 @@ export async function loadSessionParticipants(
   const studentIds = roster.map((item) => new Types.ObjectId(item.studentId));
   const enrollmentIds = roster.filter((item) => item.enrollmentId).map((item) => new Types.ObjectId(item.enrollmentId!));
   const [students, contacts, enrollments] = await Promise.all([
-    StudentModel.find({ organizationId, _id: { $in: studentIds } }).select("firstName lastName email phone").lean<any[]>(),
+    StudentModel.find({ organizationId, _id: { $in: studentIds } }).select("firstName lastName email phone isActive").lean<any[]>(),
     ContactModel.find({ organizationId, _id: { $in: studentIds } }).select("firstName lastName email phone").lean(),
     EnrollmentModel.find({ organizationId, _id: { $in: enrollmentIds } }).lean<any[]>()
   ]);
   const studentById = new Map([...contacts, ...students].map((item) => [String(item._id), item]));
+  const academicIds = new Set(students.filter((item) => item.isActive).map((item) => String(item._id)));
   const enrollmentById = new Map(enrollments.map((item) => [String(item._id), item]));
 
   const participants = roster
@@ -189,6 +191,7 @@ export async function loadSessionParticipants(
         phone: participant.student.phone
       },
       participantType: participant.participantType,
+      academicProfile: academicIds.has(participant.studentId),
       enrollmentId: participant.enrollmentId,
       trialId: participant.trialId,
       attendanceStatus: participant.attendanceStatus,
@@ -231,6 +234,9 @@ export async function setSessionAttendance(
     await options.validate?.(current, dbSession);
     const participant = await attendanceParticipant(organizationId, current, String(studentId), dbSession);
     if (!participant) throw new AppError(422, "La persona no pertenece a esta clase del día", "STUDENT_NOT_IN_SESSION");
+    if (["TRIAL", "COURTESY"].includes(participant.participantType) && !participant.trialId) {
+      throw new AppError(409, "La gratuidad necesita una reserva o autorización verificable. Revisá el historial en recepción.", "GRATUITY_REQUIRES_REVIEW");
+    }
     if (current.rosterFrozenAt && !participant.persisted) {
       const danceClass = await DanceClassModel.findOne({ _id: current.classId, organizationId }).session(dbSession);
       if (!danceClass) throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");

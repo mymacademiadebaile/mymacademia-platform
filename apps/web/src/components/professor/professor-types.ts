@@ -69,7 +69,8 @@ export type PaymentReference = { kind: "CLASS" | "MONTH"; value: string } | null
 export type RosterItem = {
   studentId: string;
   student: { firstName: string; lastName: string; email?: string; phone?: string };
-  participantType: "ENROLLMENT" | "TRIAL";
+  participantType: "ENROLLMENT" | "TRIAL" | "COURTESY";
+  academicProfile?: boolean;
   billingType: BillingType;
   attendanceStatus: AttendanceStatus;
   payment: { status: PaymentStatus; amount: number; reference: PaymentReference };

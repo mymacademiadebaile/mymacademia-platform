@@ -383,6 +383,7 @@ professorOperationsRouter.get("/sessions/:id", async (request, response, next) =
       studentId: item.studentId,
       student: item.student,
       participantType: item.participantType,
+      academicProfile: item.academicProfile,
       billingType: item.billingType,
       attendanceStatus: item.attendanceStatus,
       payment: {

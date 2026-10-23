@@ -36,7 +36,7 @@ type SessionParticipant = {
     email?: string;
     phone?: string;
   };
-  participantType: "ENROLLMENT" | "TRIAL";
+  participantType: "ENROLLMENT" | "TRIAL" | "COURTESY";
   enrollmentId?: string;
   trialId?: string;
   attendanceStatus: AttendanceStatus;
@@ -92,7 +92,7 @@ function billingLabel(type: BillingType) {
 function paymentLabel(participant: SessionParticipant) {
   const { status } = participant.payment;
 
-  if (status === "FREE") return participant.participantType === "TRIAL" ? "Prueba gratis" : "Sin cargo";
+  if (status === "FREE") return participant.participantType === "TRIAL" ? "Prueba gratis" : participant.participantType === "COURTESY" ? "Cortesía" : "Sin cargo";
   if (status === "PAID") {
     // The covering payment can differ from the current billing type (history is kept).
     return (participant.payment.paymentType ?? participant.billingType) === "MONTHLY"
@@ -421,8 +421,8 @@ export function SessionLive({ id }: { id: string }) {
                 <span>
                   <strong>{fullName}</strong>
                   <small>
-                    {participant.participantType === "TRIAL" ? (
-                      <><Gift size={11} /> Clase de prueba</>
+                    {["TRIAL", "COURTESY"].includes(participant.participantType) ? (
+                      <><Gift size={11} /> {participant.participantType === "TRIAL" ? "Clase de prueba" : "Cortesía"}</>
                     ) : (
                       participant.student.phone || participant.student.email || "Sin contacto"
                     )}

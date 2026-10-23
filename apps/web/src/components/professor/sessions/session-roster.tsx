@@ -98,6 +98,7 @@ export function SessionRoster({ roster, disabled, onAttendance }: Props) {
                     <div>
                       <strong>{name}</strong>
                       {item.participantType === "TRIAL" && <Chip>Clase de prueba</Chip>}
+                      {item.participantType === "COURTESY" && <Chip>Cortesía</Chip>}
                     </div>
                   </div>
                 </td>
@@ -117,13 +118,13 @@ export function SessionRoster({ roster, disabled, onAttendance }: Props) {
                 <td>
                   <div className={styles.actions}>
                     <AttendanceButtons item={item} disabled={disabled} onAttendance={onAttendance} />
-                    <Link
+                    {item.academicProfile !== false && <Link
                       href={`/professor/students/${item.studentId}`}
                       className={styles.viewLink}
                       aria-label={`Ver alumno ${name}`}
                     >
                       Ver alumno
-                    </Link>
+                    </Link>}
                   </div>
                 </td>
               </tr>
@@ -143,6 +144,7 @@ export function SessionRoster({ roster, disabled, onAttendance }: Props) {
                   <div>
                     <strong>{name}</strong>
                     {item.participantType === "TRIAL" && <Chip>Clase de prueba</Chip>}
+                    {item.participantType === "COURTESY" && <Chip>Cortesía</Chip>}
                   </div>
                 </div>
                 <AttendanceBadge status={item.attendanceStatus} />
@@ -167,9 +169,9 @@ export function SessionRoster({ roster, disabled, onAttendance }: Props) {
                 </div>
               </dl>
               <AttendanceButtons item={item} disabled={disabled} onAttendance={onAttendance} />
-              <Link href={`/professor/students/${item.studentId}`} className={styles.viewLink}>
+              {item.academicProfile !== false && <Link href={`/professor/students/${item.studentId}`} className={styles.viewLink}>
                 Ver alumno
-              </Link>
+              </Link>}
             </li>
           );
         })}
