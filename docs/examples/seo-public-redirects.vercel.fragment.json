@@ -1,0 +1,46 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "mymacademia-platform\\.vercel\\.app" }],
+      "destination": "https://www.mymacademiadebaile.com.ar/",
+      "permanent": true
+    },
+    {
+      "source": "/clases",
+      "has": [{ "type": "host", "value": "mymacademia-platform\\.vercel\\.app" }],
+      "destination": "https://www.mymacademiadebaile.com.ar/clases",
+      "permanent": true
+    },
+    {
+      "source": "/clases/:slug",
+      "has": [{ "type": "host", "value": "mymacademia-platform\\.vercel\\.app" }],
+      "destination": "https://www.mymacademiadebaile.com.ar/clases/:slug",
+      "permanent": true
+    },
+    {
+      "source": "/horarios",
+      "has": [{ "type": "host", "value": "mymacademia-platform\\.vercel\\.app" }],
+      "destination": "https://www.mymacademiadebaile.com.ar/horarios",
+      "permanent": true
+    },
+    {
+      "source": "/contacto",
+      "has": [{ "type": "host", "value": "mymacademia-platform\\.vercel\\.app" }],
+      "destination": "https://www.mymacademiadebaile.com.ar/contacto",
+      "permanent": true
+    },
+    {
+      "source": "/profesores",
+      "has": [{ "type": "host", "value": "mymacademia-platform\\.vercel\\.app" }],
+      "destination": "https://www.mymacademiadebaile.com.ar/profesores",
+      "permanent": true
+    },
+    {
+      "source": "/profesores/:slug",
+      "has": [{ "type": "host", "value": "mymacademia-platform\\.vercel\\.app" }],
+      "destination": "https://www.mymacademiadebaile.com.ar/profesores/:slug",
+      "permanent": true
+    }
+  ]
+}

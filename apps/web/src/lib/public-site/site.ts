@@ -5,7 +5,10 @@
 
 import type { Branch } from "./types";
 
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+// Public search identity is independent of deployment hosts and APP_ORIGIN
+// (which controls API CORS and password-reset links). Keep previews and legacy
+// NEXT_PUBLIC_SITE_URL values from publishing a second canonical origin.
+const siteUrl = "https://www.mymacademiadebaile.com.ar";
 
 export const SITE = {
   name: "M&M Academia de Baile",

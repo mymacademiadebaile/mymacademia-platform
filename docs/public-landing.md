@@ -180,7 +180,7 @@ La organización se elige con `PUBLIC_ORGANIZATION_SLUG` (por defecto `mym-acade
 | Variable | App | Para qué |
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_URL` | web | URL de la API (ya existía) |
-| `NEXT_PUBLIC_SITE_URL` | web | origen canónico del sitio |
+| Origen SEO | web | fijado en `src/lib/public-site/site.ts`: `https://www.mymacademiadebaile.com.ar` |
 | `PUBLIC_DATA_SOURCE` | web | `api` (por defecto) o `mock` |
 | `PUBLIC_ORGANIZATION_SLUG` | api | organización que se publica |
 | `CLOUDINARY_*` | api | fotos de ritmos y profesores (ya existían) |
@@ -195,7 +195,7 @@ La organización se elige con `PUBLIC_ORGANIZATION_SLUG` (por defecto `mym-acade
 ## SEO
 
 - **Metadata** (`layout.tsx` y cada página): title con template `%s | M&M Academia de Baile`, description con intención local, canonical, Open Graph (`es_AR`), Twitter `summary_large_image`, robots y `formatDetection` desactivado.
-- **URL del sitio**: `NEXT_PUBLIC_SITE_URL` (ver `.env.example`). Por defecto vale `http://localhost:3000`, y **hay que configurarla en producción** porque canonical, sitemap, OG y JSON-LD dependen de ella.
+- **URL del sitio**: fijada en `src/lib/public-site/site.ts` a `https://www.mymacademiadebaile.com.ar`. Canonical, sitemap, OG y JSON-LD comparten ese origen incluso en previews. La variable legada `NEXT_PUBLIC_SITE_URL` ya no se consulta. `APP_ORIGIN` conserva su función operativa independiente.
 - **robots.txt**: permite `/` y bloquea `/admin`, `/professor`, `/login`, `/forgot-password` y `/reset-password`.
 - **sitemap.xml**: home, `/clases`, cada `/clases/[seoSlug]`, `/horarios` y `/contacto`. Los profesores entran solo cuando son reales.
 - **HTML semántico**: un solo `h1` por página, jerarquía h2 → h3, `header`/`nav`/`main`/`section`/`article`/`footer`/`address`, migas de pan con `aria-current`.

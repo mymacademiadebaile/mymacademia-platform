@@ -23,7 +23,9 @@ const body = Archivo({
 export const metadata: Metadata = {
   title: "M&M Academia",
   description: "Gestión de M&M Academia de Baile",
-  applicationName: "M&M Academia"
+  applicationName: "M&M Academia",
+  // Only the public route group explicitly opts in to indexing.
+  robots: { index: false, follow: false }
 };
 
 export const viewport: Viewport = {

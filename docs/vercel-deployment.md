@@ -59,9 +59,15 @@ Los comandos de instalación y build viven dentro de cada service de
 | `APP_ORIGIN` | URL pública completa del único deployment, sin barra final. También forma los enlaces de recuperación y conserva CORS para desarrollo local. |
 | `MONGODB_URI` | URI de MongoDB Atlas u otra base de datos de producción. |
 | `JWT_ACCESS_SECRET` | Secreto aleatorio de al menos 32 caracteres para firmar sesiones. |
-| `NEXT_PUBLIC_SITE_URL` | URL pública completa, sin barra final, para canonical, sitemap, OpenGraph y JSON-LD. Debe coincidir con `APP_ORIGIN`. |
 
 ### Opcionales con valores por defecto
+
+El origen SEO público está fijado en `apps/web/src/lib/public-site/site.ts` a
+`https://www.mymacademiadebaile.com.ar`. `NEXT_PUBLIC_SITE_URL` es una variable
+legada que ya no se consulta; no es necesario configurarla. Canonical,
+`metadataBase`, Open Graph, sitemap, robots y JSON-LD usan ese mismo origen.
+`APP_ORIGIN` sigue siendo independiente y conserva su función operativa:
+no cambiarlo para corregir SEO sin validar CORS y recuperación de contraseña.
 
 | Variable | Valor por defecto | Uso |
 | --- | --- | --- |
