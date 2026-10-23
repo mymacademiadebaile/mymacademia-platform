@@ -23,7 +23,7 @@ export function CheckInKiosk() {
   useEffect(() => { void refreshDevice().then((ready) => { if (ready) setPhase("READY"); }); return () => { request.current?.abort(); audio.current?.dispose(); }; }, [refreshDevice]);
   useEffect(() => () => { stream?.getTracks().forEach((track) => track.stop()); }, [stream]);
   useEffect(() => {
-    const hide = () => { if (document.hidden) { stream?.getTracks().forEach((track) => track.stop()); setStream(null); setResult(null); setSessions([]); pendingQr.current = ""; setPhase(device ? "READY" : "ACTIVATION"); request.current?.abort(); audio.current?.stop(); } };
+    const hide = () => { if (document.hidden) { stream?.getTracks().forEach((track) => track.stop()); setStream(null); setResult(null); setSessions([]); pendingQr.current = ""; setPhase(device ? "READY" : "ACTIVATION"); request.current?.abort("KIOSK_HIDDEN"); audio.current?.stop(); } };
     document.addEventListener("visibilitychange", hide); return () => document.removeEventListener("visibilitychange", hide);
   }, [stream, device]);
   const reset = useCallback(() => { pendingQr.current = ""; setResult(null); setSessions([]); setError(""); processing.current = false;
@@ -36,9 +36,11 @@ export function CheckInKiosk() {
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await apiFetch<CheckInScanResponse>(sessionId ? "/check-in/present" : "/check-in/scan", { method: "POST", signal: controller.signal, body: JSON.stringify({ qr, ...(sessionId ? { sessionId } : {}) }) });
+      if (document.hidden || controller.signal.aborted) return;
       if (response.kind === "SELECT") { pendingQr.current = qr; setSessions(response.sessions); setPhase("SELECT"); }
       else { pendingQr.current = ""; setResult(response); setSessions([]); setPhase("RESULT"); audio.current?.play(response.kind, device?.soundEnabled ?? false, device?.volume ?? 0); }
     } catch (error) {
+      if (document.hidden || controller.signal.reason === "KIOSK_HIDDEN") return;
       pendingQr.current = ""; setSessions([]);
       setResult({ kind: "ERROR", message: error instanceof Error && error.name === "AbortError" ? "No pudimos confirmar la conexión. Pedí ayuda en recepción antes de volver a intentar." : apiMessage(error) });
       setPhase("RESULT"); audio.current?.play("ERROR", device?.soundEnabled ?? false, device?.volume ?? 0);
@@ -68,6 +70,7 @@ export function CheckInKiosk() {
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error("La cámara requiere HTTPS o un navegador compatible. Pedí ayuda en recepción.");
       const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 720 } }, audio: false });
+      if (document.hidden) { media.getTracks().forEach((track) => track.stop()); return; }
       setStream(media); setPhase("SCANNING");
     } catch { setError("No pudimos habilitar la cámara. Revisá el permiso del navegador o pedí ayuda en recepción."); setPhase("HELP"); }
     finally { setBusy(false); }

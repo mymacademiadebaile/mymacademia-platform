@@ -14,3 +14,4 @@ artifacts/
 .turbo/
 *.tsbuildinfo
 .next-build-backup/
+apps/web/.next-reception/

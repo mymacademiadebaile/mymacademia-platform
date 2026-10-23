@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:reception": "playwright test --config playwright.reception.config.ts"
   },
   "dependencies": {
     "@mym/shared": "workspace:*",

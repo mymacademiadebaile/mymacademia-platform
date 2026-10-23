@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  ...(process.env.MYM_E2E_DIST_DIR ? { distDir: process.env.MYM_E2E_DIST_DIR } : {}),
+  typescript: { tsconfigPath: process.env.MYM_E2E_TSCONFIG ?? "tsconfig.json" },
   images: {
     unoptimized: true,
     // Rhythm covers and professor photos uploaded from the backoffice live on Cloudinary.

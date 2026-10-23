@@ -6,7 +6,8 @@ import express from "express";
 /** Isolated UI verification only. Always creates its own ephemeral database; SMTP points to localhost. */
 async function main() {
   const database = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
-  Object.assign(process.env, { NODE_ENV: "test", MONGODB_URI: database.getUri(), APP_ORIGIN: "http://localhost:3000",
+  const port = Number(process.env.LOCAL_UI_API_PORT ?? 4000);
+  Object.assign(process.env, { NODE_ENV: "test", MONGODB_URI: database.getUri(), APP_ORIGIN: process.env.LOCAL_UI_APP_ORIGIN ?? "http://localhost:3000",
     JWT_ACCESS_SECRET: "isolated-ui-test-secret-never-used-in-production", SMTP_HOST: "127.0.0.1", SMTP_PORT: "1",
     SMTP_SECURE: "false", SMTP_USER: "local@example.test", SMTP_PASSWORD: "local-only", RATE_LIMIT_MAX: "1000" });
   const { createApp } = await import("../app");
@@ -36,7 +37,7 @@ async function main() {
   const local = express();
   local.get("/__test/isolated", (_request, response) => response.json({ isolated: true }));
   local.use(createApp());
-  const server = local.listen(4000, "127.0.0.1", () => console.log("Isolated UI API ready on localhost:4000; admin@example.test / LocalDemoOnly-1234; no remote database or SMTP"));
+  const server = local.listen(port, "127.0.0.1", () => console.log(`Isolated UI API ready on port ${port}; admin@example.test / LocalDemoOnly-1234; no remote database or SMTP`));
   const stop = async () => { server.close(); await mongoose.disconnect(); await database.stop(); process.exit(0); };
   process.on("SIGINT", () => void stop()); process.on("SIGTERM", () => void stop());
   void admin;

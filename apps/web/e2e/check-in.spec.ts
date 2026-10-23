@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
+const API = process.env.E2E_API_URL ?? "http://localhost:4000";
 import { toDataURL } from "qrcode";
 
 test("real QR camera decoding confirms persistence, sound, privacy, duplicates and server errors", async ({ page, playwright }) => {
-  const admin = await playwright.request.newContext({ baseURL: "http://localhost:4000" });
+  const admin = await playwright.request.newContext({ baseURL: `${API}` });
   expect((await (await admin.get("/__test/isolated")).json()).isolated).toBe(true);
   await admin.post("/api/auth/login", { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
   const contact = (await (await admin.get("/api/admin/contacts?q=Lucía")).json()).items[0];
@@ -63,5 +64,27 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
   await expect(page.getByRole("heading", { name: "Ya te registramos" })).toBeVisible();
   expect((await tones()).length).toBe(count);
   expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.evaluate(() => (window as unknown as { clearQr: () => void }).clearQr());
+  await expect(page.getByRole("heading", { name: "Acercá tu QR" })).toBeVisible({ timeout: 10000 });
+  // Simulate hiding and immediately returning while a scan is in flight.
+  let release!: () => void;
+  const delayed = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/check-in/scan", async (route) => {
+    await delayed;
+    await route.fulfill({ json: { kind: "WARNING", firstName: "Lucía", message: "Ya te registramos", session: {} } }).catch(() => undefined);
+  });
+  const scan = page.waitForRequest("**/api/check-in/scan");
+  await page.evaluate(() => (window as unknown as { showQr: () => void }).showQr());
+  await scan;
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  release();
+  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await expect(page.getByText("Lucía", { exact: false })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Te ayudamos en recepción" })).toHaveCount(0);
   await admin.dispose();
 });
