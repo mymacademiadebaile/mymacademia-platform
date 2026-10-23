@@ -17,6 +17,7 @@ import {
   fetchSiteImages,
   fetchUpcomingClasses
 } from "@/lib/public-site/queries";
+import { NOT_FOUND_METADATA } from "@/lib/public-site/not-found";
 import { whatsappHref } from "@/lib/public-site/site";
 
 interface ProfessorPageProps {
@@ -25,7 +26,7 @@ interface ProfessorPageProps {
 
 export async function generateMetadata({ params }: ProfessorPageProps): Promise<Metadata> {
   const professor = await fetchPublicProfessor((await params).slug);
-  if (!professor) return {};
+  if (!professor) return NOT_FOUND_METADATA;
   const path = `/profesores/${professor.slug}`;
   const description = `${professor.displayName}, profesor/a en M&M Academia de Baile, La Plata. ${professor.bioShort}`.trim();
   return {

@@ -64,7 +64,15 @@ test("unknown pages are 404 and private shells are noindex without public canoni
   for (const path of ["/pagina-inexistente-seo", "/clases/disciplina-inexistente", "/profesores/docente-inexistente"]) {
     const response = await request.get(path, { headers: { "User-Agent": "Twitterbot" }, maxRedirects: 0 });
     expect(response.status(), path).toBe(404);
-    expect(await response.text()).toMatch(/name="robots" content="noindex/);
+    const html = await response.text();
+    expect(html).toMatch(/name="robots" content="noindex/);
+    await page.setContent(html);
+    // A 404 must not point search engines at the home page or claim to be indexable.
+    await expect(page.locator('link[rel="canonical"]'), path).toHaveCount(0);
+    await expect(page.locator('meta[property="og:url"]'), path).toHaveCount(0);
+    for (const robots of await page.locator('meta[name="robots"]').evaluateAll((tags) => tags.map((tag) => tag.getAttribute("content"))))
+      expect(robots, path).toMatch(/^noindex/);
+    expect(await page.title(), path).toBe("Página no encontrada | M&M Academia de Baile");
   }
   for (const path of ["/login", "/forgot-password", "/reset-password", "/admin", "/admin/payments", "/professor"]) {
     const response = await request.get(path, { maxRedirects: 0 });
@@ -72,5 +80,55 @@ test("unknown pages are 404 and private shells are noindex without public canoni
     await page.setContent(await response.text());
     expect(await page.locator('meta[name="robots"]').getAttribute("content"), path).toBe("noindex, nofollow");
     await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+  }
+});
+
+const ALIAS = { Host: "mymacademia-platform.vercel.app" };
+const technicalPaths = ["/login", "/forgot-password", "/reset-password?token=prueba", "/admin", "/admin/payments", "/professor", "/check-in"];
+
+test("the Vercel alias moves public pages to www with method-preserving redirects", async ({ request }) => {
+  for (const path of publicPaths) {
+    for (const method of ["GET", "HEAD", "POST"] as const) {
+      const response = await request.fetch(path, { method, headers: ALIAS, maxRedirects: 0 });
+      // 308 keeps method and body; POST is not rewritten as GET.
+      expect(response.status(), `${method} ${path}`).toBe(308);
+      expect(response.headers().location, `${method} ${path}`).toBe(`${ORIGIN}${path}`);
+    }
+  }
+  const tracked = await request.get("/clases/salsa-la-plata?utm_source=ig&fbclid=x", { headers: ALIAS, maxRedirects: 0 });
+  expect(tracked.status()).toBe(308);
+  expect(tracked.headers().location).toBe(`${ORIGIN}/clases/salsa-la-plata?utm_source=ig&fbclid=x`);
+});
+
+test("the Vercel alias keeps auth, backoffice, kiosk and crawl files in place, marked noindex", async ({ request }) => {
+  for (const path of [...technicalPaths, "/robots.txt", "/sitemap.xml", "/mym-academia-logo.png"]) {
+    const response = await request.get(path, { headers: ALIAS, maxRedirects: 0 });
+    expect(response.status(), path).toBe(200);
+    expect(response.headers().location, path).toBeUndefined();
+    expect(response.headers()["x-robots-tag"], path).toBe("noindex");
+  }
+  // robots.txt must stay crawlable on the alias so Google can see the redirects.
+  const robots = await request.get("/robots.txt", { headers: ALIAS });
+  expect(await robots.text()).not.toMatch(/^Disallow: \/$/m);
+  // Express owns /api on Vercel; the web service must never answer it with a redirect.
+  for (const method of ["GET", "POST"] as const) {
+    const api = await request.fetch("/api/auth/refresh", { method, headers: ALIAS, maxRedirects: 0 });
+    expect(api.status(), method).not.toBe(308);
+    expect(api.headers().location, method).toBeUndefined();
+  }
+});
+
+test("the official host stays indexable and other hosts are noindex without redirects", async ({ request }) => {
+  for (const path of publicPaths) {
+    const response = await request.get(path, { headers: { Host: "www.mymacademiadebaile.com.ar" }, maxRedirects: 0 });
+    expect(response.status(), path).toBe(200);
+    expect(response.headers()["x-robots-tag"], path).toBeUndefined();
+  }
+  for (const host of ["mymacademia-platform-git-main-mym.vercel.app", "mymacademia-platform-abc123-mym.vercel.app"]) {
+    for (const path of ["/", "/clases/salsa-la-plata", "/login"]) {
+      const response = await request.get(path, { headers: { Host: host }, maxRedirects: 0 });
+      expect(response.status(), `${host}${path}`).toBe(200);
+      expect(response.headers()["x-robots-tag"], `${host}${path}`).toBe("noindex");
+    }
   }
 });

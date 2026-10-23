@@ -22,6 +22,7 @@ import {
   fetchSiteImages,
   fetchUpcomingClasses
 } from "@/lib/public-site/queries";
+import { NOT_FOUND_METADATA } from "@/lib/public-site/not-found";
 import { whatsappHref } from "@/lib/public-site/site";
 
 interface StylePageProps {
@@ -30,7 +31,7 @@ interface StylePageProps {
 
 export async function generateMetadata({ params }: StylePageProps): Promise<Metadata> {
   const style = await fetchPublicDanceStyle((await params).slug);
-  if (!style) return {};
+  if (!style) return NOT_FOUND_METADATA;
   const title = `Clases de ${style.name} en La Plata`;
   const description = `${style.tagline} Clases de ${style.name} en M&M Academia de Baile, Calle 3 N.º 164, La Plata. Consultá horarios y niveles por WhatsApp.`;
   const path = `/clases/${style.seoSlug}`;

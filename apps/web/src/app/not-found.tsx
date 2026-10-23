@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { NOT_FOUND_METADATA } from "@/lib/public-site/not-found";
 import { SITE } from "@/lib/public-site/site";
 import styles from "./not-found.module.css";
+
+// Absolute: public 404s would otherwise also get the public layout's title template.
+export const metadata: Metadata = { ...NOT_FOUND_METADATA, title: { absolute: `Página no encontrada | ${SITE.name}` } };
 
 export default function NotFound() {
   return (
