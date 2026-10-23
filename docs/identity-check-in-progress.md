@@ -25,6 +25,7 @@ Trabajar en `main`, sin ramas ni PR, preservar cambios del usuario y publicar s�
 - Cierre de identidad publicado en `0a3ad35`.
 - Recordatorios API completados: política general/programada apagada por defecto, saldo vigente, preferencias, frecuencia, reserva PENDING idempotente y reintentos seguros. Rutas antiguas de cargos/pagos/historial usan el mismo servicio y no permiten eludir la política. Programación conectada al job existente con máximo de 100 intentos nuevos por corrida. Sin SMTP real.
 - Validación de recordatorios: 9 tests nuevos (saldo, pago parcial, opt-out, regularización, concurrencia, frecuencia, fallos, crash PENDING, automatización, roles/scope), 9 de pantallas financieras y suite completa aprobada; typecheck y build API aprobados. El envío SMTP se realiza fuera de la transacción y nunca dentro de un callback reintentable.
+- API de recordatorios publicada en `b5539af`. Backoffice completado en `/admin/reminders`, con acceso desde Comunicaciones y ficha académica: configuración, búsqueda, vista previa vigente, confirmación e historial. Los cambios de destinatario cancelan las consultas anteriores. E2E de administración aprobó configuración manual, automatización apagada, vista previa y fallo SMTP local registrado sin secretos. Typecheck/lint y build web aprobados.
 - Revisión de interfaz Impeccable: disposición `ship`, sin ajustes visuales materiales; detector ejecutado una vez sin hallazgos. Manual/sistema visual en preparación de cierre.
 - No se aplicaron migraciones ni despliegues.
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Clock3,
@@ -19,7 +20,7 @@ import { ErrorBlock, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
 
 type EmailAudience = "ALL" | "DEBT" | "CLASS" | "STUDENT";
-type HistoryStatus = "PENDING" | "SENT" | "FAILED" | "OPENED";
+type HistoryStatus = "PENDING" | "SENT" | "FAILED" | "OPENED" | "SKIPPED";
 type HistoryItem = {
   _id: string;
   channel: "EMAIL" | "WHATSAPP";
@@ -240,6 +241,7 @@ export function CommunicationsLive() {
 
   return (
     <>
+      <Link href="/admin/reminders" className={styles.secondary}>Gestionar recordatorios de deuda</Link>
       <PageHeader
         eyebrow="COMUNICACIÓN"
         title="Mensajes y recordatorios"
@@ -297,7 +299,6 @@ export function CommunicationsLive() {
                 }}
               >
                 <option value="ALL">Todos los alumnos con email</option>
-                <option value="DEBT">Alumnos con deuda pendiente</option>
                 <option value="CLASS">Alumnos de una clase</option>
                 <option value="STUDENT">Un alumno en particular</option>
               </select>
@@ -477,6 +478,8 @@ export function CommunicationsLive() {
                       ? "Enviado"
                       : item.status === "FAILED"
                         ? "Fallido"
+                        : item.status === "SKIPPED"
+                          ? "No enviado"
                         : item.status === "OPENED"
                           ? "Abierto"
                           : "Pendiente"}

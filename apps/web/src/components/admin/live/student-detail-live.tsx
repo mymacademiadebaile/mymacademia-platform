@@ -311,6 +311,7 @@ export function StudentDetailLive({ id }: { id: string }) {
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
 
+      <div><Link className={styles.back} href={`/admin/contacts/${id}`}>Contacto, pruebas y QR personal</Link> <Link className={styles.back} href={`/admin/reminders?studentId=${id}`}>Recordatorios de deuda</Link></div>
       <StudentDetailHero
         student={student}
         financial={financial}
