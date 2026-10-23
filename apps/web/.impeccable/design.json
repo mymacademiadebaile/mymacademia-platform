@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-23T18:44:54.145850+00:00",
+  "title": "Design System: M&M Academia Platform",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "admin-panel",
+        "value": "0 8px 34px rgba(48,27,59,.035)",
+        "purpose": "Paneles del marco administrativo existente; los paneles nuevos de contactos son planos."
+      },
+      {
+        "name": "admin-primary",
+        "value": "0 10px 24px rgba(91,33,182,.18)",
+        "purpose": "Botón primario del marco administrativo existente."
+      },
+      {
+        "name": "sidebar",
+        "value": "20px 0 60px rgba(28,14,35,.08)",
+        "purpose": "Separación lateral del marco administrativo."
+      },
+      {
+        "name": "admin-dialog",
+        "value": "0 30px 90px rgba(27,12,35,.25)",
+        "purpose": "Diálogos administrativos existentes."
+      }
+    ],
+    "motion": [
+      {
+        "name": "admin-navigation",
+        "value": "160ms ease",
+        "purpose": "Estados de navegación del marco existente."
+      },
+      {
+        "name": "mobile-sidebar",
+        "value": "transform 180ms ease",
+        "purpose": "Apertura del panel lateral administrativo bajo 900px."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "admin-navigation-and-contact-detail",
+        "value": "900px"
+      },
+      {
+        "name": "contact-form-stack",
+        "value": "550px"
+      },
+      {
+        "name": "kiosk-actions-stack",
+        "value": "560px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Acción primaria",
+      "kind": "button",
+      "description": "Acción principal de contactos, recepción y recordatorios.",
+      "html": "<button class=\"ds-primary\">Guardar configuración</button>",
+      "css": ".ds-primary{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border-radius:10px;padding:10px 17px;border:1px solid var(--primary,#5b21b6);cursor:pointer;font-weight:650;background:var(--primary,#5b21b6);color:white}.ds-primary:hover{background:var(--primary-strong,#43158f)}.ds-primary:focus-visible{outline:3px solid #7c3aed;outline-offset:3px}.ds-primary:disabled{opacity:.6;cursor:wait}",
+      "refersTo": "button-primary"
+    },
+    {
+      "name": "Acción secundaria",
+      "kind": "button",
+      "description": "Acción alternativa con borde violeta.",
+      "html": "<button class=\"ds-secondary\">Actualizar</button>",
+      "css": ".ds-secondary{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border-radius:10px;padding:10px 17px;border:1px solid var(--primary,#5b21b6);cursor:pointer;font-weight:650;background:white;color:var(--primary,#5b21b6)}.ds-secondary:hover{background:#f5f0fb}.ds-secondary:focus-visible{outline:3px solid #7c3aed;outline-offset:3px}.ds-secondary:disabled{opacity:.6;cursor:wait}",
+      "refersTo": "button-secondary"
+    },
+    {
+      "name": "Campo de contacto",
+      "kind": "input",
+      "description": "Etiqueta superior y campo flexible de 48px como mínimo.",
+      "html": "<label class=\"ds-field\">Nombre<input value=\"María\" /></label>",
+      "css": ".ds-field{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:grid;gap:7px;font-size:14px;color:#52445e}.ds-field input{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;min-height:48px;border:1px solid #cfc2dc;background:white;border-radius:10px;padding:11px 13px;width:100%;min-width:0;color:var(--text,#211a2b)}.ds-field input:focus-visible{outline:3px solid #7c3aed;outline-offset:3px}",
+      "refersTo": "input"
+    },
+    {
+      "name": "Superficie operativa",
+      "kind": "card",
+      "description": "Panel plano compartido por los flujos de recepción.",
+      "html": "<section class=\"ds-surface\"><h2>Historial de comunicaciones</h2><p>Todavía no hay recordatorios para esta persona.</p></section>",
+      "css": ".ds-surface{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;background:var(--surface,#fff);color:var(--text,#211a2b);border:1px solid var(--border,#e8e1ef);border-radius:16px;padding:24px;margin-block:20px}.ds-surface h2{margin:0 0 16px;font-size:20px;letter-spacing:-.02em}.ds-surface p{color:#62556f;line-height:1.6}@media(max-width:550px){.ds-surface{padding:18px}}",
+      "refersTo": "surface"
+    },
+    {
+      "name": "Estado de contacto",
+      "kind": "chip",
+      "description": "Etiqueta textual compacta sobre violeta suave.",
+      "html": "<span class=\"ds-badge\">Alumno</span>",
+      "css": ".ds-badge{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:inline-block;font-size:12px;font-weight:650;color:#582888;background:#f2eafa;padding:6px 10px;border-radius:7px;white-space:nowrap}",
+      "refersTo": "badge"
+    },
+    {
+      "name": "Navegación administrativa",
+      "kind": "nav",
+      "description": "Selección y hover del marco lateral existente.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Administración\"><a class=\"ds-nav-active\" href=\"#\" aria-current=\"page\">Recepción</a><a class=\"ds-nav-item\" href=\"#\">Contactos</a></nav>",
+      "css": ".ds-nav{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:grid;gap:2px;background:#211529;padding:12px 10px}.ds-nav-item,.ds-nav-active{min-height:38px;display:flex;align-items:center;gap:9px;padding:0 11px;border-radius:11px;font-size:12px;font-weight:700;color:#c9bfce;text-decoration:none;transition:160ms ease}.ds-nav-item:hover{color:white;background:rgba(255,255,255,.06)}.ds-nav-active{color:white;background:linear-gradient(120deg,rgba(124,58,237,.95),rgba(91,33,182,.72));box-shadow:0 10px 26px rgba(91,33,182,.22)}"
+    },
+    {
+      "name": "Acción del kiosco",
+      "kind": "button",
+      "description": "Control táctil público de al menos 60px.",
+      "html": "<button class=\"ds-kiosk-button\">Habilitar cámara y sonido</button>",
+      "css": ".ds-kiosk-button{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:inline-flex;justify-content:center;align-items:center;gap:10px;min-height:60px;padding:16px 26px;border-radius:14px;border:1px solid #5b21b6;font-size:17px;font-weight:700;cursor:pointer;color:white;background:#5b21b6}.ds-kiosk-button:hover{background:#43158f}.ds-kiosk-button:focus-visible{outline:3px solid #8743da;outline-offset:4px}.ds-kiosk-button:disabled{opacity:.6;cursor:wait}",
+      "refersTo": "kiosk-button"
+    },
+    {
+      "name": "Resultado público",
+      "kind": "custom",
+      "description": "Resultado confirmado con nombre de pila y sesión; sin importes.",
+      "html": "<section class=\"ds-result\" role=\"status\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m8 12 3 3 5-6\"/></svg><h1>¡Bienvenida/o, María!</h1><p>Asistencia registrada.</p><p><strong>Salsa inicial</strong><br />18:00 a 19:00</p></section>",
+      "css": ".ds-result{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;border-radius:24px;padding:clamp(24px,5vw,56px);background:#e8f6ec;color:#165b35;text-align:center}.ds-result h1{font-size:clamp(32px,5vw,52px);line-height:1.1;letter-spacing:-.035em;margin:24px 0 16px;text-wrap:balance}.ds-result p{font-size:clamp(17px,2vw,21px);line-height:1.6;max-width:56ch;margin:16px auto 24px;color:inherit}.ds-result svg{width:72px;height:72px}.ds-result[data-kind=\"WARNING\"]{background:#fff3d6;color:#754b08}.ds-result[data-kind=\"ERROR\"]{background:#fff0f3;color:#9b2038}"
+    }
+  ],
+  "narrative": {
+    "overview": "Este documento registra el sistema implementado de administración, contactos, recepción, recordatorios y kiosco de asistencia. Es una extensión del producto existente: `PRODUCT.md`, `src/app/globals.css` y los estilos administrativos conservan su autoridad. No establece una identidad nueva ni reemplaza los sistemas específicos del portal de profesores o del sitio público comercial.\n\nLa administración combina superficies claras, acentos violetas, tipografía sans y navegación lateral oscura. Contactos, recepción y recordatorios comparten formularios y listas de lectura directa. El kiosco público conserva la identidad de la academia con una composición centrada y controles de mayor tamaño para confirmar una asistencia.",
+    "keyCharacteristics": [
+      "Superficies claras con bordes suaves y acciones violetas.",
+      "Navegación administrativa lateral y contenido operativo adaptable.",
+      "Etiquetas y estados en español, con texto además del color.",
+      "Kiosco centrado, táctil y con información personal temporal."
+    ],
+    "rules": [
+      {
+        "name": "The Confirmation Rule",
+        "body": "La confirmación visible y el sonido de asistencia se producen después de recibir el resultado de la operación. Una conexión incierta muestra ayuda de recepción, sin afirmar que la asistencia quedó registrada.",
+        "section": "components"
+      },
+      {
+        "name": "The Public Reset Rule",
+        "body": "El resultado se limpia a los 7 segundos y la selección de sesión a los 20 segundos; ocultar la pestaña limpia datos personales y detiene la cámara y el audio. El inicio y la ayuda siguen disponibles sin exponer la cuenta corriente.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** conservar la paleta, la tipografía heredada y la navegación administrativa existentes.",
+      "**Do** apilar formularios y acciones en los puntos de adaptación implementados, manteniendo el desplazamiento de tablas dentro de su contenedor.",
+      "**Do** mantener controles táctiles de al menos 60px en el kiosco y etiquetas accesibles en español.",
+      "**Do** acompañar cada estado con texto y confirmar la operación antes de mostrar éxito o reproducir su sonido.",
+      "**Do** limitar el resultado público al nombre de pila, la sesión y avisos generales temporales."
+    ],
+    "donts": [
+      "**Don't** mostrar importes ni desgloses de deuda en el kiosco público.",
+      "**Don't** conservar el resultado o las opciones de una persona después del reinicio de privacidad.",
+      "**Don't** presentar un envío o una asistencia como confirmados cuando la conexión no permite verificar el resultado.",
+      "**Don't** convertir los estilos particulares del kiosco o de los flujos nuevos en un reemplazo global del marco administrativo existente."
+    ]
+  }
+}

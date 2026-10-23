@@ -10,6 +10,8 @@ En `TrialBooking` y `ClassAttendance`, el nombre legado `studentId` se conserva 
 
 Los datos de identidad se sincronizan entre Contact y Student dentro de una transacción desde las rutas de edición. No se fusionan personas por nombre, email familiar o teléfono. Las altas con medios coincidentes piden reutilizar/revisar el contacto; las altas sin medios tienen una clave de creación idempotente. Resolver homónimos o identidades que ya estuvieran duplicadas requiere intervención de recepción. El sistema no puede demostrar que dos identidades sin datos verificables pertenecen a la misma persona.
 
+La baja de Student cierra inscripciones, pero **no archiva Contact**: un exalumno puede mantener intereses comerciales y tomar una prueba en otro grupo. La conversión reactiva su perfil académico existente. Archivar una identidad es una decisión separada.
+
 ## Pruebas y cortesías
 
 Cada reserva nueva apunta a una **sesión concreta**, no a todos los horarios de una fecha. Las rutas antiguas con fecha sólo resuelven automáticamente cuando hay una única sesión; si hay varias exigen selección.
@@ -70,3 +72,36 @@ Después de la respuesta persistida se reproducen dos tonos ascendentes (éxito)
 Recepción muestra presentes, origen, sesión, saldo pendiente/vencido/a favor, pagos parciales, último recordatorio y enlaces a ficha/sesión. Los saldos salen de balance-service. Los intentos fallidos guardan sólo dispositivo, código de error y fecha, con retención de 30 días. No guardan QR, IP, cuerpo de solicitud ni importes.
 
 Pruebas Chromium decodifican un QR real mediante video generado desde canvas (sin cámara física), confirman su persistencia por API y verifican tonos, duplicado, error de servidor, silenciado y limpieza de pantalla. Queda una prueba de aceptación física de cámara/altavoces en la tablet elegida: las pruebas automatizadas no demuestran calidad óptica ni volumen del hardware.
+
+## Recordatorios de deuda
+
+Comunicaciones → Gestionar recordatorios de deuda, o ficha del alumno → Recordatorios. Los dos interruptores (general y programado) comienzan apagados. Administración configura frecuencia mínima (1–60 días), días de vencimiento para programación (1–90) y desglose opcional. La persona controla su preferencia de recordatorios desde la ficha de Contactos. El portal futuro debe aplicar esa misma preferencia.
+
+Seleccionar alumno, revisar saldo pendiente/vencido/a favor y vista previa; luego confirmar Enviar email. El mensaje usa español argentino y la plantilla SMTP existente. La vista previa nunca se acepta como contenido de envío: se recalcula el balance al procesar, y otra vez inmediatamente antes de SMTP. Una cuenta regularizada o sin autorización se omite.
+
+La persistencia del envío se reserva como PENDING antes de llamar SMTP, bajo lock por alumno y transacción. `deliveryKey` es único por organización; reintentos de la misma solicitud no duplican envíos. La frecuencia se aplica a todos los caminos, incluidos recordatorios de cargos, pagos legacy y reintentos de historial. Los intentos fallidos también respetan frecuencia para evitar duplicar una entrega incierta. Un PENDING después de una interrupción requiere revisión operativa; nunca se reenvía automáticamente ese intento. No es posible garantizar entrega exactamente una vez entre MongoDB y un proveedor SMTP sin idempotencia del proveedor. SENT significa que SMTP aceptó el mensaje, no que el destinatario lo leyó o recibió.
+
+Los errores guardados son genéricos y no contienen diagnósticos SMTP ni secretos. SKIPPED distingue una omisión legítima de un fallo. El historial guarda destinatario, texto privado, estado y fecha; es accesible sólo en administración.
+
+La programación se conecta al job diario **existente** y autenticado; no se creó ni desplegó un cron nuevo. Sólo procesa una organización con ambos interruptores activos, después del umbral de vencimiento, con un máximo de 100 intentos nuevos por corrida. No envía nada desde check-in. No se habilitó programación ni se enviaron correos reales durante este trabajo. Tests de servicio usan SMTP mock; E2E usa localhost:1 para comprobar el error y el historial sin entregar emails.
+
+### Endpoints de recordatorios
+
+- GET/PATCH `/api/admin/debt-reminders/settings`.
+- GET `/api/admin/debt-reminders/students/:id/preview`.
+- POST `/api/admin/debt-reminders/students/:id/send` con `idempotencyKey` estable por acción.
+- GET `/api/admin/debt-reminders/students/:id/history`.
+
+### Validación aislada del navegador
+
+`pnpm --filter @mym/web test:e2e:reception` usa puertos 3100/4100 y `.next-reception`, evitando colisiones con el desarrollo/SEO local. No reutiliza servidores desconocidos. El fixture siempre genera su propia base. `test:e2e` conserva el flujo original 3000/4000 para otras suites. Los archivos generados de Next se deben revisar al terminar un build de verificación.
+
+El recorrido de gestión genera/renueva un QR PNG, autoriza un dispositivo, comprueba automatización deshabilitada y procesa una falla SMTP local en el historial. El recorrido de cámara también simula una solicitud demorada al ocultar y volver a la pestaña: no restaura el nombre ni un resultado después del reinicio de privacidad.
+
+## Puesta en uso pendiente de autorización
+
+El código y los flujos automatizados están completos; no equivalen a un despliegue ni a una migración de datos reales. Antes de habilitar recepción se necesita respaldo, revisión del dry-run en destino y autorización explícita para la migración/despliegue. MongoDB debe soportar transacciones; los flujos críticos fallan si no las soporta. `--apply` remoto sigue bloqueado en el script.
+
+En la tablet elegida, verificar HTTPS, permisos de cámara/audio, lectura de QR en papel y pantalla, respuesta sonora física, volumen/silenciado, rotación del teléfono, expiración/revocación del dispositivo y limpieza de datos entre personas. Para emails, verificar destinatario autorizado y aceptación/entrega SMTP antes de habilitar la política. No se enviaron emails reales en las validaciones.
+
+La recepción asistida resuelve homónimos y revisa duplicados antes de crear una identidad; el beneficio es único por identidad/grupo y no sustituye la verificación humana de una persona que intente registrarse con identidades distintas. No hay integración Meta ni portal de alumnos en esta entrega.
