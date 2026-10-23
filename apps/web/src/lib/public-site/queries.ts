@@ -9,6 +9,7 @@
  * and the next request retries (failed fetches are never cached).
  */
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import {
   fetchCatalogFromApi,
   fetchPublicSiteImagesFromApi,
@@ -31,6 +32,28 @@ const USE_MOCK = process.env.PUBLIC_DATA_SOURCE === "mock";
 
 const EMPTY_CATALOG: PublicCatalog = { styles: [], professors: [], entries: [] };
 
+/**
+ * Public pages remain dynamic so builds do not depend on a running API. Cache
+ * the published payloads independently: without this, every page view wakes
+ * the API service and repeats the same read-only MongoDB queries.
+ */
+const PUBLIC_DATA_REVALIDATE_SECONDS = 300;
+
+const loadCachedCatalog = unstable_cache(fetchCatalogFromApi, ["public-catalog-v1"], {
+  revalidate: PUBLIC_DATA_REVALIDATE_SECONDS,
+  tags: ["public-site"]
+});
+
+const loadCachedSocialLinks = unstable_cache(fetchPublicSocialLinksFromApi, ["public-social-links-v1"], {
+  revalidate: PUBLIC_DATA_REVALIDATE_SECONDS,
+  tags: ["public-site"]
+});
+
+const loadCachedSiteImages = unstable_cache(fetchPublicSiteImagesFromApi, ["public-site-images-v1"], {
+  revalidate: PUBLIC_DATA_REVALIDATE_SECONDS,
+  tags: ["public-site"]
+});
+
 /** One catalog load per request (React cache dedupes the parallel calls of a page). */
 const loadCatalog = cache(async (): Promise<PublicCatalog & { isPlaceholder: boolean }> => {
   if (USE_MOCK) {
@@ -43,7 +66,7 @@ const loadCatalog = cache(async (): Promise<PublicCatalog & { isPlaceholder: boo
   }
 
   try {
-    return { ...(await fetchCatalogFromApi()), isPlaceholder: false };
+    return { ...(await loadCachedCatalog()), isPlaceholder: false };
   } catch (error) {
     console.error("[public-site] could not load the public catalog", error);
     return { ...EMPTY_CATALOG, isPlaceholder: false };
@@ -85,7 +108,7 @@ export async function fetchPublicSocialLinks(): Promise<PublicSocialLinks> {
   if (USE_MOCK) return {};
 
   try {
-    return await fetchPublicSocialLinksFromApi();
+    return await loadCachedSocialLinks();
   } catch (error) {
     console.error("[public-site] could not load public social links", error);
     return {};
@@ -101,7 +124,7 @@ export async function fetchSiteImages(): Promise<Record<keyof typeof mockImages,
   if (USE_MOCK) return mockImages;
 
   try {
-    const configured = await fetchPublicSiteImagesFromApi();
+    const configured = await loadCachedSiteImages();
     const makeImage = (
       image: { src: string; width?: number; height?: number } | undefined,
       fallback: PublicImage,

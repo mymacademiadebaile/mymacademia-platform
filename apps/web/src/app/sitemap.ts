@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 import { fetchPublicDanceStyles, fetchPublicProfessors } from "@/lib/public-site/queries";
 import { absoluteUrl } from "@/lib/public-site/site";
 
-// Built from the published catalog, so it is rendered on demand instead of at build time.
+// Built from the published catalog at request time; the public response receives
+// the same short CDN cache policy as the marketing pages.
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -113,8 +113,10 @@ export async function loadPublicSiteImages(): Promise<PublicSiteImagesDto> {
 }
 
 publicRouter.use((_request, response, next) => {
-  // Public editorial updates must be observable on the following request.
-  response.setHeader("Cache-Control", "no-store, max-age=0");
+  // This router returns only published, non-personal data. Cache it at the
+  // CDN so direct traffic and crawlers do not wake the API and MongoDB for
+  // every visit; stale content refreshes in the background.
+  response.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=86400");
   next();
 });
 

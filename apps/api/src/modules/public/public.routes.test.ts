@@ -135,7 +135,8 @@ describe("GET /api/public/*", () => {
     const response = await request(app).get("/api/public/catalog");
 
     expect(response.status).toBe(200);
-    expect(response.headers["cache-control"]).toContain("no-store");
+    expect(response.headers["cache-control"]).toContain("s-maxage=300");
+    expect(response.headers["cache-control"]).toContain("stale-while-revalidate=86400");
     expect(response.body.styles.map((style: { slug: string }) => style.slug)).toEqual(["bachata-sensual"]);
     expect(response.body.professors[0]).toMatchObject({ slug: "ana-perez", disciplines: ["bachata-sensual"] });
     expect(response.body.schedule[0]).toMatchObject({

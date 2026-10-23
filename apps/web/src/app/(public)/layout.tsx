@@ -30,9 +30,9 @@ const body = Archivo({
 
 const TITLE = "M&M Academia de Baile | Clases de baile en La Plata";
 
-// Pages read the published catalog from the API, so they are rendered on demand. The
-// API response itself is cached for a minute (see lib/public-site/api-source.ts), which
-// keeps the build independent from the backend and the pages fast.
+// Pages read the published catalog at request time, keeping the build independent
+// from the backend. Shared payloads and public HTML are cached for five minutes;
+// see lib/public-site/queries.ts and next.config.ts.
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -19,7 +19,8 @@ import {
   fetchUpcomingClasses
 } from "@/lib/public-site/queries";
 
-// "Próximas clases" depends on the current time: regenerate every 10 minutes.
+// "Próximas clases" depends on the current time; public HTML is CDN-cached for
+// five minutes by next.config.ts.
 export default async function HomePage() {
   const [branch, styles, professors, schedule, upcoming, faq, images] = await Promise.all([
     fetchPrimaryBranch(),

@@ -1,8 +1,8 @@
 /**
  * Reads the published catalog from the read-only public API (GET /api/public/catalog)
  * and maps it to the website types. Server-side only: pages are rendered on the
- * server. Public content is deliberately read with `no-store`, so a change
- * published from the backoffice is reflected on the next request.
+ * server. Shared caching is applied by `queries.ts`; these functions only
+ * describe the HTTP transport to the read-only API.
  */
 import type { DanceStyle, PublicProfessor, PublicSocialLinks, ScheduleEntry, WeekDay } from "./types";
 
@@ -129,7 +129,7 @@ export function mapCatalog(data: ApiCatalog): PublicCatalog {
 
 async function fetchCatalogUncached(): Promise<PublicCatalog> {
   const response = await fetch(`${API_URL}/public/catalog`, {
-    // Do not retain public editorial data after a request.
+    // Cross-request caching is owned by `unstable_cache` in queries.ts.
     cache: "no-store"
   });
   if (!response.ok) {
