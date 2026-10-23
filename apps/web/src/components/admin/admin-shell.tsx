@@ -35,6 +35,7 @@ const navigation = [
   { href: "/admin/professors", label: "Profesores", icon: Sparkles },
   { href: "/admin/students", label: "Alumnos", icon: UsersRound },
   { href: "/admin/contacts", label: "Contactos", icon: MessageCircle },
+  { href: "/admin/reception", label: "Recepción", icon: CheckCircle2 },
   { href: "/admin/payments", label: "Pagos", icon: CreditCard },
   { href: "/admin/communications", label: "Comunicaciones", icon: MessageCircleMore },
   { href: "/admin/reports", label: "Reportes", icon: BarChart3 },

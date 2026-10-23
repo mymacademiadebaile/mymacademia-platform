@@ -6,6 +6,7 @@ import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { todayInArgentina } from "@/lib/dates";
 import styles from "./contacts.module.css";
+import { QrCard } from "./qr-card";
 
 const opportunityLabel: Record<OpportunityStatus, string> = { OPEN: "Interés abierto", FOLLOW_UP: "En seguimiento", TRIAL_BOOKED: "Prueba reservada", CONVERTED: "Inscripto", LOST: "Sin continuidad" };
 const trialLabel = { SCHEDULED: "Reservada", COMPLETED: "Asistió", CANCELLED: "Cancelada / ausente", CONVERTED: "Convertida a inscripción" };
@@ -115,6 +116,7 @@ export function ContactDetail({ id }: { id: string }) {
           </section>}
         </div>
         <div>
+          <QrCard id={id} name={`${data.contact.firstName} ${data.contact.lastName}`} />
           <section className={styles.surface}><h2>Seguimiento comercial</h2>
             <ul className={styles.list}>{data.opportunities.map((item) => <li key={item._id}><div className={styles.row}><span><strong>{item.classId?.name}</strong><small>{opportunityLabel[item.status]}{item.followUpOn ? ` · Próximo contacto: ${item.followUpOn.split("-").reverse().join("/")}` : ""}</small><small>{item.notes}</small></span></div></li>)}</ul>
             <form className={styles.form} onSubmit={opportunity}>

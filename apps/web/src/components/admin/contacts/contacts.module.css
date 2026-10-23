@@ -29,5 +29,12 @@
 .check { display: flex !important; align-items: center; gap: 10px; min-height: 44px; }
 .check input { width: 20px; min-height: 20px; }
 .empty { padding-block: 28px; color: #62556f; }
+.printArea { display: grid; justify-items: center; text-align: center; gap: 12px; margin-block: 24px; }
+.printArea img { max-width: 100%; height: auto; }
+@media print {
+  :global(body):has(.printArea) :global(*) { visibility: hidden; }
+  .printArea,.printArea :global(*) { visibility: visible !important; }
+  .printArea { position: absolute; inset: 0 auto auto 0; width: 100%; padding: 40px; color: black; background: white; }
+}
 @media (max-width: 900px) { .detail { grid-template-columns: 1fr; gap: 0; } }
 @media (max-width: 550px) { .surface { padding: 18px; } .form { grid-template-columns: 1fr; } .row { align-items: flex-start; } .actions > * { flex: 1; } }

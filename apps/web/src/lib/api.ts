@@ -52,6 +52,7 @@ export async function apiFetch<T>(
     path !== "/auth/refresh" &&
     path !== "/auth/login" &&
     path !== "/auth/logout"
+    && !path.startsWith("/check-in")
   ) {
     const refreshResponse = await request("/auth/refresh", { method: "POST" });
 

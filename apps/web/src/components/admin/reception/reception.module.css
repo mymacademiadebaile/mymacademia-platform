@@ -1,0 +1,11 @@
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; font-variant-numeric: tabular-nums; }
+.table th { color: #62516e; font-size: 12px; font-weight: 650; padding: 12px 16px; border-bottom: 1px solid #ddd0e8; white-space: nowrap; }
+.table td { padding: 16px; border-bottom: 1px solid #eee6f4; vertical-align: top; min-width: 130px; }
+.table td:first-child { min-width: 200px; }
+.table small { display: block; margin-top: 6px; color: #62516e; line-height: 1.5; }
+.table a { color: #5b21b6; text-decoration: underline; text-underline-offset: 3px; }
+.device { padding-block: 24px; border-top: 1px solid #e5dbed; }
+.device h3 { margin-top: 0; }
+.code { display: block; width: 100%; padding: 16px; border: 1px solid #b8a2cd; border-radius: 10px; font-family: inherit; font-size: 17px; margin-block: 14px; overflow-wrap: anywhere; resize: none; }
+.amountDue { color: #a12938; font-weight: 700; }

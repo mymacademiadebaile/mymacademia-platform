@@ -1,0 +1,67 @@
+import { expect, test } from "@playwright/test";
+import { toDataURL } from "qrcode";
+
+test("real QR camera decoding confirms persistence, sound, privacy, duplicates and server errors", async ({ page, playwright }) => {
+  const admin = await playwright.request.newContext({ baseURL: "http://localhost:4000" });
+  expect((await (await admin.get("/__test/isolated")).json()).isolated).toBe(true);
+  await admin.post("/api/auth/login", { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
+  const contact = (await (await admin.get("/api/admin/contacts?q=Lucía")).json()).items[0];
+  const { qr } = await (await admin.post(`/api/admin/check-in/contacts/${contact._id}/credential/rotate`)).json();
+  const { activationCode, device } = await (await admin.post("/api/admin/check-in/devices", { data: { name: "Tablet de recepción", branchId: contact.branchId } })).json();
+  const qrImage = await toDataURL(qr, { width: 600, margin: 4 });
+  await page.addInitScript(({ qrImage }) => {
+    const state = window as unknown as { tones: number[]; clearQr: () => void; showQr: () => void };
+    state.tones = [];
+    const original = AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator = function () {
+      const node = original.call(this), start = node.start.bind(node);
+      node.start = (when?: number) => { state.tones.push(node.frequency.value); start(when); };
+      return node;
+    };
+    Object.defineProperty(navigator.mediaDevices, "getUserMedia", { value: async () => {
+      const canvas = document.createElement("canvas"); canvas.width = 720; canvas.height = 720;
+      const context = canvas.getContext("2d")!; const image = new Image(); image.src = qrImage; await image.decode();
+      state.clearQr = () => { context.fillStyle = "white"; context.fillRect(0, 0, 720, 720); };
+      state.showQr = () => { state.clearQr(); context.drawImage(image, 60, 60, 600, 600); };
+      state.showQr(); return canvas.captureStream(10);
+    } });
+  }, { qrImage });
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto("/check-in");
+  await page.getByLabel("Código de activación").fill(activationCode);
+  await page.getByRole("button", { name: "Activar dispositivo" }).click();
+  await page.getByRole("button", { name: "Habilitar cámara y sonido" }).click();
+  await expect(page.getByRole("heading", { name: "¡Bienvenida/o, Lucía!" })).toBeVisible();
+  await expect(page.getByText("Tenés un pago pendiente.", { exact: false })).toBeVisible();
+  const detail = await (await admin.get("/api/admin/check-in/reception")).json();
+  expect(detail.arrivals.some((arrival: { studentId: string; origin: string }) => arrival.studentId === contact._id && arrival.origin === "KIOSK")).toBe(true);
+  const tones = () => page.evaluate(() => (window as unknown as { tones: number[] }).tones);
+  expect(await tones()).toEqual([660, 880]);
+  await page.screenshot({ path: "../../artifacts/check-in-desktop.png", animations: "disabled" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "../../artifacts/check-in-mobile.png", fullPage: true, animations: "disabled" });
+  await page.evaluate(() => (window as unknown as { clearQr: () => void }).clearQr());
+  await expect(page.getByRole("heading", { name: "Acercá tu QR" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("Lucía", { exact: false })).toHaveCount(0);
+  await page.evaluate(() => (window as unknown as { showQr: () => void }).showQr());
+  await expect(page.getByRole("heading", { name: "Ya te registramos" })).toBeVisible();
+  expect((await tones()).at(-1)).toBe(520);
+  await page.evaluate(() => (window as unknown as { clearQr: () => void }).clearQr());
+  await expect(page.getByRole("heading", { name: "Acercá tu QR" })).toBeVisible({ timeout: 10000 });
+  await page.route("**/api/check-in/scan", (route) => route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "No pudimos confirmar la asistencia. Consultá en recepción." }) }));
+  await page.evaluate(() => (window as unknown as { showQr: () => void }).showQr());
+  await expect(page.getByRole("heading", { name: "Te ayudamos en recepción" })).toBeVisible();
+  expect((await tones()).slice(-2)).toEqual([310, 220]);
+  expect((await tones()).filter((tone) => tone === 660)).toHaveLength(1);
+  await page.evaluate(() => (window as unknown as { clearQr: () => void }).clearQr());
+  await admin.patch(`/api/admin/check-in/devices/${device.id}`, { data: { soundEnabled: false } });
+  await page.unroute("**/api/check-in/scan");
+  await expect(page.getByRole("heading", { name: "Acercá tu QR" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("Sonido desactivado", { exact: false })).toBeVisible();
+  const count = (await tones()).length;
+  await page.evaluate(() => (window as unknown as { showQr: () => void }).showQr());
+  await expect(page.getByRole("heading", { name: "Ya te registramos" })).toBeVisible();
+  expect((await tones()).length).toBe(count);
+  expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
+  await admin.dispose();
+});
