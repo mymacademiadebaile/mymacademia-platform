@@ -2,7 +2,7 @@ import { Schema, Types, model } from "mongoose";
 
 const CHANNELS = ["EMAIL", "WHATSAPP"] as const;
 const TYPES = ["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION", "SESSION_CHANGE", "PAYMENT_RECEIPT"] as const;
-const STATUSES = ["PENDING", "SENT", "FAILED", "OPENED"] as const;
+const STATUSES = ["PENDING", "SENT", "FAILED", "OPENED", "SKIPPED"] as const;
 
 type Channel = (typeof CHANNELS)[number];
 type NotificationType = (typeof TYPES)[number];
@@ -20,6 +20,7 @@ export interface NotificationLog {
   status: NotificationStatus;
   errorMessage?: string;
   sentAt?: Date;
+  deliveryKey?: string;
 }
 
 const notificationLogSchema = new Schema<NotificationLog>(
@@ -34,13 +35,16 @@ const notificationLogSchema = new Schema<NotificationLog>(
     message: { type: String, required: true },
     status: { type: String, enum: STATUSES, default: "PENDING", index: true },
     errorMessage: { type: String },
-    sentAt: { type: Date }
+    sentAt: { type: Date },
+    deliveryKey: { type: String, maxlength: 200 }
   },
   { timestamps: true }
 );
 
 notificationLogSchema.index({ organizationId: 1, createdAt: -1 });
 notificationLogSchema.index({ organizationId: 1, channel: 1, status: 1, createdAt: -1 });
+notificationLogSchema.index({ organizationId: 1, deliveryKey: 1 }, { unique: true, partialFilterExpression: { deliveryKey: { $type: "string" } } });
+notificationLogSchema.index({ organizationId: 1, studentId: 1, type: 1, createdAt: -1 });
 
 export const NotificationLogModel = model<NotificationLog>(
   "NotificationLog",

@@ -8,6 +8,7 @@ const mailFailureMessage = vi.hoisted(() => vi.fn(() => "No se pudo enviar el co
 vi.mock("../../services/mailer", () => ({ sendEmail, mailFailureMessage }));
 
 import { createApp } from "../../app";
+import { DebtReminderSettingsModel } from "../notifications/debt-reminder-settings.model";
 import { academyInstant } from "../../common/dates";
 import { env } from "../../config/env";
 import { startReplicaSet } from "../../test/mongo";
@@ -93,6 +94,7 @@ beforeAll(async () => {
     role: "ADMIN"
   });
   Object.assign(ids, { org: org._id, branch: branch._id, admin: user._id });
+  await DebtReminderSettingsModel.create({ organizationId: org._id, enabled: true, updatedByUserId: user._id });
   token = jwt.sign({ sub: String(user._id), organizationId: String(org._id), role: "ADMIN" }, env.JWT_ACCESS_SECRET);
 }, 120_000);
 
@@ -287,7 +289,7 @@ describe("POST /billing/charges/:id/remind and receipt email", () => {
     const withMail = await setup("BOTH", "falla@example.com");
     const failing = await openCharge(withMail.student._id, withMail.danceClass._id);
     sendEmail.mockRejectedValueOnce(new Error("SMTP caído"));
-    expect((await admin(request(app).post(`/api/admin/billing/charges/${failing}/remind`))).status).toBe(500);
+    expect((await admin(request(app).post(`/api/admin/billing/charges/${failing}/remind`))).status).toBe(502);
     expect(await NotificationLogModel.findOne({ studentId: withMail.student._id, status: "FAILED" }).lean()).toMatchObject({
       errorMessage: "No se pudo enviar el correo. Intentá nuevamente más tarde."
     });

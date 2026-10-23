@@ -31,7 +31,7 @@ import { hasMonthlyCoverage } from "../billing/coverage-service";
 import { FinancialAdjustmentModel } from "../billing/financial-adjustment.model";
 import type { ChargeView } from "../billing/legacy-adapter";
 import { MigrationIssueModel } from "../billing/migration-issue.model";
-import { paymentReminderText } from "../billing/reminder-message";
+import { sendDebtReminder } from "../notifications/debt-reminder-service";
 import { PaymentAllocationModel } from "../billing/payment-allocation.model";
 import { RefundModel } from "../billing/refund.model";
 import { DanceClassModel } from "../classes/class.model";
@@ -279,51 +279,8 @@ adminBillingRouter.post("/charges/:id/remind", async (request, response, next) =
     const charge = await ChargeModel.findOne({ _id: id, organizationId, status: "OPEN", balanceCents: { $gt: 0 } });
     if (!charge) throw new AppError(404, "Cuota pendiente no encontrada", "PAYMENT_NOT_FOUND");
 
-    const student = await StudentModel.findOne({ _id: charge.studentId, organizationId });
-    if (!student?.email) throw new AppError(422, "El alumno no tiene email cargado", "STUDENT_WITHOUT_EMAIL");
-
-    const subject = "Recordatorio de pago - M&M Academia";
-    const organization = await OrganizationModel.findById(organizationId).select("inquiryWhatsApp").lean();
-    const message = paymentReminderText({
-      firstName: student.firstName,
-      concept: charge.concept,
-      kind: charge.kind,
-      period: charge.period,
-      amount: toPesos(charge.balanceCents),
-      dueDate: charge.dueDate,
-      inquiryWhatsApp: organization?.inquiryWhatsApp
-    });
-    const log = {
-      organizationId,
-      actorUserId: request.auth!.userId,
-      studentId: student._id,
-      channel: "EMAIL" as const,
-      type: "DEBT_REMINDER" as const,
-      destination: student.email,
-      subject,
-      message
-    };
-    try {
-      await sendEmail({ to: student.email, subject, text: message });
-      await NotificationLogModel.create({ ...log, status: "SENT", sentAt: new Date() });
-    } catch (mailError) {
-      await NotificationLogModel.create({
-        ...log,
-        status: "FAILED",
-        errorMessage: mailFailureMessage(mailError)
-      });
-      throw mailError;
-    }
-
-    await AuditLogModel.create({
-      organizationId,
-      actorUserId: request.auth!.userId,
-      action: "PAYMENT_REMINDER_SENT",
-      entityType: "Charge",
-      entityId: charge._id,
-      metadata: { studentId: student._id, channel: "EMAIL" }
-    });
-    response.json({ ok: true });
+    const result = await sendDebtReminder(actorOf(request), String(charge.studentId), `charge:${id}:${academyNow().date}`, { chargeId: id });
+    response.json({ ok: result.status === "SENT", ...result });
   } catch (error) {
     next(error);
   }

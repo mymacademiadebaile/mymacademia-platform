@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { containsText } from "../../common/regex";
 import { z } from "zod";
+import { sendDebtReminder } from "../notifications/debt-reminder-service";
+import { academyNow } from "../../common/dates";
 import { AppError } from "../../common/http/app-error";
 import { mailFailureMessage, sendEmail } from "../../services/mailer";
 import { AuditLogModel } from "../audit/audit-log.model";
@@ -45,7 +47,7 @@ const whatsappSchema = z.object({
 
 const historyQuerySchema = pageQuerySchema.extend({
   channel: z.enum(["EMAIL", "WHATSAPP"]).optional(),
-  status: z.enum(["PENDING", "SENT", "FAILED", "OPENED"]).optional(),
+  status: z.enum(["PENDING", "SENT", "FAILED", "OPENED", "SKIPPED"]).optional(),
   type: z.enum(["DEBT_REMINDER", "CLASS_REMINDER", "PROMOTION", "PAYMENT_RECEIPT"]).optional()
 });
 
@@ -163,6 +165,7 @@ adminCommunicationsRouter.get("/history", async (request, response, next) => {
 adminCommunicationsRouter.post("/email", async (request, response, next) => {
   try {
     const input = emailSchema.parse(request.body);
+    if (input.audience === "DEBT") throw new AppError(422, "Usá Recordatorios de deuda para verificar saldo, preferencias y frecuencia antes de enviar", "USE_DEBT_REMINDERS");
     const organizationId = request.auth!.organizationId;
     const students = await resolveAudienceStudents(
       organizationId,
@@ -314,6 +317,12 @@ adminCommunicationsRouter.post("/history/:id/retry", async (request, response, n
         "No encontramos un email fallido para reintentar",
         "FAILED_NOTIFICATION_NOT_FOUND"
       );
+    }
+
+    if (log.type === "DEBT_REMINDER") {
+      if (!log.studentId) throw new AppError(422, "El recordatorio no tiene una identidad válida", "STUDENT_NOT_FOUND");
+      response.json(await sendDebtReminder({ organizationId, userId: request.auth!.userId }, String(log.studentId), `retry:${id}:${academyNow().date}`));
+      return;
     }
 
     try {

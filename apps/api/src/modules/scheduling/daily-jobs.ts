@@ -1,3 +1,4 @@
+import { processScheduledDebtReminders } from "../notifications/debt-reminder-service";
 import { academyNow } from "../../common/dates";
 import { OrganizationModel } from "../core/organization.model";
 import { generateSessions, rollingWindow } from "./session-generator";
@@ -16,7 +17,8 @@ export async function runDailyJobs(now = new Date()) {
   for (const organization of organizations) {
     const organizationId = String(organization._id);
     const sessions = await generateSessions(organizationId, rollingWindow(today));
-    results.push({ organizationId, sessions });
+    const reminders = await processScheduledDebtReminders(organizationId, now);
+    results.push({ organizationId, sessions, reminders });
   }
 
   return { today, organizations: results };

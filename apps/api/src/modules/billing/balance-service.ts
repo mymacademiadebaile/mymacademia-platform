@@ -69,7 +69,8 @@ export async function openCharges(
 export async function studentBalances(
   organizationId: string,
   studentIds?: Array<string | Types.ObjectId>,
-  today = academyNow().date
+  today = academyNow().date,
+  session?: ClientSession
 ): Promise<Map<string, StudentBalance>> {
   const balances = new Map<string, StudentBalance>();
   const get = (id: string) => {
@@ -81,7 +82,7 @@ export async function studentBalances(
   };
   for (const id of studentIds ?? []) get(String(id));
 
-  const charges = await openCharges(organizationId, { studentIds });
+  const charges = await openCharges(organizationId, { studentIds }, session);
   for (const charge of charges) {
     const state = chargeState(charge, today);
     if (state.status === "PAID" || state.status === "VOID") continue;
@@ -99,7 +100,7 @@ export async function studentBalances(
     { $project: { studentId: 1, credit: { $subtract: ["$amountCents", { $add: ["$allocatedCents", "$refundedCents"] }] } } },
     { $match: { credit: { $gt: 0 } } },
     { $group: { _id: "$studentId", credit: { $sum: "$credit" } } }
-  ]);
+  ]).session(session ?? null);
   for (const row of credit) get(String(row._id)).creditCents += row.credit;
 
   return balances;

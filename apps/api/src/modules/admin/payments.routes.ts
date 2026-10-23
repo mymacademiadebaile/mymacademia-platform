@@ -9,6 +9,9 @@ import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
 import { academyDateOf, classDateKey, toDateOnly } from "../../common/dates";
 import { privateAssetUrl, uploadPrivateBuffer } from "../../services/cloudinary";
+import { sendDebtReminder } from "../notifications/debt-reminder-service";
+import { ChargeModel } from "../billing/charge.model";
+import { academyNow } from "../../common/dates";
 import { CollectionModel } from "../billing/collection.model";
 import { mailFailureMessage, sendEmail } from "../../services/mailer";
 import { AuditLogModel } from "../audit/audit-log.model";
@@ -881,68 +884,12 @@ adminPaymentsRouter.post("/:id/remind", async (request, response, next) => {
       throw new AppError(404, "Cuota pendiente no encontrada", "PAYMENT_NOT_FOUND");
     }
 
-    const student = await StudentModel.findOne({
-      _id: payment.studentId,
-      organizationId
-    });
-
-    if (!student?.email) {
-      throw new AppError(
-        422,
-        "El alumno no tiene email cargado",
-        "STUDENT_WITHOUT_EMAIL"
-      );
-    }
-
-    const message =
-      `Hola ${student.firstName}, te recordamos que se encuentra pendiente ${payment.concept} (${payment.period}) por $ ${payment.amount.toLocaleString("es-AR")}.`;
-
-    try {
-      await sendEmail({
-        to: student.email,
-        subject: "Recordatorio de pago - M&M Academia",
-        text: message
-      });
-
-      await NotificationLogModel.create({
-        organizationId,
-        actorUserId: request.auth!.userId,
-        studentId: student._id,
-        channel: "EMAIL",
-        type: "DEBT_REMINDER",
-        destination: student.email,
-        subject: "Recordatorio de pago - M&M Academia",
-        message,
-        status: "SENT",
-        sentAt: new Date()
-      });
-    } catch (mailError) {
-      await NotificationLogModel.create({
-        organizationId,
-        actorUserId: request.auth!.userId,
-        studentId: student._id,
-        channel: "EMAIL",
-        type: "DEBT_REMINDER",
-        destination: student.email,
-        subject: "Recordatorio de pago - M&M Academia",
-        message,
-        status: "FAILED",
-        errorMessage: mailFailureMessage(mailError)
-      });
-
-      throw mailError;
-    }
-
-    await AuditLogModel.create({
-      organizationId,
-      actorUserId: request.auth!.userId,
-      action: "PAYMENT_REMINDER_SENT",
-      entityType: "Payment",
-      entityId: payment._id,
-      metadata: { studentId: student._id, channel: "EMAIL" }
-    });
-
-    response.json({ ok: true });
+    await mirrorLegacyPayment(payment._id);
+    const charge = await ChargeModel.findOne({ organizationId, legacyPaymentId: payment._id, status: "OPEN" });
+    if (!charge) throw new AppError(404, "Cuota pendiente no encontrada", "PAYMENT_NOT_FOUND");
+    const result = await sendDebtReminder({ organizationId, userId: request.auth!.userId }, String(payment.studentId),
+      `legacy:${id}:${academyNow().date}`, { chargeId: String(charge._id) });
+    response.json({ ok: result.status === "SENT", ...result });
   } catch (error) {
     next(error);
   }
