@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { Camera, CheckCircle2, CircleAlert, HandHelping, Volume2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { CheckInDeviceView, CheckInResult, CheckInScanResponse, CheckInSession } from "@mym/shared";
@@ -7,7 +8,7 @@ import { apiFetch, apiMessage, ApiError } from "@/lib/api";
 import { KioskAudio } from "./kiosk-audio";
 import styles from "./check-in.module.css";
 
-type Phase = "BOOT" | "ACTIVATION" | "READY" | "SCANNING" | "SELECT" | "RESULT" | "HELP";
+type Phase = "BOOT" | "LOGIN" | "BRANCH" | "READY" | "SCANNING" | "SELECT" | "RESULT" | "HELP";
 type Result = CheckInResult | { kind: "ERROR"; message: string };
 export function CheckInKiosk() {
   const [phase, setPhase] = useState<Phase>("BOOT"), [device, setDevice] = useState<CheckInDeviceView | null>(null);
@@ -16,14 +17,27 @@ export function CheckInKiosk() {
   const video = useRef<HTMLVideoElement>(null), pendingQr = useRef(""), processing = useRef(false);
   const audio = useRef<KioskAudio | null>(null), request = useRef<AbortController | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
+  const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
+  const authorize = useCallback(async (branchId?: string) => {
+    try {
+      setDevice(await apiFetch<CheckInDeviceView>("/check-in/authorize", { method: "POST", body: JSON.stringify(branchId ? { branchId } : {}) }));
+      setBranches([]); setError(""); return true;
+    } catch (error) {
+      setDevice(null);
+      const payload = error instanceof ApiError ? error.payload as { error?: string; details?: { branches?: Array<{ id: string; name: string }> } } : undefined;
+      if (payload?.error === "KIOSK_BRANCH_REQUIRED" && payload.details?.branches) { setBranches(payload.details.branches); setPhase("BRANCH"); }
+      else { setPhase("LOGIN"); if (!(error instanceof ApiError && error.status === 401)) setError(apiMessage(error)); }
+      return false;
+    }
+  }, []);
   const refreshDevice = useCallback(async () => {
     try { setDevice(await apiFetch<CheckInDeviceView>("/check-in/device")); return true; }
-    catch { setDevice(null); setPhase("ACTIVATION"); return false; }
-  }, []);
+    catch { return authorize(); }
+  }, [authorize]);
   useEffect(() => { void refreshDevice().then((ready) => { if (ready) setPhase("READY"); }); return () => { request.current?.abort(); audio.current?.dispose(); }; }, [refreshDevice]);
   useEffect(() => () => { stream?.getTracks().forEach((track) => track.stop()); }, [stream]);
   useEffect(() => {
-    const hide = () => { if (document.hidden) { stream?.getTracks().forEach((track) => track.stop()); setStream(null); setResult(null); setSessions([]); pendingQr.current = ""; setPhase(device ? "READY" : "ACTIVATION"); request.current?.abort("KIOSK_HIDDEN"); audio.current?.stop(); } };
+    const hide = () => { if (document.hidden) { stream?.getTracks().forEach((track) => track.stop()); setStream(null); setResult(null); setSessions([]); pendingQr.current = ""; setPhase(device ? "READY" : "LOGIN"); request.current?.abort("KIOSK_HIDDEN"); audio.current?.stop(); } };
     document.addEventListener("visibilitychange", hide); return () => document.removeEventListener("visibilitychange", hide);
   }, [stream, device]);
   const reset = useCallback(() => { pendingQr.current = ""; setResult(null); setSessions([]); setError(""); processing.current = false;
@@ -75,18 +89,18 @@ export function CheckInKiosk() {
     } catch { setError("No pudimos habilitar la cámara. Revisá el permiso del navegador o pedí ayuda en recepción."); setPhase("HELP"); }
     finally { setBusy(false); }
   }
-  async function activate(event: FormEvent<HTMLFormElement>) {
+  async function chooseBranch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget); setBusy(true); setError("");
-    try { setDevice(await apiFetch<CheckInDeviceView>("/check-in/activate", { method: "POST", body: JSON.stringify({ code: String(form.get("code")).trim() }) })); setPhase("READY"); }
-    catch (error) { setError(apiMessage(error)); } finally { setBusy(false); }
+    try { if (await authorize(String(form.get("branchId")))) setPhase("READY"); }
+    finally { setBusy(false); }
   }
   const Icon = result?.kind === "SUCCESS" ? CheckCircle2 : result?.kind === "WARNING" ? CircleAlert : XCircle;
   return <main className={styles.kiosk}>
     <header className={styles.header}><div className={styles.brand}><Image src="/mym-academia-logo.png" width={54} height={54} alt="M&M Academia" priority /><span>Nos vemos en la pista</span></div><span className={styles.device}>{device?.name ?? "Recepción"}</span></header>
     <div className={styles.main}>
       {phase === "BOOT" && <p role="status">Preparando recepción…</p>}
-      {phase === "ACTIVATION" && <><h1>Activar recepción</h1><p>Administración te entrega un código de activación para esta tablet. Es válido durante 10 minutos y se usa una sola vez.</p>
-        <form className={styles.activation} onSubmit={activate}><label>Código de activación<input name="code" autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={43} minLength={43} /></label><button className={styles.button} disabled={busy}>Activar dispositivo</button></form></>}
+      {phase === "LOGIN" && <><h1>Ingresá para abrir el kiosco</h1><p>Iniciá sesión con una cuenta de administrador en este navegador. Con eso alcanza para registrar asistencias.</p><Link className={styles.button} href="/login?next=/check-in">Iniciar sesión como administrador</Link><button className={styles.secondary} onClick={() => void refreshDevice().then((ready) => { if (ready) setPhase("READY"); })}>Volver a intentar</button></>}
+      {phase === "BRANCH" && <><h1>¿En qué sede estás?</h1><p>Elegí la sede donde vas a registrar asistencias.</p><form className={styles.activation} onSubmit={chooseBranch}><label>Sede<select name="branchId" required>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label><button className={styles.button} disabled={busy}>Abrir kiosco</button></form></>}
       {phase === "READY" && <><Camera size={64} aria-hidden /><h1>Tu clase empieza acá</h1><p>Acercá tu QR personal para registrar la asistencia a tu clase.</p><button className={styles.button} onClick={() => void start()} disabled={busy}><Camera size={24} /><Volume2 size={24} />{busy ? "Habilitando…" : "Habilitar cámara y sonido"}</button><p className={styles.reset}>La cámara sólo se usa para leer tu QR. No guardamos imágenes.</p></>}
       {phase === "SCANNING" && <><h1>Acercá tu QR</h1><p>Ubicalo dentro del recuadro. Vamos a buscar tu clase.</p><div className={styles.camera}><video ref={video} muted playsInline aria-label="Cámara para leer el QR" /></div><p role="status">{busy ? "Confirmando tu asistencia…" : "Listo para leer tu QR"}</p></>}
       {phase === "SELECT" && <><h1>¿A qué clase venís?</h1><p>Elegí una sesión. Vamos a registrar sólo esa asistencia.</p><div className={styles.options}>{sessions.map((session) => <button className={`${styles.secondary} ${styles.option}`} key={session.id} disabled={busy} onClick={() => void submit(pendingQr.current, session.id)}><strong>{session.name}</strong><span>{session.startTime} a {session.endTime}</span></button>)}</div><button className={styles.secondary} onClick={reset} disabled={busy}>Cancelar</button></>}

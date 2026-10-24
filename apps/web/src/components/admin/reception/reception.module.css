@@ -7,5 +7,4 @@
 .table a { color: #5b21b6; text-decoration: underline; text-underline-offset: 3px; }
 .device { padding-block: 24px; border-top: 1px solid #e5dbed; }
 .device h3 { margin-top: 0; }
-.code { display: block; width: 100%; padding: 16px; border: 1px solid #b8a2cd; border-radius: 10px; font-family: inherit; font-size: 17px; margin-block: 14px; overflow-wrap: anywhere; resize: none; }
 .amountDue { color: #a12938; font-weight: 700; }

@@ -6,6 +6,9 @@ Trabajar en `main`, sin ramas ni PR, preservar cambios del usuario y publicar s�
 
 ## Estado
 
+- Actualización solicitada después del cierre: acceso al kiosco simplificado a **login administrativo → abrir `/check-in`**, sin alta de dispositivo ni códigos en la interfaz. Recepción ofrece «Abrir kiosco» y conserva sólo ajustes opcionales de sonido/horario/cierre. La sesión administrativa permanece abierta. Varias sedes requieren elegir una; una sola se resuelve automáticamente. Las referencias históricas a códigos más abajo describen la implementación anterior y quedan reemplazadas por este flujo.
+- Validación de esta simplificación: 15 tests de check-in aprobados (incluyen 3 nuevos sobre login activo/rol, reutilización del acceso/configuración y selección/scope de sede), typecheck completo y build web de producción aprobados; 3 E2E Chromium aprobados en 2 min. El recorrido QR ahora entra desde el login real y confirma que `/auth/me` sigue autorizado. No se migraron datos remotos ni se iniciaron despliegues. Se verificó HTTP 200 de `https://www.mymacademiadebaile.com.ar/check-in`. Cambio registrado con el commit `feat(kiosk): authorize automatically with an admin login`; el CSS previo del login sigue excluido. Se preservó el commit concurrente ajeno de SEO `d66a1ae`.
+
 - Auditoría inicial completada; lectura de datos realizada sin mutaciones.
 - Baseline: typecheck/lint/test/build aprobados (405 tests API, 9 web).
 - Cambio del usuario en login.module.css preservado y excluido.

@@ -8,7 +8,6 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
   await admin.post("/api/auth/login", { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
   const contact = (await (await admin.get("/api/admin/contacts?q=Lucía")).json()).items[0];
   const { qr } = await (await admin.post(`/api/admin/check-in/contacts/${contact._id}/credential/rotate`)).json();
-  const { activationCode, device } = await (await admin.post("/api/admin/check-in/devices", { data: { name: "Tablet de recepción", branchId: contact.branchId } })).json();
   const qrImage = await toDataURL(qr, { width: 600, margin: 4 });
   await page.addInitScript(({ qrImage }) => {
     const state = window as unknown as { tones: number[]; clearQr: () => void; showQr: () => void };
@@ -29,8 +28,15 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
   }, { qrImage });
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto("/check-in");
-  await page.getByLabel("Código de activación").fill(activationCode);
-  await page.getByRole("button", { name: "Activar dispositivo" }).click();
+  await page.getByRole("link", { name: "Iniciar sesión como administrador" }).click();
+  await page.getByLabel("Email o usuario", { exact: true }).fill("admin@example.test");
+  await page.getByLabel("Contraseña", { exact: true }).fill("LocalDemoOnly-1234");
+  await page.getByRole("button", { name: "Ingresar", exact: true }).click();
+  await expect(page).toHaveURL(/\/check-in$/);
+  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await expect(page.getByLabel("Código de activación")).toHaveCount(0);
+  const device = await (await page.request.get(`${API}/api/check-in/device`)).json();
+  expect((await page.request.get(`${API}/api/auth/me`)).ok()).toBe(true);
   await page.getByRole("button", { name: "Habilitar cámara y sonido" }).click();
   await expect(page.getByRole("heading", { name: "¡Bienvenida/o, Lucía!" })).toBeVisible();
   await expect(page.getByText("Tenés un pago pendiente.", { exact: false })).toBeVisible();

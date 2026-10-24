@@ -14,12 +14,12 @@
 .secondary { color: #5b21b6; background: white; }
 .button:hover { background: #43158f; }
 .secondary:hover { background: #f2e8fc; }
-.button:focus-visible,.secondary:focus-visible,.activation input:focus-visible { outline: 3px solid #8743da; outline-offset: 4px; }
+.button:focus-visible,.secondary:focus-visible,.activation input:focus-visible,.activation select:focus-visible { outline: 3px solid #8743da; outline-offset: 4px; }
 .button:disabled,.secondary:disabled { opacity: .6; cursor: wait; }
 .actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-block: 28px; }
 .activation { max-width: 520px; margin: 24px auto; display: grid; gap: 18px; text-align: left; }
 .activation label { display: grid; gap: 10px; color: #53405e; }
-.activation input { border: 1px solid #b6a0ca; border-radius: 12px; padding: 16px; min-height: 60px; font-size: 18px; width: 100%; }
+.activation input,.activation select { border: 1px solid #b6a0ca; border-radius: 12px; padding: 16px; min-height: 60px; font-size: 18px; width: 100%; }
 .error { color: #a02036 !important; background: #fff1f3; border-radius: 12px; padding: 16px; }
 .result { border-radius: 24px; padding: clamp(24px,5vw,56px); background: #e8f6ec; color: #165b35; }
 .result p { color: inherit; }

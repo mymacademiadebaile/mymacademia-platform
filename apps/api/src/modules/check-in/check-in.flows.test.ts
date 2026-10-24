@@ -21,6 +21,7 @@ import { CheckInCredentialModel, CheckInDeviceModel } from "./check-in.models";
 import { rotateCredential } from "./credentials-service";
 import { withinCheckInWindow } from "./check-in-window";
 import { activationRateLimiter } from "./check-in.routes";
+import { UserModel } from "../auth/user.model";
 
 const app = createApp();
 let db: Awaited<ReturnType<typeof startReplicaSet>>, org: Types.ObjectId, branch: Types.ObjectId, user: Types.ObjectId, adminToken: string;
@@ -54,11 +55,48 @@ beforeAll(async () => {
   org = (await OrganizationModel.create({ name: "M&M", slug: "kiosk-tests" }))._id;
   branch = (await BranchModel.create({ organizationId: org, name: "Centro" }))._id; user = new Types.ObjectId();
   adminToken = jwt.sign({ sub: String(user), organizationId: String(org), role: "ADMIN" }, env.JWT_ACCESS_SECRET);
+  await UserModel.create({ _id: user, organizationId: org, email: "kiosk-admin@example.test", firstName: "Admin", lastName: "Kiosco", passwordHash: "unused-test-hash", role: "ADMIN" });
 }, 120000);
 beforeEach(() => { vi.setSystemTime(new Date("2026-10-23T21:00:00Z")); activationRateLimiter.resetKey("::ffff:127.0.0.1"); activationRateLimiter.resetKey("127.0.0.1"); });
 afterAll(async () => { vi.useRealTimers(); await db.stop(); });
 
 describe("authorized QR reception", () => {
+  it("authorizes directly with an admin login, preserves the login and reuses kiosk settings", async () => {
+    const agent = request.agent(app);
+    const opened = await agent.post("/api/check-in/authorize").set("Cookie", `mym_access=${adminToken}`).send({});
+    expect(opened.status).toBe(200);
+    expect(opened.body.branchId).toBe(String(branch));
+    expect(opened.headers["set-cookie"].join(" ")).not.toMatch(/mym_access=|mym_refresh=/);
+    expect(opened.body).not.toHaveProperty("sessionHash");
+    expect(opened.body).not.toHaveProperty("activationCode");
+    await CheckInDeviceModel.updateOne({ _id: opened.body.id }, { $set: { soundEnabled: false } });
+    const again = await admin(agent.post("/api/check-in/authorize")).send({});
+    expect(again.status).toBe(200);
+    expect(again.body.id).toBe(opened.body.id);
+    expect(again.body.soundEnabled).toBe(false);
+    const status = await agent.get("/api/check-in/device");
+    expect(status.status).toBe(200);
+    expect(status.headers["set-cookie"]).toBeUndefined();
+  });
+  it("requires an active admin and never authorizes another organization's branch", async () => {
+    expect((await request(app).post("/api/check-in/authorize").send({})).status).toBe(401);
+    const professor = jwt.sign({ sub: String(user), organizationId: String(org), role: "PROFESSOR" }, env.JWT_ACCESS_SECRET);
+    expect((await request(app).post("/api/check-in/authorize").set("Authorization", `Bearer ${professor}`).send({})).status).toBe(403);
+    expect((await admin(request(app).post("/api/check-in/authorize")).send({ branchId: String(new Types.ObjectId()) })).status).toBe(422);
+    await UserModel.updateOne({ _id: user }, { $set: { isActive: false } });
+    try { expect((await admin(request(app).post("/api/check-in/authorize")).send({})).status).toBe(401); }
+    finally { await UserModel.updateOne({ _id: user }, { $set: { isActive: true } }); }
+  });
+  it("asks only for the branch when the academy has several active locations", async () => {
+    const second = await BranchModel.create({ organizationId: org, name: "Otra sede" });
+    try {
+      const missing = await admin(request(app).post("/api/check-in/authorize")).send({});
+      expect(missing.status).toBe(409);
+      expect(missing.body.details.branches.map((item: { id: string }) => item.id)).toContain(String(second._id));
+      const selected = await admin(request(app).post("/api/check-in/authorize")).send({ branchId: String(second._id) });
+      expect(selected.status).toBe(200); expect(selected.body.branchId).toBe(String(second._id));
+    } finally { await BranchModel.deleteOne({ _id: second._id }); }
+  });
   it("requires a device, uses one-time activation and never returns its secret", async () => {
     expect((await request(app).post("/api/check-in/scan").send({ qr: "x" })).status).toBe(401);
     const kiosk = await device();

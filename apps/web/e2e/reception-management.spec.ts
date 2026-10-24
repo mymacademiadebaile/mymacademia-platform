@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 const API = process.env.E2E_API_URL ?? "http://localhost:4000";
 
-test("admin generates a printable QR, authorizes a device and previews reminders with automatic delivery off", async ({ page }) => {
+test("admin generates a printable QR, opens the kiosk with their login and previews reminders with automatic delivery off", async ({ page }) => {
   expect((await (await page.request.get(`${API}/__test/isolated`)).json()).isolated).toBe(true);
   await page.request.post(`${API}/api/auth/login`, { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
   const contact = (await (await page.request.get(`${API}/api/admin/contacts?q=Lucía`)).json()).items[0];
@@ -17,15 +17,15 @@ test("admin generates a printable QR, authorizes a device and previews reminders
   await expect(page.getByRole("img", { name: "QR personal de Lucía Pérez" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Descargar QR" })).toHaveAttribute("href", /^data:image\/png/);
   await page.goto("/admin/reception");
-  await page.getByRole("button", { name: "Dispositivos", exact: true }).click();
-  await page.getByLabel("Nombre", { exact: true }).fill("Tablet adicional");
-  await page.getByRole("combobox", { name: "Sede", exact: true }).selectOption({ label: "Sede Centro" });
-  await page.getByRole("button", { name: "Autorizar nuevo dispositivo" }).click();
-  await expect(page.getByLabel("Código de activación generado")).toHaveValue(/^[A-Za-z0-9_-]{43}$/);
+  await page.getByRole("link", { name: "Abrir kiosco", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  expect((await page.request.get(`${API}/api/auth/me`)).ok()).toBe(true);
+  await page.goto("/admin/reception");
+  await page.getByRole("button", { name: "Configuración del kiosco", exact: true }).click();
+  await expect(page.getByLabel("Código de activación generado")).toHaveCount(0);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "../../artifacts/reception-desktop.png", fullPage: true, animations: "disabled" });
-  await page.getByRole("button", { name: "Ocultar código", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "../../artifacts/reception-mobile.png", fullPage: true, animations: "disabled" });
