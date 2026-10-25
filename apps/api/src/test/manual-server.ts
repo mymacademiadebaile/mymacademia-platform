@@ -25,6 +25,8 @@ async function main() {
   const branch = await BranchModel.create({ organizationId: org._id, name: "Sede Centro" });
   const admin = await UserModel.create({ organizationId: org._id, branchIds: [branch._id], email: "admin@example.test",
     passwordHash: await bcrypt.hash("LocalDemoOnly-1234", 10), firstName: "Recepción", lastName: "Local", role: "ADMIN" });
+  await UserModel.create({ organizationId: org._id, branchIds: [branch._id], email: "superadmin@example.test",
+    passwordHash: admin.passwordHash, firstName: "Administración", lastName: "Local", role: "SUPER_ADMIN" });
   const now = academyNow();
   const startTime = now.time;
   const minute = Math.min(Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3)) + 60, 1439);

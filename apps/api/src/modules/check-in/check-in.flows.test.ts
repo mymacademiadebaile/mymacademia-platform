@@ -108,6 +108,13 @@ describe("authorized QR reception", () => {
     try { expect((await admin(request(app).post("/api/check-in/authorize")).send({})).status).toBe(401); }
     finally { await UserModel.updateOne({ _id: user }, { $set: { isActive: true } }); }
   });
+  it("allows the same SUPER_ADMIN role accepted by the administrative panel", async () => {
+    const superAdmin = await UserModel.create({ organizationId: org, email: "kiosk-superadmin@example.test", firstName: "Super", lastName: "Admin", passwordHash: "unused-test-hash", role: "SUPER_ADMIN" });
+    const token = jwt.sign({ sub: String(superAdmin._id), organizationId: String(org), role: "SUPER_ADMIN" }, env.JWT_ACCESS_SECRET);
+    const response = await request(app).post("/api/check-in/authorize").set("Authorization", `Bearer ${token}`).send({ branchId: String(branch) });
+    expect(response.status).toBe(200); expect(response.body.branchId).toBe(String(branch));
+    expect((await CheckInDeviceModel.findById(response.body.id))?.authorizedByUserId.equals(superAdmin._id)).toBe(true);
+  });
   it("asks only for the branch when the academy has several active locations", async () => {
     const second = await BranchModel.create({ organizationId: org, name: "Otra sede" });
     try {

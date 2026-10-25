@@ -8,8 +8,13 @@ import { apiFetch, apiMessage, ApiError } from "@/lib/api";
 import { KioskAudio } from "./kiosk-audio";
 import styles from "./check-in.module.css";
 
-type Phase = "BOOT" | "LOGIN" | "BRANCH" | "READY" | "SCANNING" | "SELECT" | "RESULT" | "HELP";
+type Phase = "BOOT" | "LOGIN" | "UNAVAILABLE" | "BRANCH" | "READY" | "SCANNING" | "SELECT" | "RESULT" | "HELP";
 type Result = CheckInResult | { kind: "ERROR"; message: string };
+async function accessFetch<T>(path: string, init: RequestInit = {}) {
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000);
+  try { return await apiFetch<T>(path, { ...init, signal: controller.signal }); }
+  finally { clearTimeout(timer); }
+}
 export function CheckInKiosk() {
   const [phase, setPhase] = useState<Phase>("BOOT"), [device, setDevice] = useState<CheckInDeviceView | null>(null);
   const [error, setError] = useState(""), [busy, setBusy] = useState(false), [result, setResult] = useState<Result | null>(null);
@@ -20,22 +25,27 @@ export function CheckInKiosk() {
   const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
   const authorize = useCallback(async (branchId?: string) => {
     try {
-      setDevice(await apiFetch<CheckInDeviceView>("/check-in/authorize", { method: "POST", body: JSON.stringify(branchId ? { branchId } : {}) }));
+      setDevice(await accessFetch<CheckInDeviceView>("/check-in/authorize", { method: "POST", body: JSON.stringify(branchId ? { branchId } : {}) }));
       setBranches([]); setError(""); return true;
     } catch (error) {
       setDevice(null);
       const payload = error instanceof ApiError ? error.payload as { error?: string; details?: { branches?: Array<{ id: string; name: string }> } } : undefined;
       if (payload?.error === "KIOSK_BRANCH_REQUIRED" && payload.details?.branches) { setBranches(payload.details.branches); setPhase("BRANCH"); }
-      else { setPhase("LOGIN"); if (!(error instanceof ApiError && error.status === 401)) setError(apiMessage(error)); }
+      else if (error instanceof ApiError && (error.status === 401 || (error.status === 403 && payload?.error === "FORBIDDEN"))) { setPhase("LOGIN"); setError(error.status === 403 ? "Esta cuenta no es de administrador. Ingresá con una cuenta administrativa." : ""); }
+      else { setPhase("UNAVAILABLE"); setError(apiMessage(error)); }
       return false;
     }
   }, []);
   const refreshDevice = useCallback(async () => {
-    try { setDevice(await apiFetch<CheckInDeviceView>("/check-in/device")); return true; }
-    catch { return authorize(); }
+    try { setDevice(await accessFetch<CheckInDeviceView>("/check-in/device")); setError(""); return true; }
+    catch (error) {
+      if (error instanceof ApiError && error.status === 401) return authorize();
+      setPhase("UNAVAILABLE"); setError(apiMessage(error)); return false;
+    }
   }, [authorize]);
   useEffect(() => { void refreshDevice().then((ready) => { if (ready) setPhase("READY"); }); return () => { request.current?.abort(); audio.current?.dispose(); }; }, [refreshDevice]);
   useEffect(() => () => { stream?.getTracks().forEach((track) => track.stop()); }, [stream]);
+  useEffect(() => { if (["LOGIN", "UNAVAILABLE", "BRANCH"].includes(phase) && stream) { stream.getTracks().forEach((track) => track.stop()); setStream(null); } }, [phase, stream]);
   useEffect(() => {
     const hide = () => { if (document.hidden) { stream?.getTracks().forEach((track) => track.stop()); setStream(null); setResult(null); setSessions([]); pendingQr.current = ""; setPhase(device ? "READY" : "LOGIN"); request.current?.abort("KIOSK_HIDDEN"); audio.current?.stop(); } };
     document.addEventListener("visibilitychange", hide); return () => document.removeEventListener("visibilitychange", hide);
@@ -100,6 +110,7 @@ export function CheckInKiosk() {
     <div className={styles.main}>
       {phase === "BOOT" && <p role="status">Preparando recepción…</p>}
       {phase === "LOGIN" && <><h1>Ingresá para abrir el kiosco</h1><p>Iniciá sesión con una cuenta de administrador en este navegador. Con eso alcanza para registrar asistencias.</p><Link className={styles.button} href="/login?next=/check-in">Iniciar sesión como administrador</Link><button className={styles.secondary} onClick={() => void refreshDevice().then((ready) => { if (ready) setPhase("READY"); })}>Volver a intentar</button></>}
+      {phase === "UNAVAILABLE" && <><h1>No pudimos abrir el kiosco</h1><p>Intentá nuevamente. Si el problema continúa, pedí ayuda en recepción.</p><button className={styles.button} onClick={() => { setPhase("BOOT"); setError(""); void refreshDevice().then((ready) => { if (ready) setPhase("READY"); }); }}>Volver a intentar</button><div className={styles.actions}><Link className={styles.secondary} href="/admin/reception">Ir a recepción</Link></div></>}
       {phase === "BRANCH" && <><h1>¿En qué sede estás?</h1><p>Elegí la sede donde vas a registrar asistencias.</p><form className={styles.activation} onSubmit={chooseBranch}><label>Sede<select name="branchId" required>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label><button className={styles.button} disabled={busy}>Abrir kiosco</button></form></>}
       {phase === "READY" && <><Camera size={64} aria-hidden /><h1>Tu clase empieza acá</h1><p>Acercá tu QR personal para registrar la asistencia a tu clase.</p><button className={styles.button} onClick={() => void start()} disabled={busy}><Camera size={24} /><Volume2 size={24} />{busy ? "Habilitando…" : "Habilitar cámara y sonido"}</button><p className={styles.reset}>La cámara sólo se usa para leer tu QR. No guardamos imágenes.</p></>}
       {phase === "SCANNING" && <><h1>Acercá tu QR</h1><p>Ubicalo dentro del recuadro. Vamos a buscar tu clase.</p><div className={styles.camera}><video ref={video} muted playsInline aria-label="Cámara para leer el QR" /></div><p role="status">{busy ? "Confirmando tu asistencia…" : "Listo para leer tu QR"}</p></>}

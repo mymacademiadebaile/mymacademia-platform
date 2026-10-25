@@ -5,12 +5,13 @@ import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { UserRole } from "@mym/shared";
 import { apiFetch, apiMessage } from "@/lib/api";
 import styles from "./login.module.css";
 
 type LoginResponse = {
   user: {
-    role: "ADMIN" | "PROFESSOR";
+    role: UserRole;
   };
 };
 
@@ -37,7 +38,7 @@ export default function LoginPage() {
         typeof window !== "undefined"
           ? new URLSearchParams(window.location.search).get("next")
           : null;
-      const fallback = user.role === "ADMIN" ? "/admin" : "/professor";
+      const fallback = user.role === "PROFESSOR" ? "/professor" : "/admin";
 
       router.replace(requested && requested.startsWith("/") ? requested : fallback);
       router.refresh();

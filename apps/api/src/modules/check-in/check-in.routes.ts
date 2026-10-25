@@ -26,10 +26,10 @@ checkInRouter.use((request, _response, next) => {
 const cookieOptions = { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "strict" as const, path: "/api/check-in" };
 
 // Opening the kiosk with an admin login is sufficient; no registration or code is required.
-checkInRouter.post("/authorize", requireAuth, requireRole("ADMIN"), async (request, response, next) => {
+checkInRouter.post("/authorize", requireAuth, requireRole("ADMIN", "SUPER_ADMIN"), async (request, response, next) => {
   try {
     const { organizationId, userId } = request.auth!;
-    if (!await UserModel.exists({ _id: userId, organizationId, role: "ADMIN", isActive: true })) {
+    if (!await UserModel.exists({ _id: userId, organizationId, role: { $in: ["ADMIN", "SUPER_ADMIN"] }, isActive: true })) {
       throw new AppError(401, "Iniciá sesión con una cuenta de administrador", "AUTH_REQUIRED");
     }
     const { branchId } = z.object({ branchId: objectIdSchema.optional() }).parse(request.body ?? {});
