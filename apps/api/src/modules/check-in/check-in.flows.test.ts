@@ -61,6 +61,27 @@ beforeEach(() => { vi.setSystemTime(new Date("2026-10-23T21:00:00Z")); activatio
 afterAll(async () => { vi.useRealTimers(); await db.stop(); });
 
 describe("authorized QR reception", () => {
+  it("opens and persists attendance from canonical www when APP_ORIGIN is the apex, rejecting unrelated origins", async () => {
+    const original = env.APP_ORIGIN;
+    env.APP_ORIGIN = "https://mymacademiadebaile.com.ar";
+    try {
+      const origin = "https://www.mymacademiadebaile.com.ar", agent = request.agent(app), s = await scenario();
+      const opened = await admin(agent.post("/api/check-in/authorize")).set("Origin", origin).send({});
+      expect(opened.status).toBe(200);
+      expect(opened.headers["access-control-allow-origin"]).toBe(origin);
+      expect(opened.headers["access-control-allow-credentials"]).toBe("true");
+      const result = await agent.post("/api/check-in/scan").set("Origin", origin).send({ qr: s.qr });
+      expect(result.status).toBe(200); expect(result.body.kind).toBe("SUCCESS");
+      expect(await ClassAttendanceModel.countDocuments({ studentId: s.contact._id, status: "PRESENT" })).toBe(1);
+      expect(await ChargeModel.countDocuments({ studentId: s.contact._id })).toBe(1);
+      const blocked = await agent.post("/api/check-in/scan").set("Origin", "https://example.invalid").send({ qr: s.qr });
+      expect(blocked.status).toBe(403); expect(blocked.body.error).toBe("INVALID_ORIGIN");
+      expect(blocked.headers["access-control-allow-origin"]).toBeUndefined();
+      const retry = await agent.post("/api/check-in/scan").set("Origin", env.APP_ORIGIN).send({ qr: s.qr });
+      expect(retry.body.kind).toBe("WARNING");
+      expect(await ChargeModel.countDocuments({ studentId: s.contact._id })).toBe(1);
+    } finally { env.APP_ORIGIN = original; }
+  });
   it("authorizes directly with an admin login, preserves the login and reuses kiosk settings", async () => {
     const agent = request.agent(app);
     const opened = await agent.post("/api/check-in/authorize").set("Cookie", `mym_access=${adminToken}`).send({});

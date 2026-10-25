@@ -12,12 +12,13 @@ import { AuditLogModel } from "../audit/audit-log.model";
 import { requireAuth, requireRole } from "../../middleware/require-auth";
 import { UserModel } from "../auth/user.model";
 import { BranchModel } from "../core/branch.model";
+import { isTrustedAppOrigin } from "../../common/app-origin";
 
 export const DEVICE_COOKIE = "mym_kiosk";
 export const checkInRouter = Router();
 checkInRouter.use((_request, response, next) => { response.setHeader("Cache-Control", "no-store, private"); next(); });
 checkInRouter.use((request, _response, next) => {
-  if (request.method !== "GET" && request.headers.origin && request.headers.origin !== env.APP_ORIGIN) {
+  if (request.method !== "GET" && request.headers.origin && !isTrustedAppOrigin(request.headers.origin, env.APP_ORIGIN)) {
     next(new AppError(403, "El origen de la solicitud no está autorizado", "INVALID_ORIGIN")); return;
   }
   next();

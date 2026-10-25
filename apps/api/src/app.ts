@@ -17,6 +17,7 @@ import { internalRouter, requireCronAuthorization } from "./modules/internal/int
 import { logger } from "./observability/logger";
 import { randomUUID } from "node:crypto";
 import { checkInRouter } from "./modules/check-in/check-in.routes";
+import { isTrustedAppOrigin } from "./common/app-origin";
 
 interface CreateAppOptions {
   connectDatabaseOnRequest?: boolean;
@@ -41,7 +42,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(helmet());
   app.use(
     cors({
-      origin: env.APP_ORIGIN,
+      origin: (origin, callback) => callback(null, Boolean(origin && isTrustedAppOrigin(origin, env.APP_ORIGIN))),
       credentials: true
     })
   );
