@@ -53,6 +53,7 @@ export type Professor = {
 };
 
 export type Student = {
+  dni?: string;
   _id: string;
   branchId: string;
   firstName: string;

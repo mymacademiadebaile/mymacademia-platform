@@ -26,6 +26,7 @@ Los profesores usan el portal antes, durante y entre clases desde teléfono, tab
 ## Capabilities and Constraints
 
 - Roles y permisos separados para ADMIN, SUPER_ADMIN y PROFESSOR.
+- La acreditación del presentismo se llama **Registro de asistencia**. Ofrece QR o DNI; el acceso del equipo se habilita con el login administrativo. Usar ese nombre en los textos visibles, sin llamar a esta función kiosco/kiosko.
 - El profesor gestiona solamente alumnos ya vinculados a sus clases autorizadas; las consultas e inscripciones iniciales se centralizan en la academia.
 - El portal de profesor incluye inicio, calendario, clases, alumnos y perfil; mensajes y promociones son acciones contextuales.
 - El producto es responsive y debe resultar natural con mouse, teclado y controles táctiles. Las acciones táctiles deben tener áreas amplias y los estados deben expresarse con lenguaje natural.

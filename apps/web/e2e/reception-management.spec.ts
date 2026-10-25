@@ -17,11 +17,11 @@ test("admin generates a printable QR, opens the kiosk with their login and previ
   await expect(page.getByRole("img", { name: "QR personal de Lucía Pérez" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Descargar QR" })).toHaveAttribute("href", /^data:image\/png/);
   await page.goto("/admin/reception");
-  await page.getByRole("link", { name: "Abrir kiosco", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await page.getByRole("link", { name: "Registrar asistencia", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
   expect((await page.request.get(`${API}/api/auth/me`)).ok()).toBe(true);
   await page.goto("/admin/reception");
-  await page.getByRole("button", { name: "Configuración del kiosco", exact: true }).click();
+  await page.getByRole("button", { name: "Configuración de asistencia", exact: true }).click();
   await expect(page.getByLabel("Código de activación generado")).toHaveCount(0);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.evaluate(() => window.scrollTo(0, 0));

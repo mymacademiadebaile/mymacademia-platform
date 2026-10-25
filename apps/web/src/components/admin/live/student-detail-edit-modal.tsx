@@ -35,6 +35,7 @@ export function StudentEditModal({
       </Field>
       <Field label="Nombre"><input name="firstName" defaultValue={student.firstName} required /></Field>
       <Field label="Apellido"><input name="lastName" defaultValue={student.lastName} required /></Field>
+      <Field label="DNI"><input name="dni" defaultValue={student.dni ?? ""} inputMode="numeric" maxLength={14} autoComplete="off" /></Field>
       <Field label="Teléfono"><input name="phone" defaultValue={student.phone ?? ""} /></Field>
       <Field label="Email"><input name="email" type="email" defaultValue={student.email ?? ""} /></Field>
       <Field label="Fecha de nacimiento">

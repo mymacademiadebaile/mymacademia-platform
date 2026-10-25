@@ -131,6 +131,7 @@ export function StudentDetailLive({ id }: { id: string }) {
           lastName: form.get("lastName"),
           email: form.get("email"),
           phone: form.get("phone"),
+          dni: form.get("dni"),
           birthDate: form.get("birthDate") || undefined,
           guardianName: form.get("guardianName"),
           guardianPhone: form.get("guardianPhone"),

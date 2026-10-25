@@ -9,7 +9,7 @@ async function main() {
   const port = Number(process.env.LOCAL_UI_API_PORT ?? 4000);
   Object.assign(process.env, { NODE_ENV: "test", MONGODB_URI: database.getUri(), APP_ORIGIN: process.env.LOCAL_UI_APP_ORIGIN ?? "http://localhost:3000",
     JWT_ACCESS_SECRET: "isolated-ui-test-secret-never-used-in-production", SMTP_HOST: "127.0.0.1", SMTP_PORT: "1",
-    SMTP_SECURE: "false", SMTP_USER: "local@example.test", SMTP_PASSWORD: "local-only", RATE_LIMIT_MAX: "1000" });
+    SMTP_SECURE: "false", SMTP_USER: "local@example.test", SMTP_PASSWORD: "local-only", RATE_LIMIT_MAX: "1000", AUTH_RATE_LIMIT_MAX: "100" });
   const { createApp } = await import("../app");
   const { academyNow, weekDayFor } = await import("../common/dates");
   const { OrganizationModel } = await import("../modules/core/organization.model");

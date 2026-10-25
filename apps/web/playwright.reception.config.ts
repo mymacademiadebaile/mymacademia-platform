@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 process.env.E2E_API_URL = "http://127.0.0.1:4100";
 export default defineConfig({
-  testDir: "./e2e", testMatch: ["identity.spec.ts", "check-in.spec.ts", "kiosk-access.spec.ts", "reception-management.spec.ts"],
+  testDir: "./e2e", testMatch: ["identity.spec.ts", "check-in.spec.ts", "kiosk-access.spec.ts", "reception-management.spec.ts", "attendance-dni.spec.ts"],
   fullyParallel: false, workers: 1, timeout: 60000, outputDir: "../../artifacts/reception-e2e-results", reporter: "list",
   use: { baseURL: "http://127.0.0.1:3100", trace: "retain-on-failure" },
   webServer: [

@@ -32,12 +32,12 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
   await page.getByLabel("Email o usuario", { exact: true }).fill("admin@example.test");
   await page.getByLabel("Contraseña", { exact: true }).fill("LocalDemoOnly-1234");
   await page.getByRole("button", { name: "Ingresar", exact: true }).click();
-  await expect(page).toHaveURL(/\/check-in$/);
-  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await expect(page).toHaveURL(/\/asistencia$/);
+  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
   await expect(page.getByLabel("Código de activación")).toHaveCount(0);
   const device = await (await page.request.get(`${API}/api/check-in/device`)).json();
   expect((await page.request.get(`${API}/api/auth/me`)).ok()).toBe(true);
-  await page.getByRole("button", { name: "Habilitar cámara y sonido" }).click();
+  await page.getByRole("button", { name: "Escanear QR" }).click();
   await expect(page.getByRole("heading", { name: "¡Bienvenida/o, Lucía!" })).toBeVisible();
   await expect(page.getByText("Tenés un pago pendiente.", { exact: false })).toBeVisible();
   const detail = await (await admin.get("/api/admin/check-in/reception")).json();
@@ -89,7 +89,7 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
     document.dispatchEvent(new Event("visibilitychange"));
   });
   release();
-  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
   await expect(page.getByText("Lucía", { exact: false })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Te ayudamos en recepción" })).toHaveCount(0);
   await admin.dispose();

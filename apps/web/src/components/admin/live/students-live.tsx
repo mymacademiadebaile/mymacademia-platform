@@ -93,6 +93,7 @@ export function StudentsLive() {
           firstName: form.get("firstName"),
           lastName: form.get("lastName"),
           phone: form.get("phone") || undefined,
+          dni: form.get("dni") || undefined,
           email: form.get("email") || undefined,
           birthDate: form.get("birthDate") || undefined,
           guardianName: form.get("guardianName") || undefined,
@@ -218,6 +219,7 @@ export function StudentsLive() {
         </Field>
         <Field label="Nombre"><input name="firstName" required /></Field>
         <Field label="Apellido"><input name="lastName" required /></Field>
+        <Field label="DNI (opcional)"><input name="dni" inputMode="numeric" maxLength={14} autoComplete="off" /></Field>
         <Field label="Teléfono"><input name="phone" /></Field>
         <Field label="Email"><input name="email" type="email" /></Field>
         <Field label="Fecha de nacimiento"><input name="birthDate" type="date" /></Field>

@@ -32,7 +32,7 @@ export function ContactsLive() {
     try {
       const contact = await apiFetch<ContactSummary>("/admin/contacts", { method: "POST", body: JSON.stringify({
         creationKey: creationKey.current, branchId: form.get("branchId"), firstName: form.get("firstName"), lastName: form.get("lastName"),
-        email: form.get("email") || undefined, phone: form.get("phone") || undefined,
+        email: form.get("email") || undefined, phone: form.get("phone") || undefined, dni: form.get("dni") || undefined,
         source: { platform: form.get("platform"), campaign: form.get("campaign") || undefined }, notes: form.get("notes") || undefined
       }) });
       router.push(`/admin/contacts/${contact._id}`);
@@ -41,13 +41,14 @@ export function ContactsLive() {
   return <>
     <PageHeader title="Contactos e interesados" description="Una misma persona, desde la primera consulta hasta su recorrido en la academia." />
     <div className={styles.toolbar}>
-      <input className={styles.search} value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Buscar por nombre, email o teléfono" placeholder="Buscá por nombre, email o teléfono" />
+      <input className={styles.search} value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Buscar por nombre, DNI, email o teléfono" placeholder="Buscá por nombre, DNI, email o teléfono" />
       <button className={styles.button} onClick={() => { if (!open) creationKey.current = crypto.randomUUID(); setOpen(!open); }}>{open ? "Cerrar formulario" : "Crear contacto"}</button>
     </div>
     {error && <div className={styles.error} role="alert">{error} <button className={styles.secondary} onClick={() => void load()}>Reintentar carga</button></div>}
     {open && <section className={styles.surface}><h2>Nuevo contacto</h2><form className={styles.form} onSubmit={create}>
       <label>Nombre<input name="firstName" minLength={2} maxLength={80} autoComplete="given-name" required /></label>
       <label>Apellido<input name="lastName" minLength={2} maxLength={80} autoComplete="family-name" required /></label>
+      <label>DNI (opcional)<input name="dni" inputMode="numeric" maxLength={14} autoComplete="off" /></label>
       <label>Email (opcional)<input name="email" type="email" autoComplete="email" /></label>
       <label>Teléfono (opcional)<input name="phone" type="tel" maxLength={40} autoComplete="tel" /></label>
       <label>Sede<select name="branchId" required><option value="">Seleccioná una sede</option>{branches.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label>

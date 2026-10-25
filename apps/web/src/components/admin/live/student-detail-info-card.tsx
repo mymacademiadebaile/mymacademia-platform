@@ -12,6 +12,7 @@ export function StudentInfoCard({ student, branches }: { student: Student; branc
         <div><dt>Sede</dt><dd>{branches.find((branch) => branch._id === student.branchId)?.name ?? "—"}</dd></div>
         <div><dt>Email</dt><dd>{student.email || "—"}</dd></div>
         <div><dt>Teléfono</dt><dd>{student.phone || "—"}</dd></div>
+        <div><dt>DNI</dt><dd>{student.dni || "Sin cargar"}</dd></div>
         <div><dt>Nacimiento</dt><dd>{formatDateOnly(student.birthDate)}</dd></div>
         <div><dt>Responsable</dt><dd>{student.guardianName || "—"}</dd></div>
         <div><dt>Tel. responsable</dt><dd>{student.guardianPhone || "—"}</dd></div>

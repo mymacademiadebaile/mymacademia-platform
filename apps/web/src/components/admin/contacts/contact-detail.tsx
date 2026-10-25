@@ -42,7 +42,7 @@ export function ContactDetail({ id }: { id: string }) {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget);
     if (await perform(() => apiFetch(`/admin/contacts/${id}`, { method: "PATCH", body: JSON.stringify({
-      firstName: form.get("firstName"), lastName: form.get("lastName"), email: form.get("email"), phone: form.get("phone"), notes: form.get("notes"),
+      firstName: form.get("firstName"), lastName: form.get("lastName"), email: form.get("email"), phone: form.get("phone"), dni: form.get("dni"), notes: form.get("notes"),
       preferences: { emailReminders: form.has("emailReminders"), marketing: form.has("marketing") }
     }) }), "Datos actualizados")) setEdit(false);
   }
@@ -72,6 +72,7 @@ export function ContactDetail({ id }: { id: string }) {
     {message && <div className={styles.message} role="status">{message}</div>}
     {!data ? <p role="status">Cargando contacto…</p> : <>
       <PageHeader title={`${data.contact.firstName} ${data.contact.lastName}`} description={`${data.student ? "Alumno de la academia" : "Contacto interesado"} · ${data.contact.source?.platform ?? "Recepción"}`} />
+      <p>DNI: {data.contact.dni ?? "Sin cargar. Editá el contacto para habilitar la acreditación con DNI."}</p>
       <div className={styles.actions}>
         <button className={styles.secondary} onClick={() => setEdit(!edit)}>{edit ? "Cerrar edición" : "Editar contacto y preferencias"}</button>
         {data.student && <Link className={styles.secondary} href={`/admin/students/${id}`}>Ficha académica y cuenta corriente</Link>}
@@ -79,6 +80,7 @@ export function ContactDetail({ id }: { id: string }) {
       {edit && <section className={styles.surface}><h2>Datos y preferencias</h2><form className={styles.form} onSubmit={save}>
         <label>Nombre<input name="firstName" defaultValue={data.contact.firstName} minLength={2} maxLength={80} required /></label>
         <label>Apellido<input name="lastName" defaultValue={data.contact.lastName} minLength={2} maxLength={80} required /></label>
+        <label>DNI<input name="dni" defaultValue={data.contact.dni} inputMode="numeric" maxLength={14} autoComplete="off" /></label>
         <label>Email<input name="email" type="email" defaultValue={data.contact.email} /></label>
         <label>Teléfono<input name="phone" type="tel" defaultValue={data.contact.phone} maxLength={40} /></label>
         <label className={styles.wide}>Notas<textarea name="notes" defaultValue={data.contact.notes} maxLength={1000} /></label>

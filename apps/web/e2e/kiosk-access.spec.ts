@@ -14,7 +14,7 @@ test("SUPER_ADMIN lands in administration and opens the kiosk with the same logi
   await page.getByRole("button", { name: "Ingresar", exact: true }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await page.goto("/check-in");
-  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
   expect((await page.request.get(`${API}/api/auth/me`)).ok()).toBe(true);
 });
 
@@ -25,7 +25,7 @@ test("an expired access cookie renews the admin session and opens the kiosk with
   let refreshes = 0;
   page.on("request", (request) => { if (request.url().endsWith("/api/auth/refresh")) refreshes++; });
   await page.goto("/check-in");
-  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
   expect(refreshes).toBe(1);
   expect((await page.request.get(`${API}/api/auth/me`)).ok()).toBe(true);
   await expect(page.getByRole("link", { name: "Iniciar sesión como administrador" })).toHaveCount(0);
@@ -37,13 +37,13 @@ test("an origin/server rejection does not send a signed-in admin back to login a
   let refreshes = 0;
   page.on("request", (request) => { if (request.url().endsWith("/api/auth/refresh")) refreshes++; });
   await page.goto("/check-in");
-  await expect(page.getByRole("heading", { name: "No pudimos abrir el kiosco" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No pudimos abrir el registro de asistencia" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Iniciar sesión como administrador" })).toHaveCount(0);
   expect(refreshes).toBe(0);
   await page.screenshot({ path: "../../artifacts/kiosk-access-error.png", animations: "disabled" });
   await page.unroute("**/api/check-in/authorize");
   await page.getByRole("button", { name: "Volver a intentar", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
 });
 
 test("a device-service outage does not reauthorize or claim a login failure", async ({ page }) => {
@@ -52,12 +52,12 @@ test("a device-service outage does not reauthorize or claim a login failure", as
   let authorizations = 0;
   page.on("request", (request) => { if (request.url().endsWith("/api/check-in/authorize")) authorizations++; });
   await page.goto("/check-in");
-  await expect(page.getByRole("heading", { name: "No pudimos abrir el kiosco" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No pudimos abrir el registro de asistencia" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Iniciar sesión como administrador" })).toHaveCount(0);
   expect(authorizations).toBe(0);
   await page.unroute("**/api/check-in/device");
   await page.getByRole("button", { name: "Volver a intentar", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
 });
 
 test("a denied camera permission offers help without recording attendance", async ({ page }) => {
@@ -68,10 +68,12 @@ test("a denied camera permission offers help without recording attendance", asyn
   let scans = 0;
   page.on("request", (request) => { if (request.url().endsWith("/api/check-in/scan")) scans++; });
   await page.goto("/check-in");
-  await page.getByRole("button", { name: "Habilitar cámara y sonido" }).click();
+  await page.getByRole("button", { name: "Escanear QR" }).click();
   await expect(page.getByRole("heading", { name: "Recepción te ayuda" })).toBeVisible();
   await expect(page.getByRole("alert").filter({ hasText: "permiso del navegador" })).toBeVisible();
   expect(scans).toBe(0);
-  await page.getByRole("button", { name: "Volver al inicio", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Habilitar cámara y sonido" })).toBeVisible();
+  await page.getByRole("button", { name: "Usar DNI", exact: true }).click();
+  await expect(page.getByLabel("DNI", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
 });
