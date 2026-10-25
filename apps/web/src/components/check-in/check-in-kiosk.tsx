@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Camera, CheckCircle2, CircleAlert, HandHelping, Volume2, XCircle } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, CircleAlert, HandHelping, IdCard, MapPin, QrCode, ShieldCheck, Volume2, VolumeX, XCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { CheckInDeviceView, CheckInResult, CheckInScanResponse, CheckInSession } from "@mym/shared";
 import { apiFetch, apiMessage, ApiError } from "@/lib/api";
@@ -112,14 +112,20 @@ export function AttendanceRegistration() {
     setPhase("DNI");
   }
   const Icon = result?.kind === "SUCCESS" ? CheckCircle2 : result?.kind === "WARNING" ? CircleAlert : XCircle;
-  return <main className={styles.kiosk}>
-    <header className={styles.header}><div className={styles.brand}><Image src="/mym-academia-logo.png" width={54} height={54} alt="M&M Academia" priority /><span>Registro de asistencia</span></div><span className={styles.device}>{device?.name ?? "Recepción"}</span></header>
+  return <main className={styles.attendance} data-phase={phase}>
+    <header className={styles.header}><div className={styles.brand}><Image src="/mym-academia-logo.png" width={54} height={54} alt="M&M Academia" priority /><span>Registro de asistencia</span></div><span className={styles.device}><MapPin size={16} aria-hidden />{device?.name ?? "Recepción"}</span></header>
+    <div className={styles.layout}>
+    <div className={styles.visual} aria-hidden="true">
+      <Image src="/landing/mock/hero-couple-smoke.jpg" alt="" fill priority sizes="(max-width: 820px) 100vw, 45vw" quality={75} className={styles.visualImage} />
+      <p className={styles.visualTitle}>Tu ritmo.<br /><span>Tu lugar.</span></p>
+      <span className={styles.visualSignature}>M&M Academia de Baile</span>
+    </div>
     <div className={styles.main}>
       {phase === "BOOT" && <p role="status">Preparando recepción…</p>}
       {phase === "LOGIN" && <><h1>Ingresá para registrar asistencias</h1><p>Iniciá sesión con una cuenta de administrador en este navegador. Con eso alcanza para registrar asistencias.</p><Link className={styles.button} href="/login?next=/asistencia">Iniciar sesión como administrador</Link><button className={styles.secondary} onClick={() => void refreshDevice().then((ready) => { if (ready) setPhase("READY"); })}>Volver a intentar</button></>}
       {phase === "UNAVAILABLE" && <><h1>No pudimos abrir el registro de asistencia</h1><p>Intentá nuevamente. Si el problema continúa, pedí ayuda en recepción.</p><button className={styles.button} onClick={() => { setPhase("BOOT"); setError(""); void refreshDevice().then((ready) => { if (ready) setPhase("READY"); }); }}>Volver a intentar</button><div className={styles.actions}><Link className={styles.secondary} href="/admin/reception">Ir a recepción</Link></div></>}
       {phase === "BRANCH" && <><h1>¿En qué sede estás?</h1><p>Elegí la sede donde vas a registrar asistencias.</p><form className={styles.activation} onSubmit={chooseBranch}><label>Sede<select name="branchId" required>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label><button className={styles.button} disabled={busy}>Abrir registro de asistencia</button></form></>}
-      {phase === "READY" && <><h1>Registrá tu asistencia</h1><p>Elegí cómo acreditar tu presentismo en la clase.</p><div className={styles.actions}><button className={styles.button} onClick={() => void start()} disabled={busy}><Camera size={24} /><Volume2 size={24} />{busy ? "Habilitando…" : "Escanear QR"}</button><button className={styles.secondary} onClick={() => void useDni()} disabled={busy}>Usar DNI</button></div><p className={styles.reset}>La cámara sólo se usa para leer tu QR. No guardamos imágenes.</p></>}
+      {phase === "READY" && <><h1 className={styles.welcomeTitle}>Registrá tu <span>asistencia</span></h1><p>Elegí cómo acreditar tu presentismo en la clase.</p><div className={styles.methods}><button className={`${styles.button} ${styles.method}`} aria-label="Escanear QR" onClick={() => void start()} disabled={busy}><QrCode className={styles.methodIcon} aria-hidden /><span><strong>{busy ? "Habilitando…" : "Escanear QR"}</strong><small>Acercá tu credencial a la cámara</small></span><ArrowUpRight className={styles.methodArrow} aria-hidden /></button><button className={`${styles.secondary} ${styles.method}`} aria-label="Usar DNI" onClick={() => void useDni()} disabled={busy}><IdCard className={styles.methodIcon} aria-hidden /><span><strong>Usar DNI</strong><small>Ingresá tu número de documento</small></span><ArrowUpRight className={styles.methodArrow} aria-hidden /></button></div><p className={`${styles.reset} ${styles.privacy}`}><ShieldCheck size={18} aria-hidden /><span>La cámara sólo lee tu QR. No guardamos imágenes.</span></p></>}
       {phase === "DNI" && <><h1>Acreditá tu asistencia con DNI</h1><p>Ingresá el DNI que tenés cargado en la academia.</p><form className={styles.activation} onSubmit={(event) => { event.preventDefault(); const value = dni; setDni(""); void submit({ dni: value }); }}><label>DNI<input name="dni" inputMode="numeric" autoComplete="off" autoFocus value={dni} onChange={(event) => setDni(event.target.value)} minLength={6} maxLength={14} required disabled={busy} /></label><button className={styles.button} disabled={busy}>{busy ? "Registrando…" : "Registrar asistencia"}</button><button className={styles.secondary} type="button" onClick={reset} disabled={busy}>Cancelar</button></form></>}
       {phase === "SCANNING" && <><h1>Acercá tu QR</h1><p>Ubicalo dentro del recuadro. Vamos a buscar tu clase.</p><div className={styles.camera}><video ref={video} muted playsInline aria-label="Cámara para leer el QR" /></div><p role="status">{busy ? "Confirmando tu asistencia…" : "Listo para leer tu QR"}</p></>}
       {phase === "SELECT" && <><h1>¿A qué clase venís?</h1><p>Elegí una sesión. Vamos a registrar sólo esa asistencia.</p><div className={styles.options}>{sessions.map((session) => <button className={`${styles.secondary} ${styles.option}`} key={session.id} disabled={busy} onClick={() => { if (pendingIdentity.current) void submit(pendingIdentity.current, session.id); }}><strong>{session.name}</strong><span>{session.startTime} a {session.endTime}</span></button>)}</div><button className={styles.secondary} onClick={reset} disabled={busy}>Cancelar</button></>}
@@ -130,8 +136,9 @@ export function AttendanceRegistration() {
       </section>}
       {phase === "HELP" && <><HandHelping size={64} aria-hidden /><h1>Recepción te ayuda</h1><p>Si no podés usar el QR, acreditá tu asistencia con DNI. Si tus datos o tu clase no aparecen, pedí ayuda en recepción.</p><div className={styles.actions}><button className={styles.button} onClick={() => void useDni()} disabled={busy}>Usar DNI</button><button className={styles.secondary} onClick={() => void start()} disabled={busy}>Volver a intentar con la cámara</button><button className={styles.secondary} onClick={reset}>Volver al inicio</button></div></>}
       {error && <p role="alert" className={styles.error}>{error}</p>}
-      {["READY", "SCANNING"].includes(phase) && <div className={styles.actions}>{phase === "SCANNING" && <button className={styles.secondary} disabled={busy} onClick={() => void useDni()}>Usar DNI</button>}<button className={styles.secondary} onClick={() => { setResult(null); pendingIdentity.current = null; setPhase("HELP"); }}><HandHelping size={22} />Necesito ayuda de recepción</button></div>}
+      {["READY", "SCANNING"].includes(phase) && <div className={styles.actions}>{phase === "SCANNING" && <button className={styles.secondary} disabled={busy} onClick={() => void useDni()}>Usar DNI</button>}<button className={styles.helpButton} disabled={busy} onClick={() => { setResult(null); pendingIdentity.current = null; setPhase("HELP"); }}><HandHelping size={20} aria-hidden />Necesito ayuda de recepción</button></div>}
     </div>
-    <footer className={styles.footer}>Una asistencia por clase · M&M Academia de Baile{device ? ` · ${device.soundEnabled ? "Sonido activo" : "Sonido desactivado"}` : ""}</footer>
+    </div>
+    <footer className={styles.footer}><span>Una asistencia por clase · M&M Academia de Baile</span>{device && <span className={styles.sound}>{device.soundEnabled ? <Volume2 size={16} aria-hidden /> : <VolumeX size={16} aria-hidden />}{device.soundEnabled ? "Sonido activo" : "Sonido desactivado"}</span>}</footer>
   </main>;
 }

@@ -21,6 +21,19 @@ test("a person without QR registers by DNI and administrative arrivals preserve 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/asistencia");
   await expect(page.locator("body")).not.toContainText(/kios[ck]o/i);
+  for (const size of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(size);
+    await expect(page.getByRole("button", { name: "Escanear QR", exact: true })).toBeVisible();
+    expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
+    for (const label of ["Escanear QR", "Usar DNI"]) {
+      const bounds = await page.getByRole("button", { name: label, exact: true }).boundingBox();
+      expect(bounds!.height).toBeGreaterThanOrEqual(60);
+      expect(bounds!.x).toBeGreaterThanOrEqual(0);
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(size.width);
+    }
+    await page.screenshot({ path: `../../artifacts/attendance-ready-${size.width}.png`, fullPage: true, animations: "disabled" });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Usar DNI", exact: true }).click();
   await expect(page.getByLabel("DNI", { exact: true })).toHaveValue("");
   await page.screenshot({ path: "../../artifacts/attendance-dni-mobile.png", fullPage: true, animations: "disabled" });

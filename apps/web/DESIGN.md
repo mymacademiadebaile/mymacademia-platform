@@ -90,6 +90,16 @@ components:
 
 # Design System: M&M Academia Platform
 
+## Registro de asistencia — adaptación a la landing (25/10/2026)
+
+Esta sección reemplaza las dimensiones y composición anteriores del registro público descritas más abajo, sin cambiar el sistema administrativo. La pantalla `/asistencia` usa la identidad vigente de la landing y del login: canvas `#09090b`, papel `#f2f0ec`, tinta `#0c0b0f`, violeta de acción `#5b21b6` y acento lavanda `#b392ff`. Archivo se usa para controles y texto; Big Shoulders para títulos. Ambas fuentes ya son provistas por el layout raíz.
+
+El escritorio combina fotografía de baile a la izquierda y área de operación clara a la derecha. Se reutiliza `/landing/mock/hero-couple-smoke.jpg`, también empleado por el login y la landing como imagen de respaldo, sin agregar consultas al catálogo durante la apertura de asistencia. La frase visual «Tu ritmo. Tu lugar.» procede de la landing. La fotografía y esa frase son decorativas para lectores de pantalla.
+
+Hasta 820px, la composición se apila y la foto se convierte en una franja compacta, visible sólo al elegir el método. Durante DNI, lectura de cámara, selección y resultado, el área de operación aprovecha el espacio de celular/tablet. Las acciones QR y DNI incluyen icono, verbo y explicación; miden al menos 88px de alto. Los demás controles conservan 60px y la ayuda 48px. La página admite desplazamiento vertical en pantallas pequeñas sin recortar campos ni botones. No hay altura fija ni bloqueo de zoom.
+
+Se conservan todos los estados de acceso, sonidos, resultados semánticos y reinicio de privacidad. La ayuda no interrumpe una solicitud en curso. El foco de teclado y las etiquetas QR/DNI siguen siendo explícitos. Sólo hay transiciones breves de interacción, deshabilitadas con preferencia de movimiento reducido; no se agregan secuencias de entrada ni movimiento continuo. Los estilos se limitan al módulo de asistencia y no alteran landing, administración o CSS del login.
+
 ## Overview
 
 Este documento registra el sistema implementado de administración, contactos, recepción, recordatorios y kiosco de asistencia. Es una extensión del producto existente: `PRODUCT.md`, `src/app/globals.css` y los estilos administrativos conservan su autoridad. No establece una identidad nueva ni reemplaza los sistemas específicos del portal de profesores o del sitio público comercial.
