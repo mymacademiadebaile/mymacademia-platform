@@ -39,6 +39,7 @@ export interface ClassAttendance {
   note?: string;
   origin?: "ADMIN" | "PROFESSOR" | "KIOSK" | "PORTAL";
   deviceId?: Types.ObjectId;
+  checkInMethod?: "QR" | "DNI";
 }
 
 const classAttendanceSchema = new Schema<ClassAttendance>(
@@ -58,6 +59,7 @@ const classAttendanceSchema = new Schema<ClassAttendance>(
     recordedAt: { type: Date },
     origin: { type: String, enum: ["ADMIN", "PROFESSOR", "KIOSK", "PORTAL"] },
     deviceId: { type: Schema.Types.ObjectId, ref: "CheckInDevice" },
+    checkInMethod: { type: String, enum: ["QR", "DNI"] },
     note: { type: String, trim: true, maxlength: 300 }
   },
   { timestamps: true }

@@ -220,7 +220,7 @@ export async function setSessionAttendance(
   studentId: string,
   status: AttendanceStatus,
   actorUserId: string,
-  options: { origin?: AttendanceOrigin; deviceId?: string; reason?: string; validate?: (session: SessionLike, dbSession: ClientSession) => Promise<void> } = {}
+  options: { origin?: AttendanceOrigin; deviceId?: string; checkInMethod?: "QR" | "DNI"; reason?: string; validate?: (session: SessionLike, dbSession: ClientSession) => Promise<void> } = {}
 ) {
   await ensureLocks(organizationId, [sessionLockKey(session._id)]);
   return withRequiredTransaction(async (dbSession) => {
@@ -280,11 +280,12 @@ export async function setSessionAttendance(
       attendance.recordedAt = new Date();
       attendance.origin = options.origin ?? "ADMIN";
       attendance.deviceId = options.deviceId ? new Types.ObjectId(options.deviceId) : undefined;
+      attendance.checkInMethod = options.origin === "KIOSK" ? options.checkInMethod : undefined;
       await attendance.save({ session: dbSession });
       await AuditLogModel.create([{
         organizationId, actorUserId, action: "CLASS_ATTENDANCE_UPDATED", entityType: "ClassAttendance", entityId: attendance._id,
         metadata: { sessionId: current._id, classId: current.classId, studentId, previousStatus, status,
-          origin: options.origin ?? "ADMIN", deviceId: options.deviceId, reason: options.reason }
+          origin: options.origin ?? "ADMIN", deviceId: options.deviceId, checkInMethod: options.checkInMethod, reason: options.reason }
       }], { session: dbSession });
     }
     return Object.assign(attendance, { chargeCreated, duplicate });

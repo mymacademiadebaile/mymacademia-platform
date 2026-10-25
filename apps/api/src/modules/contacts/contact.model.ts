@@ -1,4 +1,5 @@
 import { Schema, Types, model } from "mongoose";
+import { normalizeDni } from "../../common/dni";
 
 /** A person's identity. When an academic profile exists its _id is deliberately the same. */
 export interface Contact {
@@ -8,6 +9,7 @@ export interface Contact {
   lastName: string;
   email?: string;
   phone?: string;
+  dni?: string;
   creationKey?: string;
   source: { platform: string; campaign?: string; advertisement?: string; externalId?: string; firstContactAt?: Date };
   preferences: { emailReminders: boolean; marketing: boolean };
@@ -22,6 +24,7 @@ const schema = new Schema<Contact>({
   lastName: { type: String, required: true, trim: true, maxlength: 80 },
   email: { type: String, trim: true, lowercase: true },
   phone: { type: String, trim: true },
+  dni: { type: String, set: (value: string | undefined) => value ? normalizeDni(value) : undefined, match: /^\d{6,9}$/ },
   creationKey: String,
   source: {
     platform: { type: String, default: "RECEPTION", maxlength: 80 },
@@ -35,6 +38,7 @@ const schema = new Schema<Contact>({
 // Shared family emails/phones are not identity proofs: ambiguity is resolved by reception, never merged.
 schema.index({ organizationId: 1, email: 1 });
 schema.index({ organizationId: 1, phone: 1 });
+schema.index({ organizationId: 1, dni: 1 }, { unique: true, partialFilterExpression: { dni: { $type: "string" } } });
 schema.index({ organizationId: 1, creationKey: 1 }, { unique: true, partialFilterExpression: { creationKey: { $type: "string" } } });
 schema.index({ organizationId: 1, lastName: 1, firstName: 1 });
 export const ContactModel = model<Contact>("Contact", schema);

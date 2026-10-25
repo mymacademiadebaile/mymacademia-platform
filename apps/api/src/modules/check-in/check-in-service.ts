@@ -16,6 +16,10 @@ import { TrialBookingModel } from "../trials/trial-booking.model";
 import { CheckInCredentialModel, CheckInDeviceModel, type DeviceDocument } from "./check-in.models";
 import { qrHash, tokenHash } from "./credentials-service";
 import { withinCheckInWindow } from "./check-in-window";
+import { dniSchema } from "../../common/dni";
+import { resolveContact } from "../contacts/contact-service";
+
+export type CheckInIdentity = string | { dni: string };
 
 /** Credential verification never uses administrative JWTs or a student login. */
 export async function authorizedDevice(raw: string | undefined, session?: ClientSession) {
@@ -25,7 +29,23 @@ export async function authorizedDevice(raw: string | undefined, session?: Client
   return device;
 }
 
-async function credentialContact(device: DeviceDocument, qr: string, session?: ClientSession) {
+async function credentialContact(device: DeviceDocument, identity: CheckInIdentity, session?: ClientSession) {
+  if (typeof identity !== "string") {
+    const dni = dniSchema.parse(identity.dni);
+    const scope = { organizationId: device.organizationId, branchId: device.branchId, isActive: true, dni };
+    const [contacts, students] = await Promise.all([
+      ContactModel.find(scope).limit(2).session(session ?? null), StudentModel.find(scope).limit(2).session(session ?? null)
+    ]);
+    const ids = [...new Set([...contacts, ...students].map((item) => String(item._id)))];
+    if (ids.length !== 1) throw new AppError(ids.length ? 409 : 422,
+      "No pudimos acreditar la asistencia con ese DNI. Revisá los datos o pedí ayuda en recepción.", ids.length ? "DNI_REQUIRES_REVIEW" : "DNI_NOT_ELIGIBLE");
+    const contact = contacts[0] ?? await resolveContact(String(device.organizationId), ids[0], session);
+    if (contact.dni !== dni || !contact.isActive || !contact.branchId.equals(device.branchId)) {
+      throw new AppError(422, "No pudimos acreditar la asistencia con ese DNI. Pedí ayuda en recepción.", "DNI_NOT_ELIGIBLE");
+    }
+    return { contact, credential: undefined };
+  }
+  const qr = identity;
   const credential = await CheckInCredentialModel.findOne({ organizationId: device.organizationId, tokenHash: qrHash(qr), active: true }).session(session ?? null);
   if (!credential) throw new AppError(401, "El QR no está disponible. Pedí ayuda en recepción.", "INVALID_QR");
   const contact = await ContactModel.findOne({ _id: credential.contactId, organizationId: device.organizationId, branchId: device.branchId, isActive: true }).session(session ?? null);
@@ -51,8 +71,8 @@ async function eligibleParticipant(device: DeviceDocument, session: Parameters<t
   return true;
 }
 
-export async function eligibleSessions(device: DeviceDocument, qr: string) {
-  const { contact } = await credentialContact(device, qr);
+export async function eligibleSessions(device: DeviceDocument, identity: CheckInIdentity) {
+  const { contact } = await credentialContact(device, identity);
   const today = academyNow().date;
   // Same generator as the calendar: a kiosk works even before someone opens the day's agenda.
   const classIds = await EnrollmentModel.distinct("classId", { organizationId: device.organizationId, studentId: contact._id });
@@ -67,22 +87,23 @@ export async function eligibleSessions(device: DeviceDocument, qr: string) {
   return result;
 }
 
-export async function confirmCheckIn(deviceToken: string, qr: string, sessionId: string): Promise<CheckInResult> {
+export async function confirmCheckIn(deviceToken: string, identity: CheckInIdentity, sessionId: string): Promise<CheckInResult> {
   const device = await authorizedDevice(deviceToken);
-  const { contact } = await credentialContact(device, qr);
+  const { contact } = await credentialContact(device, identity);
   const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: device.organizationId, branchId: device.branchId });
   if (!session) throw new AppError(422, "La sesión no está habilitada en esta sede", "SESSION_NOT_ELIGIBLE");
   const attendance = await setSessionAttendance(String(device.organizationId), session, String(contact._id), "PRESENT", String(device.authorizedByUserId), {
-    origin: "KIOSK", deviceId: String(device._id),
+    origin: "KIOSK", deviceId: String(device._id), checkInMethod: typeof identity === "string" ? "QR" : "DNI",
     validate: async (current, dbSession) => {
       const latestDevice = await authorizedDevice(deviceToken, dbSession);
-      const latest = await credentialContact(latestDevice, qr, dbSession);
-      if (!await eligibleParticipant(latestDevice, current, String(latest.contact._id), dbSession)) {
+      const latest = await credentialContact(latestDevice, identity, dbSession);
+      if (!latest.contact._id.equals(contact._id) || !await eligibleParticipant(latestDevice, current, String(latest.contact._id), dbSession)) {
         throw new AppError(422, "Esta sesión no está disponible para tu asistencia en este momento. Consultá en recepción.", "SESSION_NOT_ELIGIBLE");
       }
       // Writes serialize concurrent revocations/settings changes with the attendance transaction.
       await CheckInDeviceModel.updateOne({ _id: latestDevice._id }, { $set: { lastSeenAt: new Date() } }, { session: dbSession });
-      await CheckInCredentialModel.updateOne({ _id: latest.credential._id }, { $set: { lastUsedAt: new Date() } }, { session: dbSession });
+      await ContactModel.updateOne({ _id: latest.contact._id }, { $inc: { __v: 1 } }, { session: dbSession });
+      if (latest.credential) await CheckInCredentialModel.updateOne({ _id: latest.credential._id }, { $set: { lastUsedAt: new Date() } }, { session: dbSession });
     }
   });
   let pending = false;

@@ -17,7 +17,8 @@ import { freezeRoster } from "../sessions/roster-service";
 import { ChargeModel } from "../billing/charge.model";
 import { generateMonthlyCharges } from "../billing/charge-service";
 import { bookTrial, convertTrial } from "../trials/trial-service";
-import { CheckInCredentialModel, CheckInDeviceModel } from "./check-in.models";
+import { CheckInAttemptModel, CheckInCredentialModel, CheckInDeviceModel } from "./check-in.models";
+import { TrialBenefitModel } from "../trials/trial-benefit.model";
 import { rotateCredential } from "./credentials-service";
 import { withinCheckInWindow } from "./check-in-window";
 import { activationRateLimiter } from "./check-in.routes";
@@ -61,6 +62,88 @@ beforeEach(() => { vi.setSystemTime(new Date("2026-10-23T21:00:00Z")); activatio
 afterAll(async () => { vi.useRealTimers(); await db.stop(); });
 
 describe("authorized QR reception", () => {
+  it("registers by DNI without an active QR, shares duplicate protection and keeps the DNI out of results/logs", async () => {
+    const s = await scenario(), access = await device(), dni = String(31000000 + ++sequence);
+    const saved = await admin(request(app).patch(`/api/admin/contacts/${s.contact._id}`)).send({ dni: `${dni.slice(0, 2)}.${dni.slice(2, 5)}.${dni.slice(5)}` });
+    expect(saved.status).toBe(200); expect(saved.body.dni).toBe(dni);
+    expect((await StudentModel.findById(s.contact._id))?.dni).toBe(dni);
+    for (const resource of ["contacts", "students"]) {
+      const found = await admin(request(app).get(`/api/admin/${resource}`)).query({ q: `${dni.slice(0, 2)}.${dni.slice(2, 5)}.${dni.slice(5)}` });
+      expect(found.status).toBe(200);
+      expect(found.body.items.map((item: { _id: string }) => item._id)).toEqual([String(s.contact._id)]);
+    }
+    await rotateCredential(actor(), String(s.contact._id), true);
+    const result = await access.agent.post("/api/check-in/scan").send({ dni });
+    expect(result.status).toBe(200); expect(result.body.kind).toBe("SUCCESS");
+    expect(JSON.stringify(result.body)).not.toContain(dni);
+    expect((await ClassAttendanceModel.findOne({ studentId: s.contact._id }))?.checkInMethod).toBe("DNI");
+    expect((await access.agent.post("/api/check-in/scan").send({ dni })).body.kind).toBe("WARNING");
+    expect(await ChargeModel.countDocuments({ studentId: s.contact._id })).toBe(1);
+    const unknown = await access.agent.post("/api/check-in/scan").send({ dni: "99888777" });
+    expect(unknown.status).toBe(422); expect(unknown.body).not.toHaveProperty("firstName");
+    expect(JSON.stringify(await CheckInAttemptModel.find({ deviceId: access.id }).lean())).not.toContain("99888777");
+  });
+  it("serializes QR and DNI arriving together into one present and charge", async () => {
+    const s = await scenario(), access = await device(), dni = String(31000000 + ++sequence);
+    await admin(request(app).patch(`/api/admin/students/${s.contact._id}`)).send({ dni });
+    expect((await ContactModel.findById(s.contact._id))?.dni).toBe(dni);
+    const results = await Promise.all([{ dni }, { qr: s.qr }].map((body) => access.agent.post("/api/check-in/scan").send(body)));
+    expect(results.map((item) => item.body.kind).sort()).toEqual(["SUCCESS", "WARNING"]);
+    expect(await ClassAttendanceModel.countDocuments({ studentId: s.contact._id, status: "PRESENT" })).toBe(1);
+    expect(await ChargeModel.countDocuments({ studentId: s.contact._id })).toBe(1);
+    expect(["QR", "DNI"]).toContain((await ClassAttendanceModel.findOne({ studentId: s.contact._id }))?.checkInMethod);
+  });
+  it("selects exactly one eligible class when using DNI", async () => {
+    const s = await scenario(), access = await device(), dni = String(31000000 + ++sequence);
+    await admin(request(app).patch(`/api/admin/contacts/${s.contact._id}`)).send({ dni });
+    const next = await ClassSessionModel.create({ organizationId: org, branchId: branch, classId: s.danceClass._id,
+      sessionDate: "2026-10-23", startTime: "18:15", endTime: "19:15" });
+    const scan = await access.agent.post("/api/check-in/scan").send({ dni });
+    expect(scan.body.kind).toBe("SELECT"); expect(scan.body.sessions).toHaveLength(2);
+    expect(await ClassAttendanceModel.countDocuments({ studentId: s.contact._id, status: "PRESENT" })).toBe(0);
+    expect((await access.agent.post("/api/check-in/present").send({ dni, sessionId: String(next._id) })).body.kind).toBe("SUCCESS");
+    expect(await ClassAttendanceModel.countDocuments({ studentId: s.contact._id, status: "PRESENT" })).toBe(1);
+  });
+  it.each(["TRIAL", "COURTESY"] as const)("uses the same %s benefit rules with DNI", async (kind) => {
+    const s = await scenario("PER_CLASS", false), access = await device(), dni = String(31000000 + ++sequence);
+    await admin(request(app).patch(`/api/admin/contacts/${s.contact._id}`)).send({ dni });
+    await bookTrial(actor(), { contactId: String(s.contact._id), sessionId: String(s.session._id), kind, notes: "Invitación de prueba automatizada" });
+    expect((await access.agent.post("/api/check-in/scan").send({ dni })).body.kind).toBe("SUCCESS");
+    expect(await StudentModel.exists({ _id: s.contact._id })).toBeNull();
+    expect(await ChargeModel.countDocuments({ studentId: s.contact._id })).toBe(0);
+    const benefit = await TrialBenefitModel.findOne({ contactId: s.contact._id });
+    if (kind === "TRIAL") expect(benefit?.consumedAt).toBeInstanceOf(Date); else expect(benefit).toBeNull();
+  });
+  it("refuses invalid DNI, mixed credentials, wrong branches and ambiguous legacy identities", async () => {
+    const access = await device();
+    expect((await access.agent.post("/api/check-in/scan").send({ dni: "letters" })).status).toBe(400);
+    expect((await access.agent.post("/api/check-in/scan").send({ dni: "12345678", qr: "also-a-qr" })).status).toBe(400);
+    const other = await BranchModel.create({ organizationId: org, name: "Sede DNI" });
+    await ContactModel.create({ organizationId: org, branchId: other._id, firstName: "Otra", lastName: "Sede", dni: "88777666" });
+    expect((await access.agent.post("/api/check-in/scan").send({ dni: "88777666" })).status).toBe(422);
+    await StudentModel.create([1, 2].map((number) => ({ organizationId: org, branchId: branch, firstName: "Histórico", lastName: `Ambiguo ${number}`, dni: "77666555" })));
+    const result = await access.agent.post("/api/check-in/scan").send({ dni: "77666555" });
+    expect(result.status).toBe(409); expect(result.body.error).toBe("DNI_REQUIRES_REVIEW");
+    expect(await ContactModel.countDocuments({ dni: "77666555" })).toBe(0);
+    await BranchModel.deleteOne({ _id: other._id });
+  });
+  it("prevents concurrent contact/student creation with the same DNI and synchronizes clearing it", async () => {
+    const dni = String(31000000 + ++sequence), data = { branchId: String(branch), firstName: "Persona", lastName: "Documento", dni };
+    const results = await Promise.all([
+      admin(request(app).post("/api/admin/contacts")).send({ ...data, creationKey: `dni-create-${dni}-abcdef` }),
+      admin(request(app).post("/api/admin/students")).send(data)
+    ]);
+    expect(results.map((item) => item.status).sort()).toEqual([201, 409]);
+    expect(await ContactModel.countDocuments({ organizationId: org, dni })).toBe(1);
+    const student = await scenario(), originalDni = String(31000000 + ++sequence);
+    expect((await admin(request(app).patch(`/api/admin/students/${student.contact._id}`)).send({ dni: originalDni })).status).toBe(200);
+    const blocked = await admin(request(app).patch(`/api/admin/contacts/${student.contact._id}`)).send({ dni });
+    expect(blocked.status).toBe(409);
+    expect((await StudentModel.findById(student.contact._id))?.dni).toBe(originalDni);
+    expect((await admin(request(app).patch(`/api/admin/contacts/${student.contact._id}`)).send({ dni: "" })).status).toBe(200);
+    expect((await StudentModel.findById(student.contact._id))?.dni).toBeUndefined();
+    expect((await ContactModel.findById(student.contact._id))?.dni).toBeUndefined();
+  });
   it("opens and persists attendance from canonical www when APP_ORIGIN is the apex, rejecting unrelated origins", async () => {
     const original = env.APP_ORIGIN;
     env.APP_ORIGIN = "https://mymacademiadebaile.com.ar";

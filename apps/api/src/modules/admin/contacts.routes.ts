@@ -17,10 +17,13 @@ import { TrialBookingModel } from "../trials/trial-booking.model";
 import { TrialBenefitModel } from "../trials/trial-benefit.model";
 import { ensureLocks, touchLocks } from "../scheduling/resource-lock.model";
 import { calendarDateSchema, objectIdSchema } from "./admin.schemas";
+import { dniSchema, optionalDniSchema } from "../../common/dni";
+import { assertDniAvailable, dniLockKey } from "../contacts/dni-service";
 
 const fields = z.object({
   branchId: objectIdSchema, firstName: z.string().trim().min(2).max(80), lastName: z.string().trim().min(2).max(80),
   email: z.union([z.email(), z.literal("")]).optional(), phone: z.string().trim().max(40).optional(),
+  dni: optionalDniSchema,
   notes: z.string().trim().max(1000).optional(),
   source: z.object({ platform: z.string().trim().min(1).max(80), campaign: z.string().max(160).optional(),
     advertisement: z.string().max(160).optional(), externalId: z.string().max(160).optional() }).optional(),
@@ -42,7 +45,8 @@ adminContactsRouter.get("/", async (request, response, next) => {
   try {
     const { q, limit } = z.object({ q: z.string().trim().max(100).default(""), limit: z.coerce.number().int().min(1).max(100).default(50) }).parse(request.query);
     const organizationId = request.auth!.organizationId;
-    const filter = { organizationId, ...(q ? { $or: ["firstName", "lastName", "email", "phone"].map((field) => ({ [field]: containsText(q) })) } : {}) };
+    const documentQuery = dniSchema.safeParse(q);
+    const filter = { organizationId, ...(q ? { $or: [...["firstName", "lastName", "email", "phone", "dni"].map((field) => ({ [field]: containsText(q) })), ...(documentQuery.success ? [{ dni: documentQuery.data }] : [])] } : {}) };
     const [contacts, students] = await Promise.all([
       ContactModel.find(filter).sort({ lastName: 1, firstName: 1 }).limit(limit).lean(),
       StudentModel.find(filter).sort({ lastName: 1, firstName: 1 }).limit(limit).lean()
@@ -61,7 +65,7 @@ adminContactsRouter.post("/", async (request, response, next) => {
     const email = input.email?.trim().toLowerCase() || undefined;
     const phone = input.phone?.replace(/\D/g, "") || undefined;
     const identityKey = createHash("sha256").update(JSON.stringify([input.firstName.toLocaleLowerCase("es"), input.lastName.toLocaleLowerCase("es"), email, phone])).digest("hex");
-    const keys = [`identity:${identityKey}`, `creation:${input.creationKey}`,
+    const keys = [`identity:${identityKey}`, `creation:${input.creationKey}`, ...(input.dni ? [dniLockKey(input.dni)] : []),
       ...(email ? [`identity:email:${createHash("sha256").update(email).digest("hex")}`] : [])];
     await ensureLocks(organizationId, keys);
     const contact = await withRequiredTransaction(async (dbSession) => {
@@ -69,11 +73,12 @@ adminContactsRouter.post("/", async (request, response, next) => {
       if (!await BranchModel.exists({ _id: input.branchId, organizationId, isActive: true }).session(dbSession)) throw new AppError(422, "Sede no disponible", "INVALID_BRANCH");
       const retry = await ContactModel.findOne({ organizationId, creationKey: input.creationKey }).session(dbSession);
       if (retry) {
-        if (retry.firstName !== input.firstName || retry.lastName !== input.lastName || retry.email !== email || retry.phone !== phone) {
+        if (retry.firstName !== input.firstName || retry.lastName !== input.lastName || retry.email !== email || retry.phone !== phone || retry.dni !== input.dni) {
           throw new AppError(409, "Esta solicitud ya fue utilizada para otro contacto", "IDEMPOTENCY_CONFLICT");
         }
         return retry;
       }
+      await assertDniAvailable(organizationId, input.dni, undefined, dbSession);
       // Reception chooses among matches. Shared email/phone and names are never authentication or an automatic merge.
       if (email || phone) {
         const matches = await ContactModel.find({ organizationId, $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])] }).session(dbSession);
@@ -108,11 +113,12 @@ adminContactsRouter.patch("/:id", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id), organizationId = request.auth!.organizationId;
     const input = fields.partial().extend({ isActive: z.boolean().optional() }).parse(request.body);
-    const keys = [`contact:${id}`]; await ensureLocks(organizationId, keys);
+    const keys = [`contact:${id}`, ...(input.dni ? [dniLockKey(input.dni)] : [])]; await ensureLocks(organizationId, keys);
     const contact = await withRequiredTransaction(async (dbSession) => {
       await touchLocks(organizationId, keys, dbSession);
       const contact = await resolveContact(organizationId, id, dbSession);
       const profile = await StudentModel.findOne({ _id: id, organizationId }).session(dbSession);
+      await assertDniAvailable(organizationId, input.dni, id, dbSession);
       if (profile && input.branchId && input.branchId !== String(profile.branchId)) {
         throw new AppError(422, "Cambiá la sede desde la ficha académica del alumno", "USE_STUDENT_BRANCH_CHANGE");
       }
@@ -126,8 +132,8 @@ adminContactsRouter.patch("/:id", async (request, response, next) => {
       }
       await StudentModel.updateOne({ _id: id, organizationId }, {
         $set: { firstName: contact.firstName, lastName: contact.lastName, contactId: contact._id,
-          ...(contact.email ? { email: contact.email } : {}), ...(contact.phone ? { phone: contact.phone } : {}) },
-        $unset: { ...(!contact.email ? { email: 1 } : {}), ...(!contact.phone ? { phone: 1 } : {}) }
+          ...(contact.email ? { email: contact.email } : {}), ...(contact.phone ? { phone: contact.phone } : {}), ...(contact.dni ? { dni: contact.dni } : {}) },
+        $unset: { ...(!contact.email ? { email: 1 } : {}), ...(!contact.phone ? { phone: 1 } : {}), ...(!contact.dni ? { dni: 1 } : {}) }
       }, { session: dbSession });
       await AuditLogModel.create([{ organizationId, actorUserId: request.auth!.userId, action: "CONTACT_UPDATED", entityType: "Contact", entityId: contact._id,
         metadata: { changedFields: Object.keys(input) } }], { session: dbSession });

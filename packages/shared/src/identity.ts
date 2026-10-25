@@ -4,6 +4,7 @@ export const GRATUITY_KINDS = ["TRIAL", "COURTESY"] as const;
 export type GratuityKind = typeof GRATUITY_KINDS[number];
 
 export interface ContactSummary {
+  dni?: string;
   _id: string;
   branchId: string;
   firstName: string;

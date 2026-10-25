@@ -18,6 +18,8 @@ import { CollectionModel } from "../billing/collection.model";
 import { toPesos } from "../../common/money";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
+import { dniSchema, optionalDniSchema } from "../../common/dni";
+import { assertDniAvailable, dniLockKey } from "../contacts/dni-service";
 
 const studentSchema = z.object({
   branchId: objectIdSchema,
@@ -25,6 +27,7 @@ const studentSchema = z.object({
   lastName: z.string().trim().min(2).max(80),
   email: z.string().trim().email().optional().or(z.literal("")),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
+  dni: optionalDniSchema,
   birthDate: z.coerce.date().optional(),
   guardianName: z.string().trim().max(120).optional().or(z.literal("")),
   guardianPhone: z.string().trim().max(40).optional().or(z.literal("")),
@@ -75,8 +78,11 @@ adminStudentsRouter.get("/", async (request, response, next) => {
         { firstName: containsText(query.q) },
         { lastName: containsText(query.q) },
         { email: containsText(query.q) },
-        { phone: containsText(query.q) }
+        { phone: containsText(query.q) },
+        { dni: containsText(query.q) }
       ];
+      const documentQuery = dniSchema.safeParse(query.q);
+      if (documentQuery.success) (filter.$or as Array<Record<string, unknown>>).push({ dni: documentQuery.data });
     }
 
     if (query.branchId) {
@@ -201,9 +207,11 @@ adminStudentsRouter.post("/", async (request, response, next) => {
     await assertAssignableBranch(organizationId, input.branchId);
 
     const keys = [normalizedEmail ? `identity:email:${createHash("sha256").update(normalizedEmail).digest("hex")}` : `student-create:${new Types.ObjectId()}`];
+    if (input.dni) keys.push(dniLockKey(input.dni));
     await ensureLocks(organizationId, keys);
     const result = await withRequiredTransaction(async (dbSession) => {
       await touchLocks(organizationId, keys, dbSession);
+      await assertDniAvailable(organizationId, input.dni, undefined, dbSession);
       if (normalizedEmail && await ContactModel.exists({ organizationId, email: normalizedEmail }).session(dbSession)) {
         throw new AppError(409, "Ya existe un contacto con ese email; reutilizá su identidad desde Contactos", "CONTACT_MATCH_REQUIRES_REVIEW");
       }
@@ -264,7 +272,7 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
     const input = updateStudentSchema.parse(request.body);
     const organizationId = request.auth!.organizationId;
 
-    const keys = [`contact:${id}`]; await ensureLocks(organizationId, keys);
+    const keys = [`contact:${id}`, ...(input.dni ? [dniLockKey(input.dni)] : [])]; await ensureLocks(organizationId, keys);
     const result = await withRequiredTransaction(async (dbSession) => {
       await touchLocks(organizationId, keys, dbSession);
       const student = await StudentModel.findOne({
@@ -275,6 +283,7 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
       if (!student) {
         throw new AppError(404, "Alumno no encontrado", "STUDENT_NOT_FOUND");
       }
+      await assertDniAvailable(organizationId, input.dni, id, dbSession);
 
       // An unchanged (possibly inactive) branch is a historical reference and stays valid.
       if (input.branchId !== undefined && input.branchId !== student.branchId.toString()) {
@@ -319,6 +328,7 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
       if (input.lastName !== undefined) student.lastName = input.lastName;
       if (input.email !== undefined) student.email = normalizedEmail;
       if (input.phone !== undefined) student.phone = input.phone.trim() || undefined;
+      if (Object.hasOwn(input, "dni")) student.dni = input.dni;
       if (input.birthDate !== undefined) student.birthDate = input.birthDate;
       if (input.guardianName !== undefined) student.guardianName = input.guardianName.trim() || undefined;
       if (input.guardianPhone !== undefined) student.guardianPhone = input.guardianPhone.trim() || undefined;
@@ -329,7 +339,7 @@ adminStudentsRouter.patch("/:id", async (request, response, next) => {
       const contact = await resolveContact(organizationId, id, dbSession);
       student.contactId = contact._id;
       contact.set({ firstName: student.firstName, lastName: student.lastName, branchId: student.branchId,
-        email: student.email, phone: student.phone, ...(input.isActive === true ? { isActive: true } : {}) });
+        email: student.email, phone: student.phone, dni: student.dni, ...(input.isActive === true ? { isActive: true } : {}) });
       await contact.save({ session: dbSession });
       await student.save({ session: dbSession });
 

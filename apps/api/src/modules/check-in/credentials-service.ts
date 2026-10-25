@@ -14,7 +14,7 @@ export function qrHash(value: string) {
   return tokenHash(value.slice(QR_PREFIX.length));
 }
 export function deviceView(device: CheckInDevice & { _id: unknown }) {
-  return { id: String(device._id), name: device.name, branchId: String(device.branchId), revokedAt: device.revokedAt,
+  return { id: String(device._id), name: device.name.replace(/\bkios[ck]o\b/gi, "Asistencia"), branchId: String(device.branchId), revokedAt: device.revokedAt,
     activatedAt: device.activatedAt, lastSeenAt: device.lastSeenAt, sessionExpiresAt: device.sessionExpiresAt,
     beforeMinutes: device.beforeMinutes, afterMinutes: device.afterMinutes, soundEnabled: device.soundEnabled, volume: device.volume };
 }

@@ -11,7 +11,7 @@ export async function resolveContact(organizationId: string, id: string, dbSessi
   if (!student) throw new AppError(404, "Contacto no encontrado", "CONTACT_NOT_FOUND");
   return ContactModel.findOneAndUpdate({ _id: student._id, organizationId }, {
     $setOnInsert: { organizationId, branchId: student.branchId, firstName: student.firstName, lastName: student.lastName,
-      email: student.email, phone: student.phone, isActive: true, source: { platform: "LEGACY_STUDENT" } }
+      email: student.email, phone: student.phone, dni: student.dni, isActive: true, source: { platform: "LEGACY_STUDENT" } }
   }, { upsert: true, new: true, session: dbSession });
 }
 
@@ -20,7 +20,7 @@ export async function ensureAcademicProfile(organizationId: string, contactId: s
   const contact = await resolveContact(organizationId, contactId, dbSession);
   if (!contact.isActive) throw new AppError(422, "El contacto está inactivo", "CONTACT_INACTIVE");
   const student = await StudentModel.findOneAndUpdate({ _id: contact._id, organizationId }, {
-    $set: { isActive: true, contactId: contact._id },
+    $set: { isActive: true, contactId: contact._id, ...(contact.dni ? { dni: contact.dni } : {}) },
     $setOnInsert: { organizationId, branchId: contact.branchId, firstName: contact.firstName,
       lastName: contact.lastName, email: contact.email, phone: contact.phone }
   }, { upsert: true, new: true, session: dbSession });
