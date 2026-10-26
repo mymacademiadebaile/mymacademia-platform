@@ -105,7 +105,7 @@ for (const route of ["scan", "present"] as const) checkInRouter.post(`/${route}`
       response.json(await confirmCheckIn(request.cookies[DEVICE_COOKIE], identity, sessionId)); return;
     }
     const sessions = await eligibleSessions(device, identity);
-    if (!sessions.length) throw new AppError(422, "No tenés una clase habilitada en este horario. Consultá en recepción.", "NO_ELIGIBLE_SESSIONS");
+    if (!sessions.length) throw new AppError(422, "No tenés una clase habilitada para hoy. Consultá en recepción.", "NO_ELIGIBLE_SESSIONS");
     if (sessions.length > 1) { response.json({ kind: "SELECT", sessions }); return; }
     response.json(await confirmCheckIn(request.cookies[DEVICE_COOKIE], identity, sessions[0].id));
   } catch (error) {

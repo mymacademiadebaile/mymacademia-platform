@@ -15,7 +15,7 @@ import { setSessionAttendance } from "../sessions/session-service";
 import { TrialBookingModel } from "../trials/trial-booking.model";
 import { CheckInCredentialModel, CheckInDeviceModel, type DeviceDocument } from "./check-in.models";
 import { qrHash, tokenHash } from "./credentials-service";
-import { withinCheckInWindow } from "./check-in-window";
+import { isCheckInDay } from "./check-in-day";
 import { dniSchema } from "../../common/dni";
 import { resolveContact } from "../contacts/contact-service";
 
@@ -54,7 +54,7 @@ async function credentialContact(device: DeviceDocument, identity: CheckInIdenti
 }
 
 async function eligibleParticipant(device: DeviceDocument, session: Parameters<typeof attendanceParticipant>[1], contactId: string, dbSession?: ClientSession) {
-  if (!withinCheckInWindow(session, device)) return false;
+  if (!isCheckInDay(session)) return false;
   const entry = await attendanceParticipant(String(device.organizationId), session, contactId, dbSession);
   if (!entry) return false;
   if (entry.trialId) {
@@ -74,7 +74,7 @@ async function eligibleParticipant(device: DeviceDocument, session: Parameters<t
 export async function eligibleSessions(device: DeviceDocument, identity: CheckInIdentity) {
   const { contact } = await credentialContact(device, identity);
   const today = academyNow().date;
-  // Same generator as the calendar: a kiosk works even before someone opens the day's agenda.
+  // Same generator as the calendar: attendance works even before someone opens the day's agenda.
   const classIds = await EnrollmentModel.distinct("classId", { organizationId: device.organizationId, studentId: contact._id });
   if (classIds.length) await generateSessions(String(device.organizationId), { from: today, to: today, classIds });
   const sessions = await ClassSessionModel.find({ organizationId: device.organizationId, branchId: device.branchId, sessionDate: today, status: { $in: ["SCHEDULED", "IN_PROGRESS"] } }).sort({ startTime: 1 });
@@ -98,7 +98,7 @@ export async function confirmCheckIn(deviceToken: string, identity: CheckInIdent
       const latestDevice = await authorizedDevice(deviceToken, dbSession);
       const latest = await credentialContact(latestDevice, identity, dbSession);
       if (!latest.contact._id.equals(contact._id) || !await eligibleParticipant(latestDevice, current, String(latest.contact._id), dbSession)) {
-        throw new AppError(422, "Esta sesión no está disponible para tu asistencia en este momento. Consultá en recepción.", "SESSION_NOT_ELIGIBLE");
+        throw new AppError(422, "Esta clase no está habilitada para tu asistencia hoy. Consultá en recepción.", "SESSION_NOT_ELIGIBLE");
       }
       // Writes serialize concurrent revocations/settings changes with the attendance transaction.
       await CheckInDeviceModel.updateOne({ _id: latestDevice._id }, { $set: { lastSeenAt: new Date() } }, { session: dbSession });

@@ -20,7 +20,7 @@ import { bookTrial, convertTrial } from "../trials/trial-service";
 import { CheckInAttemptModel, CheckInCredentialModel, CheckInDeviceModel } from "./check-in.models";
 import { TrialBenefitModel } from "../trials/trial-benefit.model";
 import { rotateCredential } from "./credentials-service";
-import { withinCheckInWindow } from "./check-in-window";
+import { isCheckInDay } from "./check-in-day";
 import { activationRateLimiter } from "./check-in.routes";
 import { UserModel } from "../auth/user.model";
 
@@ -270,13 +270,22 @@ describe("authorized QR reception", () => {
     const later = await kiosk.agent.post("/api/check-in/present").send({ qr: s.qr, sessionId: String(s.session._id) }); expect(later.body.kind).toBe("SUCCESS");
     expect(await ChargeModel.countDocuments({ studentId: s.contact._id })).toBe(2);
   });
-  it("rejects sessions outside the configured window and cancelled sessions", async () => {
-    const s = await scenario(), kiosk = await device();
+  it("accepts QR before class and DNI after class on the scheduled day, but rejects cancelled sessions", async () => {
+    const early = await scenario(), late = await scenario(), cancelled = await scenario(), access = await device();
+    const dni = String(31000000 + ++sequence);
+    expect((await admin(request(app).patch(`/api/admin/contacts/${late.contact._id}`)).send({ dni })).status).toBe(200);
     vi.setSystemTime(new Date("2026-10-23T20:14:00Z"));
-    expect((await kiosk.agent.post("/api/check-in/scan").send({ qr: s.qr })).status).toBe(422);
-    vi.setSystemTime(new Date("2026-10-23T21:00:00Z"));
-    await ClassSessionModel.updateOne({ _id: s.session._id }, { $set: { status: "CANCELLED" } });
-    expect((await kiosk.agent.post("/api/check-in/present").send({ qr: s.qr, sessionId: String(s.session._id) })).status).toBe(422);
+    expect((await access.agent.post("/api/check-in/scan").send({ qr: early.qr })).body.kind).toBe("SUCCESS");
+    vi.setSystemTime(new Date("2026-10-24T02:59:59Z"));
+    expect((await access.agent.post("/api/check-in/scan").send({ dni })).body.kind).toBe("SUCCESS");
+    expect((await ClassAttendanceModel.findOne({ studentId: late.contact._id }))?.checkInMethod).toBe("DNI");
+    expect(await ChargeModel.countDocuments({ studentId: early.contact._id })).toBe(1);
+    expect(await ChargeModel.countDocuments({ studentId: late.contact._id })).toBe(1);
+    await ClassSessionModel.updateOne({ _id: cancelled.session._id }, { $set: { status: "CANCELLED" } });
+    expect((await access.agent.post("/api/check-in/scan").send({ qr: cancelled.qr })).status).toBe(422);
+    vi.setSystemTime(new Date("2026-10-24T03:00:00Z"));
+    expect((await access.agent.post("/api/check-in/scan").send({ dni })).status).toBe(422);
+    expect((await access.agent.post("/api/check-in/present").send({ qr: early.qr, sessionId: String(early.session._id) })).status).toBe(422);
   });
   it("rejects revoked and expired devices, other branches and foreign origins", async () => {
     const s = await scenario(), kiosk = await device();
@@ -299,11 +308,13 @@ describe("authorized QR reception", () => {
     expect((await ClassAttendanceModel.findOne({ sessionId: s.session._id, studentId: old._id }))?.status).toBe("EXPECTED");
     expect(await ClassAttendanceModel.countDocuments({ sessionId: s.session._id })).toBe(2);
   });
-  it("evaluates Argentina days and configurable inclusive boundaries", () => {
-    const session = { sessionDate: "2026-10-23", startTime: "18:00", endTime: "19:00", status: "SCHEDULED" }, settings = { beforeMinutes: 45, afterMinutes: 20 };
-    expect(withinCheckInWindow(session, settings, new Date("2026-10-23T20:15:00Z"))).toBe(true);
-    expect(withinCheckInWindow(session, settings, new Date("2026-10-23T21:20:00Z"))).toBe(true);
-    expect(withinCheckInWindow(session, settings, new Date("2026-10-23T21:20:01Z"))).toBe(false);
-    expect(withinCheckInWindow(session, { beforeMinutes: 5, afterMinutes: 5 }, new Date("2026-10-23T20:15:00Z"))).toBe(false);
+  it("uses the whole Argentina calendar day and session status, not the class clock time", () => {
+    const session = { sessionDate: "2026-10-23", status: "SCHEDULED" };
+    expect(isCheckInDay(session, new Date("2026-10-23T02:59:59Z"))).toBe(false);
+    expect(isCheckInDay(session, new Date("2026-10-23T03:00:00Z"))).toBe(true);
+    expect(isCheckInDay(session, new Date("2026-10-24T02:59:59Z"))).toBe(true);
+    expect(isCheckInDay(session, new Date("2026-10-24T03:00:00Z"))).toBe(false);
+    expect(isCheckInDay({ ...session, status: "IN_PROGRESS" }, new Date("2026-10-23T03:00:00Z"))).toBe(true);
+    expect(isCheckInDay({ ...session, status: "CANCELLED" }, new Date("2026-10-23T21:00:00Z"))).toBe(false);
   });
 });
