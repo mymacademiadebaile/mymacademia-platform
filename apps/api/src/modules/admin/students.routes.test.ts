@@ -82,6 +82,19 @@ afterAll(async () => {
 });
 
 describe("GET /admin/students: pagination", () => {
+  it("searches first and full names, email, phone and formatted DNI without unrelated students", async () => {
+    const jorge = await StudentModel.create({ organizationId: ids.org, branchId: ids.branch,
+      firstName: "Jorge", lastName: "Dominguez", email: "jorge.search@example.test", phone: "2216689012", dni: "34123456" });
+    await StudentModel.create({ organizationId: ids.org, branchId: ids.branch,
+      firstName: "Mariano", lastName: "Ortiz", email: "mariano.search@example.test", phone: "2216689013", dni: "34123457" });
+
+    for (const query of ["jorge", "Jorge Dominguez", "jorge.search@example.test", "221-6689012", "34.123.456"]) {
+      const response = await get(`?isActive=true&q=${encodeURIComponent(query)}`);
+      expect(response.status).toBe(200);
+      expect(response.body.items.map((item: { _id: string }) => item._id)).toEqual([String(jorge._id)]);
+    }
+  });
+
   it("defaults to ten results and keeps pages stable for each requested size", async () => {
     const names = Array.from(
       { length: 12 },

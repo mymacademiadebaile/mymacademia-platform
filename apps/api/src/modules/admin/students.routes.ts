@@ -18,7 +18,7 @@ import { CollectionModel } from "../billing/collection.model";
 import { toPesos } from "../../common/money";
 import { StudentModel } from "../students/student.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
-import { dniSchema, optionalDniSchema } from "../../common/dni";
+import { optionalDniSchema } from "../../common/dni";
 import { assertDniAvailable, dniLockKey } from "../contacts/dni-service";
 
 const studentSchema = z.object({
@@ -74,15 +74,16 @@ adminStudentsRouter.get("/", async (request, response, next) => {
     const filter: Record<string, unknown> = { organizationId };
 
     if (query.q) {
-      filter.$or = [
-        { firstName: containsText(query.q) },
-        { lastName: containsText(query.q) },
-        { email: containsText(query.q) },
-        { phone: containsText(query.q) },
-        { dni: containsText(query.q) }
-      ];
-      const documentQuery = dniSchema.safeParse(query.q);
-      if (documentQuery.success) (filter.$or as Array<Record<string, unknown>>).push({ dni: documentQuery.data });
+      // Every word may match a different identity field, so full names work too.
+      filter.$and = query.q.split(/\s+/).map((term) => {
+        const matches: Array<Record<string, unknown>> = ["firstName", "lastName", "email", "phone", "dni"]
+          .map((field) => ({ [field]: containsText(term) }));
+        const digits = term.replace(/\D/g, "");
+        if (digits.length >= 2 && digits !== term) {
+          matches.push({ phone: containsText(digits) }, { dni: containsText(digits) });
+        }
+        return { $or: matches };
+      });
     }
 
     if (query.branchId) {
