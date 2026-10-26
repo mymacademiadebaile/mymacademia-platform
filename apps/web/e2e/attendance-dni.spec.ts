@@ -21,10 +21,13 @@ test("a person without QR registers by DNI and administrative arrivals preserve 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/asistencia");
   await expect(page.locator("body")).not.toContainText(/kios[ck]o/i);
+  await expect(page.locator('img[src*="hero-couple-smoke"]')).toHaveCount(0);
   for (const size of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(size);
     await expect(page.getByRole("button", { name: "Escanear QR", exact: true })).toBeVisible();
     expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
+    const methods = await page.getByRole("button", { name: "Escanear QR", exact: true }).locator("..").boundingBox();
+    expect(Math.abs(methods!.x + methods!.width / 2 - size.width / 2)).toBeLessThanOrEqual(2);
     for (const label of ["Escanear QR", "Usar DNI"]) {
       const bounds = await page.getByRole("button", { name: label, exact: true }).boundingBox();
       expect(bounds!.height).toBeGreaterThanOrEqual(60);

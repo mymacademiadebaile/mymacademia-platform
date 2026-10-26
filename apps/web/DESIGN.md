@@ -90,13 +90,13 @@ components:
 
 # Design System: M&M Academia Platform
 
-## Registro de asistencia — adaptación a la landing (25/10/2026)
+## Registro de asistencia — aplicación centrada (25/10/2026)
 
-Esta sección reemplaza las dimensiones y composición anteriores del registro público descritas más abajo, sin cambiar el sistema administrativo. La pantalla `/asistencia` usa la identidad vigente de la landing y del login: canvas `#09090b`, papel `#f2f0ec`, tinta `#0c0b0f`, violeta de acción `#5b21b6` y acento lavanda `#b392ff`. Archivo se usa para controles y texto; Big Shoulders para títulos. Ambas fuentes ya son provistas por el layout raíz.
+Esta sección reemplaza las dimensiones y composición anteriores del registro público descritas más abajo, sin cambiar el sistema administrativo. La pantalla `/asistencia` es una aplicación de una sola vista, con marco oscuro `#141019`, borde violeta, superficie clara `#f7f5fb`, acción `#5b21b6` y acento lavanda `#b392ff`. Archivo se usa para títulos, controles y texto, con una escala de aplicación. Se conserva la identidad de M&M en logo, colores y contorno.
 
-El escritorio combina fotografía de baile a la izquierda y área de operación clara a la derecha. Se reutiliza `/landing/mock/hero-couple-smoke.jpg`, también empleado por el login y la landing como imagen de respaldo, sin agregar consultas al catálogo durante la apertura de asistencia. La frase visual «Tu ritmo. Tu lugar.» procede de la landing. La fotografía y esa frase son decorativas para lectores de pantalla.
+Por pedido explícito del usuario, no hay fotografía, bloque promocional ni pantalla dividida similar al login. La cabecera y el pie forman el marco; el área de operación se centra horizontal y verticalmente en el espacio entre ambos. Las acciones QR y DNI son el centro de la interfaz, con icono, verbo e indicación breve. El conjunto tiene un máximo de 640px y el contenido general 760px.
 
-Hasta 820px, la composición se apila y la foto se convierte en una franja compacta, visible sólo al elegir el método. Durante DNI, lectura de cámara, selección y resultado, el área de operación aprovecha el espacio de celular/tablet. Las acciones QR y DNI incluyen icono, verbo y explicación; miden al menos 88px de alto. Los demás controles conservan 60px y la ayuda 48px. La página admite desplazamiento vertical en pantallas pequeñas sin recortar campos ni botones. No hay altura fija ni bloqueo de zoom.
+En tablet/escritorio, QR y DNI aparecen lado a lado, centrados, con controles de 190px de alto. Hasta 600px se apilan, conservando su centrado y 104px de alto. Los demás controles conservan 60px y la ayuda 48px. El contorno exterior reduce sus márgenes y radios al pasar a celular. Formularios, cámara, selección y resultados comparten la misma composición central. La página admite desplazamiento vertical en pantallas pequeñas sin recortar campos ni botones. No hay altura fija ni bloqueo de zoom.
 
 Se conservan todos los estados de acceso, sonidos, resultados semánticos y reinicio de privacidad. La ayuda no interrumpe una solicitud en curso. El foco de teclado y las etiquetas QR/DNI siguen siendo explícitos. Sólo hay transiciones breves de interacción, deshabilitadas con preferencia de movimiento reducido; no se agregan secuencias de entrada ni movimiento continuo. Los estilos se limitan al módulo de asistencia y no alteran landing, administración o CSS del login.
 
