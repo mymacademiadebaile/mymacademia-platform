@@ -2,7 +2,7 @@
 
 import { collectedToast, proofFileOf, tryUploadProof } from "../billing/proof";
 import { useVoidCollection } from "../billing/void-collection";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Mail, QrCode } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../admin-ui";
@@ -28,6 +28,8 @@ import { StudentEditModal } from "./student-detail-edit-modal";
 import { StudentEnrollModal } from "./student-detail-enroll-modal";
 import { StudentPayModal } from "./student-detail-pay-modal";
 import { useStudentPaymentActions } from "./student-detail-receipts";
+import { StudentIdentityPanel } from "./student-identity-panel";
+import { DebtRemindersLive } from "../reminders/debt-reminders-live";
 import styles from "./student-detail-live.module.css";
 
 export function StudentDetailLive({ id }: { id: string }) {
@@ -36,6 +38,9 @@ export function StudentDetailLive({ id }: { id: string }) {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [classes, setClasses] = useState<DanceClass[]>([]);
   const [editing, setEditing] = useState(false);
+  const [section, setSection] = useState<"overview" | "identity" | "reminders">("overview");
+  const [identityOpened, setIdentityOpened] = useState(false);
+  const [contactRequested, setContactRequested] = useState(false);
   const [enrollModal, setEnrollModal] = useState(false);
   const [account, setAccount] = useState<StudentAccount | null>(null);
   const [paying, setPaying] = useState<AccountCharge | null>(null);
@@ -77,6 +82,12 @@ export function StudentDetailLive({ id }: { id: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (section !== "identity" || !contactRequested) return;
+    document.getElementById("student-contact-settings")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    setContactRequested(false);
+  }, [section, contactRequested]);
 
   const activeEnrollments = useMemo(
     () => data?.enrollments.filter((enrollment) => enrollment.status === "ACTIVE") ?? [],
@@ -312,7 +323,6 @@ export function StudentDetailLive({ id }: { id: string }) {
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
 
-      <div><Link className={styles.back} href={`/admin/contacts/${id}`}>Contacto, pruebas y QR personal</Link> <Link className={styles.back} href={`/admin/reminders?studentId=${id}`}>Recordatorios de deuda</Link></div>
       <StudentDetailHero
         student={student}
         financial={financial}
@@ -322,7 +332,13 @@ export function StudentDetailLive({ id }: { id: string }) {
         onToggleActive={() => void toggleActive()}
       />
 
-      <div className={styles.grid}>
+      <nav className={styles.sectionNav} aria-label="Secciones de la ficha del alumno">
+        <button type="button" aria-pressed={section === "overview"} onClick={() => setSection("overview")}><LayoutDashboard size={24} aria-hidden="true" /><span><strong>Resumen</strong><small>Datos, clases y pagos</small></span></button>
+        <button type="button" aria-pressed={section === "identity"} onClick={() => { setIdentityOpened(true); setContactRequested(false); setSection("identity"); }}><QrCode size={24} aria-hidden="true" /><span><strong>QR e historial</strong><small>Credencial, pruebas y contacto</small></span></button>
+        <button type="button" aria-pressed={section === "reminders"} onClick={() => setSection("reminders")}><Mail size={24} aria-hidden="true" /><span><strong>Recordatorios</strong><small>Vista previa e historial de envíos</small></span></button>
+      </nav>
+
+      {section === "overview" && <div className={styles.grid}>
         <StudentInfoCard student={student} branches={branches} />
         <StudentEnrollmentsCard
           enrollments={activeEnrollments}
@@ -348,7 +364,9 @@ export function StudentDetailLive({ id }: { id: string }) {
             })
           }
         />
-      </div>
+      </div>}
+      {identityOpened && <div hidden={section !== "identity"}><StudentIdentityPanel id={id} name={`${student.firstName} ${student.lastName}`} refreshKey={`${student.firstName}:${student.lastName}:${student.email}:${student.phone}:${student.dni}`} onEditStudent={() => setEditing(true)} /></div>}
+      {section === "reminders" && <DebtRemindersLive key={id} initialStudentId={id} embedded onShowContact={() => { setIdentityOpened(true); setContactRequested(true); setSection("identity"); }} />}
 
       <StudentEditModal
         open={editing}

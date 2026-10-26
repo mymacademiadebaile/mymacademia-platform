@@ -8,9 +8,9 @@ import { apiFetch, apiMessage } from "@/lib/api";
 import { todayInArgentina } from "@/lib/dates";
 import styles from "./contacts.module.css";
 import { QrCard } from "./qr-card";
+import { contactClassHistory } from "./contact-history";
 
 type SessionOption = { id: string; startTime: string; endTime: string; status: string; class: { id: string; name: string } };
-const trialStatus = { SCHEDULED: "Reservada", COMPLETED: "Presente", CANCELLED: "Cancelada", CONVERTED: "Convertida" };
 
 export function ContactDetail({ id }: { id: string }) {
   const router = useRouter();
@@ -67,15 +67,7 @@ export function ContactDetail({ id }: { id: string }) {
       router.push(`/admin/students/${id}`);
     } catch (cause) { setError(apiMessage(cause)); setBusy(false); }
   }
-  const history = data ? [
-    ...data.trials.map((trial) => ({ id: `trial-${trial._id}`, date: trial.scheduledFor,
-      name: trial.classId?.name ?? "Clase histórica", type: trial.kind === "COURTESY" ? "Cortesía sin cargo" : "Prueba gratuita",
-      status: trialStatus[trial.status], trialId: trial._id, scheduled: trial.status === "SCHEDULED" })),
-    ...data.attendance.filter((item) => !item.trialId).map((item) => ({ id: `attendance-${item._id}`,
-      date: item.sessionId?.sessionDate ?? item.recordedAt ?? "", name: item.sessionId?.classId?.name ?? "Clase histórica",
-      type: item.participantType === "COURTESY" || item.participantType === "TRIAL" || item.sessionId?.classId?.billingMode === "FREE"
-        ? "Clase sin cargo" : "Clase arancelada", status: "Presente", trialId: undefined, scheduled: false }))
-  ].sort((a, b) => b.date.localeCompare(a.date)) : [];
+  const history = data ? contactClassHistory(data) : [];
   return <>
     <Link className={styles.secondary} href="/admin/contacts">Volver a contactos</Link>
     {error && <div className={styles.error} role="alert">{error}</div>}

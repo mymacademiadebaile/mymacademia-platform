@@ -32,6 +32,7 @@ Los profesores usan el portal antes, durante y entre clases desde teléfono, tab
 - El portal de profesor incluye inicio, calendario, clases, alumnos y perfil; mensajes y promociones son acciones contextuales.
 - El producto es responsive y debe resultar natural con mouse, teclado y controles táctiles. Las acciones táctiles deben tener áreas amplias y los estados deben expresarse con lenguaje natural.
 - La administración conserva una navegación lateral y flujos operativos de mayor densidad. El portal de profesor debe evitar parecer un CRM o backoffice.
+- La ficha administrativa del alumno reúne resumen, QR e historial de clases, contacto y preferencias, y recordatorios de deuda en secciones visibles de la misma pantalla. Las acciones frecuentes no deben depender de enlaces de texto difíciles de descubrir.
 
 ## Brand Commitments
 

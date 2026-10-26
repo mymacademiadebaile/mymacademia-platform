@@ -14,7 +14,7 @@ const reasons: Record<string, string> = { REMINDERS_DISABLED: "Los recordatorios
 const statuses = { PENDING: "Pendiente de verificación", SENT: "Enviado", FAILED: "Envío no confirmado", SKIPPED: "No enviado", OPENED: "Abierto" };
 const money = (cents: number) => (cents / 100).toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 
-export function DebtRemindersLive({ initialStudentId }: { initialStudentId: string }) {
+export function DebtRemindersLive({ initialStudentId, embedded = false, onShowContact }: { initialStudentId: string; embedded?: boolean; onShowContact?: () => void }) {
   const { confirm } = useAdminFeedback();
   const [policy, setPolicy] = useState<Policy | null>(null), [persistedAuto, setPersistedAuto] = useState(false);
   const [students, setStudents] = useState<Array<{ _id: string; firstName: string; lastName: string }>>([]), [search, setSearch] = useState("");
@@ -28,12 +28,13 @@ export function DebtRemindersLive({ initialStudentId }: { initialStudentId: stri
     if (signal?.aborted) return;
     setPreview(value); setHistory(logs.items);
   }, [studentId]);
-  useEffect(() => { void loadPolicy().catch((error) => setError(apiMessage(error))); }, [loadPolicy]);
+  useEffect(() => { if (!embedded) void loadPolicy().catch((error) => setError(apiMessage(error))); }, [embedded, loadPolicy]);
   useEffect(() => { const controller = new AbortController(); deliveryKey.current = crypto.randomUUID(); setPreview(null); setMessage(""); setError(""); void loadPreview(controller.signal).catch((error) => { if (!controller.signal.aborted) setError(apiMessage(error)); }); return () => controller.abort(); }, [loadPreview]);
   useEffect(() => {
+    if (embedded) return;
     const controller = new AbortController(); const timer = setTimeout(() => void apiFetch<{ items: typeof students }>(`/admin/students?limit=100&q=${encodeURIComponent(search)}`, { signal: controller.signal }).then((list) => setStudents(list.items)).catch((error) => { if (!controller.signal.aborted) setError(apiMessage(error)); }), 200);
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [search]);
+  }, [embedded, search]);
   async function savePolicy(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!policy) return;
     if (policy.automaticEnabled && !persistedAuto && !await confirm({ title: "Habilitar envíos programados", description: `La tarea diaria podrá enviar emails reales después de ${policy.daysOverdue} días de vencimiento, respetando preferencias y frecuencia.`, confirmLabel: "Habilitar programación" })) return;
@@ -51,9 +52,9 @@ export function DebtRemindersLive({ initialStudentId }: { initialStudentId: stri
     } catch (error) { setError(apiMessage(error)); await loadPreview().catch(() => undefined); }
     finally { setBusy(false); }
   }
-  return <><PageHeader title="Recordatorios de deuda" description="Mensajes cordiales con saldo vigente, preferencias de contacto e historial de envíos." />
+  return <>{!embedded && <PageHeader title="Recordatorios de deuda" description="Mensajes cordiales con saldo vigente, preferencias de contacto e historial de envíos." />}
     {error && <p className={styles.error} role="alert">{error}</p>}{message && <p className={styles.message} role="status">{message}</p>}
-    {!policy ? <p role="status">Cargando configuración…</p> : <section className={styles.surface}><h2>Configuración administrativa</h2>
+    {!embedded && (!policy ? <p role="status">Cargando configuración…</p> : <section className={styles.surface}><h2>Configuración administrativa</h2>
       <form className={styles.form} onSubmit={savePolicy}>
         <label className={styles.check}><input type="checkbox" checked={policy.enabled} onChange={(event) => setPolicy({ ...policy, enabled: event.target.checked, ...(!event.target.checked ? { automaticEnabled: false } : {}) })} />Habilitar recordatorios por email</label>
         <label className={styles.check}><input type="checkbox" disabled={!policy.enabled} checked={policy.automaticEnabled} onChange={(event) => setPolicy({ ...policy, automaticEnabled: event.target.checked })} />Habilitar envío programado</label>
@@ -62,16 +63,16 @@ export function DebtRemindersLive({ initialStudentId }: { initialStudentId: stri
         <label className={styles.check}><input type="checkbox" checked={policy.includeBreakdown} onChange={(event) => setPolicy({ ...policy, includeBreakdown: event.target.checked })} />Incluir conceptos y vencimientos</label>
         <div className={styles.wide}><button className={styles.button} disabled={busy}>Guardar configuración</button></div>
       </form>
-    </section>}
-    <section className={styles.surface}><h2>Preparar un recordatorio</h2><div className={styles.form}>
+    </section>)}
+    <section className={styles.surface}><h2>{embedded ? "Recordatorio para este alumno" : "Preparar un recordatorio"}</h2>{embedded ? <p>Consultá el saldo vigente y revisá el mensaje antes de enviarlo.</p> : <div className={styles.form}>
       <label>Buscar alumno<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre, apellido o email" /></label>
       <label>Destinatario<select disabled={busy} value={studentId} onChange={(event) => setStudentId(event.target.value)}><option value="">Seleccioná una persona</option>{students.map((student) => <option key={student._id} value={student._id}>{student.firstName} {student.lastName}</option>)}{studentId && !students.some((item) => item._id === studentId) && <option value={studentId}>{preview?.personName ?? "Persona seleccionada"}</option>}</select></label>
-    </div>
+    </div>}
     {preview && <><h3>Cuenta de {preview.personName}</h3><p>Pendiente: {money(preview.balance.pendingCents)} · Vencido: {money(preview.balance.overdueCents)} · A favor: {money(preview.balance.creditCents)}</p>
       {!preview.eligible && <p className={styles.message}>{reasons[preview.reason ?? ""] ?? "Revisá los datos de esta persona antes de enviar."}</p>}
       <p><strong>Para:</strong> {preview.destination ?? "Sin email"}<br /><strong>Asunto:</strong> {preview.subject}</p>
       <div className={styles.form}><label className={styles.wide}>Vista previa del mensaje<textarea readOnly value={preview.message} rows={12} /></label></div>
-      <div className={styles.actions}><button className={styles.button} disabled={busy || !preview.eligible} onClick={() => void send()}>Enviar recordatorio</button><button className={styles.secondary} disabled={busy} onClick={() => void loadPreview().catch((error) => setError(apiMessage(error)))}>Actualizar saldo y vista previa</button><Link className={styles.secondary} href={`/admin/contacts/${studentId}`}>Contacto y preferencias</Link></div>
+      <div className={styles.actions}><button className={styles.button} disabled={busy || !preview.eligible} onClick={() => void send()}>Enviar recordatorio</button><button className={styles.secondary} disabled={busy} onClick={() => void loadPreview().catch((error) => setError(apiMessage(error)))}>Actualizar saldo y vista previa</button>{embedded ? onShowContact && <button className={styles.secondary} onClick={onShowContact}>Ver contacto y preferencias</button> : <Link className={styles.secondary} href={`/admin/contacts/${studentId}`}>Contacto y preferencias</Link>}</div>
     </>}
     </section>
     {studentId && <section className={styles.surface}><h2>Historial de comunicaciones</h2><p>Un intento pendiente de verificación no se reenvía automáticamente. Revisá el resultado antes de volver a contactar.</p>{!history.length ? <p>Todavía no hay recordatorios para esta persona.</p> : <ul className={styles.list}>{history.map((log) => <li key={log._id}><div className={styles.row}><span><strong>{statuses[log.status]}</strong><small>{log.destination} · {new Date(log.sentAt ?? log.createdAt).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}</small>{log.errorMessage && <small>{log.errorMessage}</small>}</span></div></li>)}</ul>}</section>}

@@ -29,8 +29,50 @@
   align-items: start;
 }
 
+.sectionNav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0 16px;
+}
+
+.sectionNav button {
+  min-width: 0;
+  min-height: 82px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  color: #33233f;
+  background: #fff;
+  border: 1px solid #e7ddec;
+  border-radius: 17px;
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+
+.sectionNav button:hover { border-color: #a78bfa; transform: translateY(-2px); }
+.sectionNav button:focus-visible { outline: 3px solid #7c3aed; outline-offset: 3px; }
+.sectionNav button[aria-pressed="true"] { color: #5318a5; background: #f5efff; border-color: #8b5cf6; box-shadow: inset 0 0 0 1px #8b5cf6; }
+.sectionNav button svg { flex: 0 0 auto; }
+.sectionNav strong,.sectionNav small { display: block; }
+.sectionNav strong { font-size: 15px; }
+.sectionNav small { margin-top: 3px; color: #72647d; font-size: 12px; line-height: 1.35; }
+
+.identityGrid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(290px, .75fr); gap: 16px; align-items: start; }
+.identityMain { min-width: 0; }
+.identityGrid > section { margin-top: 20px; }
+.contactSettings { scroll-margin-top: 90px; }
+
 @media (max-width: 1000px) {
-  .grid {
+  .grid,.identityGrid {
     grid-template-columns: 1fr;
   }
+  .identityGrid > section { margin-top: 0; }
+}
+
+@media (max-width: 680px) {
+  .sectionNav { grid-template-columns: 1fr; gap: 8px; }
+  .sectionNav button { min-height: 66px; }
 }
