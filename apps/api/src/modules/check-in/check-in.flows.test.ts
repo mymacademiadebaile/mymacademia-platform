@@ -70,7 +70,7 @@ describe("authorized QR reception", () => {
     for (const resource of ["contacts", "students"]) {
       const found = await admin(request(app).get(`/api/admin/${resource}`)).query({ q: `${dni.slice(0, 2)}.${dni.slice(2, 5)}.${dni.slice(5)}` });
       expect(found.status).toBe(200);
-      expect(found.body.items.map((item: { _id: string }) => item._id)).toEqual([String(s.contact._id)]);
+      expect(found.body.items.map((item: { _id: string }) => item._id)).toEqual(resource === "students" ? [String(s.contact._id)] : []);
     }
     await rotateCredential(actor(), String(s.contact._id), true);
     const result = await access.agent.post("/api/check-in/scan").send({ dni });

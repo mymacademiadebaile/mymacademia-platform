@@ -34,4 +34,6 @@ export interface ContactDetailResponse {
   trials: TrialBookingView[];
   benefits: Array<{ classId: string; consumedAt?: string; activeBookingId?: string }>;
   enrollments: Array<{ _id: string; classId: { _id: string; name: string }; status: string }>;
+  attendance: Array<{ _id: string; participantType: string; trialId?: string; recordedAt?: string;
+    sessionId?: { _id: string; sessionDate: string; startTime: string; classId?: { _id: string; name: string; billingMode: string } } }>;
 }

@@ -15,6 +15,7 @@ import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { StudentModel } from "../students/student.model";
 import { TrialBookingModel } from "../trials/trial-booking.model";
 import { TrialBenefitModel } from "../trials/trial-benefit.model";
+import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ensureLocks, touchLocks } from "../scheduling/resource-lock.model";
 import { calendarDateSchema, objectIdSchema } from "./admin.schemas";
 import { dniSchema, optionalDniSchema } from "../../common/dni";
@@ -47,14 +48,11 @@ adminContactsRouter.get("/", async (request, response, next) => {
     const organizationId = request.auth!.organizationId;
     const documentQuery = dniSchema.safeParse(q);
     const filter = { organizationId, ...(q ? { $or: [...["firstName", "lastName", "email", "phone", "dni"].map((field) => ({ [field]: containsText(q) })), ...(documentQuery.success ? [{ dni: documentQuery.data }] : [])] } : {}) };
-    const [contacts, students] = await Promise.all([
-      ContactModel.find(filter).sort({ lastName: 1, firstName: 1 }).limit(limit).lean(),
-      StudentModel.find(filter).sort({ lastName: 1, firstName: 1 }).limit(limit).lean()
-    ]);
-    const byId = new Map(students.map((item) => [String(item._id), { ...item, academic: true }]));
-    const profiles = new Set((await StudentModel.distinct("_id", { organizationId, _id: { $in: contacts.map((item) => item._id) } })).map(String));
-    for (const contact of contacts) byId.set(String(contact._id), { ...contact, academic: profiles.has(String(contact._id)) });
-    response.json({ items: [...byId.values()].sort((a, b) => a.lastName.localeCompare(b.lastName, "es")).slice(0, limit) });
+    // Contactos is the prospect inbox. Academic profiles are managed in Alumnos.
+    const studentIds = await StudentModel.distinct("_id", { organizationId });
+    const contacts = await ContactModel.find({ ...filter, _id: { $nin: studentIds } })
+      .sort({ lastName: 1, firstName: 1, _id: 1 }).limit(limit).lean();
+    response.json({ items: contacts });
   } catch (error) { next(error); }
 });
 
@@ -98,14 +96,17 @@ adminContactsRouter.get("/:id", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id), organizationId = request.auth!.organizationId;
     const contact = await resolveContact(organizationId, id);
-    const [student, opportunities, trials, benefits, enrollments] = await Promise.all([
+    const [student, opportunities, trials, benefits, enrollments, attendance] = await Promise.all([
       StudentModel.findOne({ _id: id, organizationId }),
       OpportunityModel.find({ contactId: id, organizationId }).populate("classId", "name"),
       TrialBookingModel.find({ studentId: id, organizationId }).populate("classId", "name").sort({ scheduledFor: -1 }),
       TrialBenefitModel.find({ contactId: id, organizationId }),
-      EnrollmentModel.find({ studentId: id, organizationId }).populate("classId", "name")
+      EnrollmentModel.find({ studentId: id, organizationId }).populate("classId", "name"),
+      ClassAttendanceModel.find({ studentId: id, organizationId, status: "PRESENT" })
+        .populate({ path: "sessionId", select: "sessionDate startTime classId", populate: { path: "classId", select: "name billingMode" } })
+        .sort({ recordedAt: -1 })
     ]);
-    response.json({ contact, student, opportunities, trials, benefits, enrollments });
+    response.json({ contact, student, opportunities, trials, benefits, enrollments, attendance });
   } catch (error) { next(error); }
 });
 

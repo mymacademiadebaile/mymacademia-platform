@@ -176,6 +176,32 @@ describe("identity and trial invariants", () => {
     expect(await ChargeModel.countDocuments({ studentId: contact._id })).toBe(0);
   });
 
+  it("lists only prospects and keeps free and regular attendance in the same identity history", async () => {
+    const contact = await person(), free = await group(), regular = await group();
+    const before = await auth(request(app).get(`/api/admin/contacts?q=${contact.lastName}`));
+    expect(before.status).toBe(200);
+    expect(before.body.items.map((item: { _id: string }) => item._id)).toContain(String(contact._id));
+
+    const trial = await bookTrial(actor(), { contactId: String(contact._id), sessionId: String(free.session._id) });
+    await mark(free.session, contact._id);
+    await convertContact(actor(), String(contact._id), { classId: String(regular.danceClass._id) });
+    await ClassAttendanceModel.create({ organizationId: org, sessionId: regular.session._id, studentId: contact._id,
+      contactId: contact._id, participantType: "ENROLLMENT", status: "PRESENT", recordedAt: new Date() });
+
+    const after = await auth(request(app).get(`/api/admin/contacts?q=${contact.lastName}`));
+    expect(after.status).toBe(200);
+    expect(after.body.items.map((item: { _id: string }) => item._id)).not.toContain(String(contact._id));
+    const detail = await auth(request(app).get(`/api/admin/contacts/${contact._id}`));
+    expect(detail.status).toBe(200);
+    expect(detail.body.student._id).toBe(String(contact._id));
+    expect(detail.body.trials.some((item: { _id: string }) => item._id === String(trial._id))).toBe(true);
+    expect(detail.body.attendance).toEqual(expect.arrayContaining([
+      expect.objectContaining({ trialId: String(trial._id), participantType: "TRIAL" }),
+      expect.objectContaining({ participantType: "ENROLLMENT", sessionId: expect.objectContaining({
+        classId: expect.objectContaining({ name: regular.danceClass.name, billingMode: "PER_CLASS" }) }) })
+    ]));
+  });
+
   it("keeps a former student's contact available for another interest and reactivates the academic profile", async () => {
     const contact = await person(), first = await group(), next = await group();
     await convertContact(actor(), String(contact._id), { classId: String(first.danceClass._id) });
