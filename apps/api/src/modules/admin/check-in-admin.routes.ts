@@ -9,7 +9,7 @@ import { ContactModel } from "../contacts/contact.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
 import { NotificationLogModel } from "../notifications/notification-log.model";
-import { CheckInAttemptModel, CheckInCredentialModel, CheckInDeviceModel } from "../check-in/check-in.models";
+import { CheckInCredentialModel, CheckInDeviceModel } from "../check-in/check-in.models";
 import { deviceView, opaqueToken, rotateCredential, tokenHash } from "../check-in/credentials-service";
 import { objectIdSchema } from "./admin.schemas";
 
@@ -72,11 +72,10 @@ adminCheckInRouter.get("/reception", async (request, response, next) => {
     const contacts = await ContactModel.find({ organizationId, _id: { $in: rows.map((item) => item.studentId) } }).select("firstName lastName").lean();
     const balances = await studentBalances(organizationId, rows.map((item) => item.studentId));
     const reminders = await NotificationLogModel.find({ organizationId, studentId: { $in: rows.map((item) => item.studentId) }, type: "DEBT_REMINDER", status: "SENT" }).select("studentId sentAt").sort({ sentAt: -1 }).lean();
-    const attempts = await CheckInAttemptModel.find({ organizationId }).sort({ createdAt: -1 }).limit(30).lean();
     const names = new Map(contacts.map((item) => [String(item._id), `${item.firstName} ${item.lastName}`]));
     const sessionById = new Map(sessions.map((item) => [String(item._id), item]));
     response.json({ date: today, arrivals: rows.map((row) => ({ ...row, personName: names.get(String(row.studentId)) ?? "Alumno histórico",
       session: sessionById.get(String(row.sessionId)), balance: balances.get(String(row.studentId)),
-      lastReminderAt: reminders.find((item) => String(item.studentId) === String(row.studentId))?.sentAt })), attempts });
+      lastReminderAt: reminders.find((item) => String(item.studentId) === String(row.studentId))?.sentAt })) });
   } catch (error) { next(error); }
 });
