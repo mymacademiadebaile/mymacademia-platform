@@ -5,11 +5,11 @@ test("a person without QR registers by DNI and administrative arrivals preserve 
   expect((await (await page.request.get(`${API}/__test/isolated`)).json()).isolated).toBe(true);
   expect((await page.request.post(`${API}/api/auth/login`, { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } })).ok()).toBe(true);
   await page.goto("/admin/contacts");
-  await page.getByRole("button", { name: "Crear contacto", exact: true }).click();
+  await page.getByRole("button", { name: "Agregar contacto", exact: true }).click();
   await page.getByLabel("Nombre", { exact: true }).fill("Mara");
   await page.getByLabel("Apellido", { exact: true }).fill("Documento");
-  await page.getByLabel("DNI (opcional)", { exact: true }).fill("32.456.789");
-  await page.getByRole("combobox", { name: "Sede", exact: true }).selectOption({ label: "Sede Centro" });
+  await page.getByLabel("Teléfono", { exact: true }).fill("2215554321");
+  await page.getByLabel("DNI", { exact: true }).fill("32.456.789");
   await page.getByRole("button", { name: "Guardar contacto", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Mara Documento", exact: true })).toBeVisible();
   const id = page.url().split("/").at(-1)!;

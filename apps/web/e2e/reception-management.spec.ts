@@ -4,12 +4,16 @@ const API = process.env.E2E_API_URL ?? "http://localhost:4000";
 test("admin generates a printable QR, opens the kiosk with their login and previews reminders with automatic delivery off", async ({ page }) => {
   expect((await (await page.request.get(`${API}/__test/isolated`)).json()).isolated).toBe(true);
   await page.request.post(`${API}/api/auth/login`, { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
-  const contact = (await (await page.request.get(`${API}/api/admin/contacts?q=Lucía`)).json()).items[0];
+  const contact = (await (await page.request.get(`${API}/api/admin/students?q=Lucía`)).json()).items[0];
   const account = await (await page.request.get(`${API}/api/admin/debt-reminders/students/${contact._id}/preview`)).json();
   if (account.balance.pendingCents === 0) await page.request.post(`${API}/api/admin/billing/charges`, { data: {
     studentId: contact._id, kind: "OTHER", period: "2026-10", concept: "Clase de verificación", amount: 5000, dueDate: "2026-10-23"
   } });
   await page.goto(`/admin/contacts/${contact._id}`);
+  await page.getByText("Más opciones").click();
+  await page.getByLabel("Email", { exact: true }).fill("lucia@example.test");
+  await page.getByRole("button", { name: "Guardar preferencias" }).click();
+  await expect(page.getByRole("status")).toContainText("Preferencias actualizadas");
   const generate = page.getByRole("button", { name: /^(Generar|Renovar) QR$/ });
   await expect(generate).toBeEnabled();
   const renewing = await generate.textContent(); await generate.click();
@@ -30,7 +34,6 @@ test("admin generates a printable QR, opens the kiosk with their login and previ
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "../../artifacts/reception-mobile.png", fullPage: true, animations: "disabled" });
   expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.request.patch(`${API}/api/admin/contacts/${contact._id}`, { data: { email: "lucia@example.test" } });
   await page.goto(`/admin/reminders?studentId=${contact._id}`);
   await expect(page.getByLabel("Habilitar envío programado")).not.toBeChecked();
   await expect(page.getByRole("button", { name: "Enviar recordatorio", exact: true })).toBeDisabled();

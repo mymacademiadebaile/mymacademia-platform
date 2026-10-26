@@ -1,5 +1,9 @@
 .surface { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-block: 20px; }
 .surface h2 { margin: 0 0 16px; font-size: 20px; letter-spacing: -.02em; }
+.sectionTop { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sectionTop h2 { margin: 0; }
+.surface summary { cursor: pointer; font-weight: 650; color: var(--primary); }
+.surface summary:focus-visible { outline: 3px solid #7c3aed; outline-offset: 3px; }
 .surface p { color: #62556f; line-height: 1.6; }
 .toolbar,.actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .toolbar { justify-content: space-between; margin-block: 24px; }

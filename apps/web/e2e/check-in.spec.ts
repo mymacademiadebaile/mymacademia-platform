@@ -6,7 +6,7 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
   const admin = await playwright.request.newContext({ baseURL: `${API}` });
   expect((await (await admin.get("/__test/isolated")).json()).isolated).toBe(true);
   await admin.post("/api/auth/login", { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
-  const contact = (await (await admin.get("/api/admin/contacts?q=Lucía")).json()).items[0];
+  const contact = (await (await admin.get("/api/admin/students?q=Lucía")).json()).items[0];
   const { qr } = await (await admin.post(`/api/admin/check-in/contacts/${contact._id}/credential/rotate`)).json();
   const qrImage = await toDataURL(qr, { width: 600, margin: 4 });
   await page.addInitScript(({ qrImage }) => {
