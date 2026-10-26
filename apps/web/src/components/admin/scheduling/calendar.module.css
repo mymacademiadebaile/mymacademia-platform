@@ -535,13 +535,20 @@
 .searchResults button {
   border: 1px solid #ede6f1;
   border-radius: 9px;
-  padding: 7px 9px;
+  min-height: 46px;
+  padding: 9px 12px;
   background: white;
   text-align: left;
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
 }
-.searchResults button[aria-pressed="true"] { border-color: #6d28d9; background: #f6f1fb; }
+.searchResults button:hover { border-color: #6d28d9; background: #f6f1fb; }
+.searchResults button:focus-visible { outline: 3px solid #6d28d9; outline-offset: 2px; }
+.searchResults small { display: block; margin-top: 3px; color: #685e70; font-size: 12px; overflow-wrap: anywhere; }
+.searchResults p { margin: 4px 0; color: #685e70; font-size: 13px; }
+.selectedStudent { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid #6d28d9; border-radius: 10px; background: #f6f1fb; color: #3d245d; font-size: 13px; }
+.selectedStudent span { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.selectedStudent button { min-height: 36px; padding: 5px 10px; color: #5b21b6; font-weight: 700; }
 
 @media (max-width: 760px) {
   .monthCell { min-height: 70px; }

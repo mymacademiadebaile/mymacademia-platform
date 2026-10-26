@@ -48,6 +48,7 @@ type Modal =
   | null;
 
 type ProfessorOption = { _id: string; displayName: string };
+type StudentOption = { _id: string; firstName: string; lastName: string; email?: string; phone?: string; dni?: string };
 
 function coverageBadge(status: SessionParticipant["payment"]["status"]) {
   if (status === "PAID" || status === "FREE") return styles.badgeOk;
@@ -75,8 +76,9 @@ export function SessionDrawer({
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<Modal>(null);
   const [studentQuery, setStudentQuery] = useState("");
-  const [studentResults, setStudentResults] = useState<Array<{ _id: string; firstName: string; lastName: string }>>([]);
-  const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [studentLookup, setStudentLookup] = useState<{ query: string; items: StudentOption[]; error?: string } | null>(null);
+  const [searchRevision, setSearchRevision] = useState(0);
+  const [selectedStudent, setSelectedStudent] = useState<StudentOption | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,22 +105,27 @@ export function SessionDrawer({
   }, [modal, onClose]);
 
   useEffect(() => {
-    if (modal?.kind !== "participant" || studentQuery.trim().length < 2) {
-      setStudentResults([]);
-      return;
-    }
-    const handle = window.setTimeout(async () => {
-      try {
-        const result = await apiFetch<{ items: Array<{ _id: string; firstName: string; lastName: string }> }>(
-          "/admin/students?isActive=true&limit=10&q=" + encodeURIComponent(studentQuery.trim())
-        );
-        setStudentResults(result.items);
-      } catch {
-        setStudentResults([]);
-      }
+    const query = studentQuery.trim();
+    if (modal?.kind !== "participant" || query.length < 2) return;
+    const controller = new AbortController();
+    const handle = window.setTimeout(() => {
+      void apiFetch<{ items: StudentOption[] }>(
+        "/admin/students?isActive=true&limit=20&q=" + encodeURIComponent(query), { signal: controller.signal }
+      ).then((result) => {
+        if (!controller.signal.aborted) setStudentLookup({ query, items: result.items });
+      }).catch(() => {
+        if (!controller.signal.aborted) setStudentLookup({ query, items: [], error: "No pudimos buscar alumnos. Intentá nuevamente." });
+      });
     }, 250);
-    return () => window.clearTimeout(handle);
-  }, [modal, studentQuery]);
+    return () => { controller.abort(); window.clearTimeout(handle); };
+  }, [modal?.kind, studentQuery, searchRevision]);
+
+  function openParticipant() {
+    setStudentQuery("");
+    setStudentLookup(null);
+    setSelectedStudent(null);
+    setModal({ kind: "participant" });
+  }
 
   async function run(action: () => Promise<unknown>, success: string) {
     setBusy(true);
@@ -227,7 +234,7 @@ export function SessionDrawer({
       () =>
         apiFetch("/admin/sessions/" + sessionId + "/participants", {
           method: "POST",
-          body: JSON.stringify({ studentId: selectedStudent, participantType: form.get("participantType"), note: form.get("note") || undefined })
+          body: JSON.stringify({ studentId: selectedStudent._id, participantType: form.get("participantType"), note: form.get("note") || undefined })
         }),
       "Alumno agregado a esta clase"
     );
@@ -411,7 +418,7 @@ export function SessionDrawer({
                 <div className={styles.actionRow} style={{ justifyContent: "space-between", alignItems: "center" }}>
                   <h3>Alumnos</h3>
                   {active && (
-                    <button className={styles.actionButton} disabled={busy} onClick={() => setModal({ kind: "participant" })}>
+                    <button className={styles.actionButton} disabled={busy} onClick={openParticipant}>
                       <UserPlus size={14} /> Agregar
                     </button>
                   )}
@@ -598,23 +605,31 @@ export function SessionDrawer({
         title="Agregar alumno a esta clase"
         description="Solo para esta fecha. Se respeta el cupo."
         submitting={busy}
+        submitDisabled={!selectedStudent}
         submitLabel="Agregar"
         onClose={() => {
           setModal(null);
-          setSelectedStudent("");
+          setSelectedStudent(null);
           setStudentQuery("");
+          setStudentLookup(null);
         }}
         onSubmit={submitParticipant}
       >
         <Field label="Buscar alumno" wide>
-          <input value={studentQuery} onChange={(event) => setStudentQuery(event.target.value)} placeholder="Nombre, email o teléfono" />
+          <input value={studentQuery} onChange={(event) => { setStudentQuery(event.target.value); setSelectedStudent(null); setStudentLookup(null); }} placeholder="Nombre, email, teléfono o DNI" autoComplete="off" />
         </Field>
-        <div className={`${liveStyles.fieldWide} ${styles.searchResults}`}>
-          {studentResults.map((item) => (
-            <button type="button" key={item._id} aria-pressed={selectedStudent === item._id} onClick={() => setSelectedStudent(item._id)}>
-              {item.firstName} {item.lastName}
-            </button>
-          ))}
+        <div className={`${liveStyles.fieldWide} ${styles.searchResults}`} aria-live="polite">
+          {selectedStudent ? <div className={styles.selectedStudent}>
+            <span><CheckCircle2 size={18} aria-hidden="true" /><strong>{selectedStudent.firstName} {selectedStudent.lastName}</strong> seleccionado</span>
+            <button type="button" onClick={() => setSelectedStudent(null)}>Cambiar</button>
+          </div> : studentQuery.trim().length < 2 ? <p>Escribí al menos 2 caracteres para buscar.</p>
+            : studentLookup?.query !== studentQuery.trim() ? <p role="status">Buscando alumnos…</p>
+              : studentLookup.error ? <p role="alert">{studentLookup.error} <button type="button" onClick={() => { setStudentLookup(null); setSearchRevision((value) => value + 1); }}>Reintentar</button></p>
+                : studentLookup.items.length === 0 ? <p>No encontramos alumnos activos con esos datos.</p>
+                  : studentLookup.items.map((item) => <button type="button" key={item._id} onClick={() => setSelectedStudent(item)}>
+                    <strong>{item.firstName} {item.lastName}</strong>
+                    <small>{[item.email, item.phone, item.dni && `DNI ${item.dni}`].filter(Boolean).join(" · ")}</small>
+                  </button>)}
         </div>
         <Field label="Tipo">
           <select name="participantType" defaultValue="AUTHORIZED">

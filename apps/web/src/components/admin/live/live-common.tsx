@@ -40,6 +40,7 @@ export function LiveModal({
   description,
   children,
   submitting,
+  submitDisabled,
   onClose,
   onSubmit,
   eyebrow = "GESTIÓN",
@@ -51,6 +52,7 @@ export function LiveModal({
   description: string;
   children: React.ReactNode;
   submitting?: boolean;
+  submitDisabled?: boolean;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   eyebrow?: string;
@@ -97,7 +99,7 @@ export function LiveModal({
           <button type="button" className={styles.secondary} onClick={onClose}>
             Cancelar
           </button>
-          <button className={styles.primary} disabled={submitting}>
+          <button className={styles.primary} disabled={submitting || submitDisabled}>
             {submitting ? <LoaderCircle className={styles.spin} size={17} /> : <Check size={17} />}
             {submitting ? "Guardando..." : submitLabel}
           </button>
