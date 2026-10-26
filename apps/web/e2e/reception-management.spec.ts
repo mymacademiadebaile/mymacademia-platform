@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { copyFile, readFile } from "node:fs/promises";
 const API = process.env.E2E_API_URL ?? "http://localhost:4000";
 
 test("admin generates a printable QR, opens the kiosk with their login and previews reminders with automatic delivery off", async ({ page }) => {
@@ -14,12 +15,21 @@ test("admin generates a printable QR, opens the kiosk with their login and previ
   await page.getByLabel("Email", { exact: true }).fill("lucia@example.test");
   await page.getByRole("button", { name: "Guardar preferencias" }).click();
   await expect(page.getByRole("status")).toContainText("Preferencias actualizadas");
-  const generate = page.getByRole("button", { name: /^(Generar|Renovar) QR$/ });
+  const generate = page.getByRole("button", { name: /^(Generar|Renovar) credencial$/ });
   await expect(generate).toBeEnabled();
   const renewing = await generate.textContent(); await generate.click();
   if (renewing?.includes("Renovar")) await page.getByRole("button", { name: "Renovar", exact: true }).click();
-  await expect(page.getByRole("img", { name: "QR personal de Lucía Pérez" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Descargar QR" })).toHaveAttribute("href", /^data:image\/png/);
+  await expect(page.getByRole("img", { name: "Credencial de alumno de Lucía Pérez con QR de asistencia" })).toBeVisible();
+  await expect(page.getByText("ALUMNO", { exact: true })).toBeVisible();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Descargar credencial" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("mym-credencial-alumno.png");
+  const png = await readFile(await download.path());
+  expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+  expect(png.readUInt32BE(16)).toBe(1280);
+  expect(png.readUInt32BE(20)).toBe(1800);
+  await copyFile(await download.path(), "../../artifacts/credential-download.png");
   await page.goto("/admin/reception");
   await page.getByRole("link", { name: "Registrar asistencia", exact: true }).click();
   await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();

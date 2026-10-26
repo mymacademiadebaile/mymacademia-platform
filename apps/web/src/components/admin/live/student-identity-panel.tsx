@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import type { ContactDetailResponse } from "@mym/shared";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { QrCard } from "../contacts/qr-card";
+import type { CredentialPerson } from "../contacts/credential-artwork";
 import { contactClassHistory } from "../contacts/contact-history";
 import contactStyles from "../contacts/contacts.module.css";
 import styles from "./student-detail-live.module.css";
 
 const opportunityStatus = { OPEN: "Abierto", FOLLOW_UP: "En seguimiento", TRIAL_BOOKED: "Prueba reservada", CONVERTED: "Convertido en alumno", LOST: "Cerrado" };
 
-export function StudentIdentityPanel({ id, name, refreshKey, onEditStudent }: { id: string; name: string; refreshKey: string; onEditStudent: () => void }) {
+export function StudentIdentityPanel({ id, person, refreshKey, onEditStudent }: { id: string; person: CredentialPerson; refreshKey: string; onEditStudent: () => void }) {
   const [data, setData] = useState<ContactDetailResponse | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -45,7 +46,7 @@ export function StudentIdentityPanel({ id, name, refreshKey, onEditStudent }: { 
   const history = data ? contactClassHistory(data) : [];
   return <div className={styles.identityGrid}>
     <div className={styles.identityMain}>
-      <QrCard id={id} name={name} />
+      <QrCard id={id} person={person} academic />
       <section className={contactStyles.surface}>
         <h2>Historial de clases</h2>
         {!data ? <p role={error ? undefined : "status"}>{error ? "No pudimos cargar el historial." : "Cargando historial…"}</p> : !history.length ? <p>Todavía no tiene clases registradas.</p> :

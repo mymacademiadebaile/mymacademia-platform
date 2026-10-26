@@ -33,6 +33,7 @@ Los profesores usan el portal antes, durante y entre clases desde teléfono, tab
 - El producto es responsive y debe resultar natural con mouse, teclado y controles táctiles. Las acciones táctiles deben tener áreas amplias y los estados deben expresarse con lenguaje natural.
 - La administración conserva una navegación lateral y flujos operativos de mayor densidad. El portal de profesor debe evitar parecer un CRM o backoffice.
 - La ficha administrativa del alumno reúne resumen, QR e historial de clases, contacto y preferencias, y recordatorios de deuda en secciones visibles de la misma pantalla. Las acciones frecuentes no deben depender de enlaces de texto difíciles de descubrir.
+- El QR de asistencia se entrega como credencial de M&M con nombre, DNI, teléfono y condición visible de **Aspirante** o **Alumno**. Al convertir un contacto, la ficha muestra Alumno; el QR ya entregado conserva su validez y una tarjeta impresa nueva requiere renovación explícita.
 
 ## Brand Commitments
 

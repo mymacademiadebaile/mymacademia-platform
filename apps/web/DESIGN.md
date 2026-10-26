@@ -173,7 +173,7 @@ La navegación administrativa mantiene iconos, etiquetas en español y selecció
 
 ### QR y resultado de asistencia
 
-El QR personal se presenta con el nombre y la academia, con acciones para descargar o imprimir. La vista de impresión aísla el QR y su identificación sobre blanco. Renovar o revocar una credencial activa requiere la confirmación existente.
+La credencial personal se presenta como tarjeta vertical de M&M: cabecera violeta, condición destacada **Aspirante/Alumno**, nombre, DNI, teléfono y QR central sobre blanco. La misma composición se descarga en PNG y se aísla al imprimir; el QR mantiene tamaño y margen para lectura. Si el QR anterior ya fue entregado, la ficha muestra los datos y la condición actuales, pero no puede reconstruir el secreto original: para emitir otra tarjeta se renueva con confirmación y se entrega el nuevo QR. La conversión conserva la identidad y el QR anterior hasta esa renovación.
 
 El kiosco presenta primero cámara y ayuda; cuando hay varias sesiones, pide elegir una sola. El resultado muestra un icono, título, mensaje y sesión. Sólo utiliza el nombre de pila y un aviso financiero general, sin importes ni detalle de deuda. El foco pasa al título del resultado y los estados se anuncian con `status` o `alert`.
 

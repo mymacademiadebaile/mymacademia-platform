@@ -365,7 +365,7 @@ export function StudentDetailLive({ id }: { id: string }) {
           }
         />
       </div>}
-      {identityOpened && <div hidden={section !== "identity"}><StudentIdentityPanel id={id} name={`${student.firstName} ${student.lastName}`} refreshKey={`${student.firstName}:${student.lastName}:${student.email}:${student.phone}:${student.dni}`} onEditStudent={() => setEditing(true)} /></div>}
+      {identityOpened && <div hidden={section !== "identity"}><StudentIdentityPanel id={id} person={student} refreshKey={`${student.firstName}:${student.lastName}:${student.email}:${student.phone}:${student.dni}`} onEditStudent={() => setEditing(true)} /></div>}
       {section === "reminders" && <DebtRemindersLive key={id} initialStudentId={id} embedded onShowContact={() => { setIdentityOpened(true); setContactRequested(true); setSection("identity"); }} />}
 
       <StudentEditModal

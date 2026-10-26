@@ -33,12 +33,13 @@
 .check { display: flex !important; align-items: center; gap: 10px; min-height: 44px; }
 .check input { width: 20px; min-height: 20px; }
 .empty { padding-block: 28px; color: #62556f; }
-.printArea { display: grid; justify-items: center; text-align: center; gap: 12px; margin-block: 24px; }
-.printArea img { max-width: 100%; height: auto; }
+.printArea { display: grid; justify-items: center; margin-block: 24px; }
+.printArea svg { display: block; width: min(100%, 380px); height: auto; border-radius: 16px; box-shadow: 0 12px 34px #21152924; }
 @media print {
   :global(body):has(.printArea) :global(*) { visibility: hidden; }
   .printArea,.printArea :global(*) { visibility: visible !important; }
-  .printArea { position: absolute; inset: 0 auto auto 0; width: 100%; padding: 40px; color: black; background: white; }
+  .printArea { position: absolute; inset: 0 auto auto 0; width: 100%; margin: 0; padding: 0; background: white; }
+  .printArea svg { width: 100mm; max-width: 100%; border-radius: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 @media (max-width: 900px) { .detail { grid-template-columns: 1fr; gap: 0; } }
 @media (max-width: 550px) { .surface { padding: 18px; } .form { grid-template-columns: 1fr; } .row { align-items: flex-start; } .actions > * { flex: 1; } }

@@ -20,6 +20,8 @@ Cada reserva nueva apunta a una **sesión concreta**, no a todos los horarios de
 
 `COURTESY` requiere administrador, motivo y auditoría; no modifica TrialBenefit. Una cortesía a un inscripto puede sustituir su participación esperada; si ya existe cargo de esa sesión se exige revisión financiera antes. Clases FREE usan su regla existente. Ninguna gratuidad crea un cargo por asistencia.
 
+La tarjeta de asistencia muestra el estado académico actual (Aspirante o Alumno) junto con nombre, DNI, teléfono y QR. La conversión no cambia el secreto ni el hash de una credencial activa: el QR físico anterior sigue funcionando. El servidor conserva sólo el hash, por lo que no puede volver a mostrar el QR original al reabrir la ficha; emitir una tarjeta física actualizada requiere renovación explícita y entrega del nuevo QR.
+
 El endpoint anterior de completar prueba registra PRESENT mediante el servicio común. La conversión es transaccional e idempotente; no reinicia beneficios, no cambia el QR y no registra pagos. Las mensualidades siguen el flujo existente de decisión de primer mes/generación de cargos, sin inventar una condición comercial.
 
 ## API de identidad

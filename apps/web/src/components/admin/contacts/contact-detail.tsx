@@ -113,7 +113,7 @@ export function ContactDetail({ id }: { id: string }) {
           </span>}
         </li>)}</ul>}
       </section>
-      <details className={styles.surface}><summary>Más opciones</summary><QrCard id={id} name={`${data.contact.firstName} ${data.contact.lastName}`} />
+      <details className={styles.surface}><summary>Más opciones</summary><QrCard id={id} person={data.contact} academic={Boolean(data.student)} />
         <section className={styles.surface}><h2>Contacto y preferencias</h2><form className={styles.form} onSubmit={saveCommunication}>
           <label className={styles.wide}>Email<input name="email" type="email" defaultValue={data.contact.email} autoComplete="email" /></label>
           <label className={styles.wide}>Notas<textarea name="notes" defaultValue={data.contact.notes} maxLength={1000} /></label>
