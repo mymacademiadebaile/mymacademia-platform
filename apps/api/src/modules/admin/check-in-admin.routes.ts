@@ -3,15 +3,13 @@ import { z } from "zod";
 import { academyNow } from "../../common/dates";
 import { AppError } from "../../common/http/app-error";
 import { AuditLogModel } from "../audit/audit-log.model";
-import { studentBalances } from "../billing/balance-service";
 import { BranchModel } from "../core/branch.model";
 import { ContactModel } from "../contacts/contact.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
-import { NotificationLogModel } from "../notifications/notification-log.model";
 import { CheckInCredentialModel, CheckInDeviceModel } from "../check-in/check-in.models";
 import { deviceView, opaqueToken, rotateCredential, tokenHash } from "../check-in/credentials-service";
-import { objectIdSchema } from "./admin.schemas";
+import { calendarDateSchema, objectIdSchema } from "./admin.schemas";
 
 const settings = z.object({ name: z.string().trim().min(2).max(80), beforeMinutes: z.number().int().min(0).max(180).default(45),
   afterMinutes: z.number().int().min(0).max(180).default(20), soundEnabled: z.boolean().default(true), volume: z.number().min(0).max(1).default(0.5) });
@@ -66,16 +64,15 @@ for (const operation of ["rotate", "revoke"] as const) adminCheckInRouter.post(`
 
 adminCheckInRouter.get("/reception", async (request, response, next) => {
   try {
-    const organizationId = request.auth!.organizationId, today = academyNow().date;
-    const sessions = await ClassSessionModel.find({ organizationId, sessionDate: today }).populate("classId", "name").lean();
+    const organizationId = request.auth!.organizationId;
+    const { date } = z.object({ date: calendarDateSchema.optional() }).parse(request.query);
+    const selectedDate = date ?? academyNow().date;
+    const sessions = await ClassSessionModel.find({ organizationId, sessionDate: selectedDate }).populate("classId", "name").lean();
     const rows = await ClassAttendanceModel.find({ organizationId, sessionId: { $in: sessions.map((item) => item._id) }, status: "PRESENT" }).sort({ recordedAt: -1 }).lean();
     const contacts = await ContactModel.find({ organizationId, _id: { $in: rows.map((item) => item.studentId) } }).select("firstName lastName").lean();
-    const balances = await studentBalances(organizationId, rows.map((item) => item.studentId));
-    const reminders = await NotificationLogModel.find({ organizationId, studentId: { $in: rows.map((item) => item.studentId) }, type: "DEBT_REMINDER", status: "SENT" }).select("studentId sentAt").sort({ sentAt: -1 }).lean();
     const names = new Map(contacts.map((item) => [String(item._id), `${item.firstName} ${item.lastName}`]));
     const sessionById = new Map(sessions.map((item) => [String(item._id), item]));
-    response.json({ date: today, arrivals: rows.map((row) => ({ ...row, personName: names.get(String(row.studentId)) ?? "Alumno histórico",
-      session: sessionById.get(String(row.sessionId)), balance: balances.get(String(row.studentId)),
-      lastReminderAt: reminders.find((item) => String(item.studentId) === String(row.studentId))?.sentAt })) });
+    response.json({ date: selectedDate, arrivals: rows.map((row) => ({ ...row, personName: names.get(String(row.studentId)) ?? "Alumno histórico",
+      session: sessionById.get(String(row.sessionId)) })) });
   } catch (error) { next(error); }
 });

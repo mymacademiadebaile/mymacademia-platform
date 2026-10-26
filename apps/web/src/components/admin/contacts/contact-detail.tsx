@@ -67,6 +67,15 @@ export function ContactDetail({ id }: { id: string }) {
       router.push(`/admin/students/${id}`);
     } catch (cause) { setError(apiMessage(cause)); setBusy(false); }
   }
+  async function remove() {
+    if (!data || !window.confirm(`¿Eliminar definitivamente a ${data.contact.firstName} ${data.contact.lastName}? También se eliminarán sus reservas y seguimientos. Esta acción no se puede deshacer.`)) return;
+    setBusy(true); setError(""); setMessage("");
+    try {
+      await apiFetch(`/admin/contacts/${id}`, { method: "DELETE" });
+      router.replace("/admin/contacts");
+      router.refresh();
+    } catch (cause) { setError(apiMessage(cause)); setBusy(false); }
+  }
   const history = data ? contactClassHistory(data) : [];
   return <>
     <Link className={styles.secondary} href="/admin/contacts">Volver a contactos</Link>
@@ -89,6 +98,7 @@ export function ContactDetail({ id }: { id: string }) {
       {!data.student && <div className={styles.actions}>
         <button className={styles.button} onClick={() => { setConversion(!conversion); setBooking(false); }}>Convertir en alumno</button>
         <button className={styles.secondary} onClick={() => { setBooking(!booking); setConversion(false); }}>Reservar clase sin cargo</button>
+        <button className={styles.danger} disabled={busy} onClick={() => void remove()}>Eliminar posible alumno</button>
       </div>}
       {conversion && !data.student && <section className={styles.surface}><h2>Convertir en alumno</h2><p>Elegí la clase para su primera inscripción. El historial y el DNI se conservan.</p>
         <form className={styles.form} onSubmit={enroll}>

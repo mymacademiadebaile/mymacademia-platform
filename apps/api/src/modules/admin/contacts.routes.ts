@@ -16,6 +16,7 @@ import { StudentModel } from "../students/student.model";
 import { TrialBookingModel } from "../trials/trial-booking.model";
 import { TrialBenefitModel } from "../trials/trial-benefit.model";
 import { ClassAttendanceModel } from "../sessions/class-attendance.model";
+import { CheckInCredentialModel } from "../check-in/check-in.models";
 import { ensureLocks, touchLocks } from "../scheduling/resource-lock.model";
 import { calendarDateSchema, objectIdSchema } from "./admin.schemas";
 import { dniSchema, optionalDniSchema } from "../../common/dni";
@@ -107,6 +108,52 @@ adminContactsRouter.get("/:id", async (request, response, next) => {
         .sort({ recordedAt: -1 })
     ]);
     response.json({ contact, student, opportunities, trials, benefits, enrollments, attendance });
+  } catch (error) { next(error); }
+});
+
+adminContactsRouter.delete("/:id", async (request, response, next) => {
+  try {
+    const id = objectIdSchema.parse(request.params.id);
+    const organizationId = request.auth!.organizationId;
+    const keys = [`contact:${id}`];
+    await ensureLocks(organizationId, keys);
+
+    await withRequiredTransaction(async (dbSession) => {
+      await touchLocks(organizationId, keys, dbSession);
+      const contact = await resolveContact(organizationId, id, dbSession);
+      if (await StudentModel.exists({ _id: id, organizationId }).session(dbSession)) {
+        throw new AppError(422, "Este contacto ya es alumno. Administralo desde la ficha académica.", "USE_STUDENT_MANAGEMENT");
+      }
+
+      const identityFilter = { organizationId, $or: [{ contactId: contact._id }, { studentId: contact._id }] };
+      const [opportunities, benefits, trials, attendance, credentials] = await Promise.all([
+        OpportunityModel.deleteMany({ organizationId, contactId: contact._id }, { session: dbSession }),
+        TrialBenefitModel.deleteMany({ organizationId, contactId: contact._id }, { session: dbSession }),
+        TrialBookingModel.deleteMany(identityFilter, { session: dbSession }),
+        ClassAttendanceModel.deleteMany(identityFilter, { session: dbSession }),
+        CheckInCredentialModel.deleteMany({ organizationId, contactId: contact._id }, { session: dbSession })
+      ]);
+      await contact.deleteOne({ session: dbSession });
+      await AuditLogModel.create([{
+        organizationId,
+        actorUserId: request.auth!.userId,
+        action: "CONTACT_DELETED",
+        entityType: "Contact",
+        entityId: contact._id,
+        metadata: {
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          deletedRecords: {
+            opportunities: opportunities.deletedCount,
+            benefits: benefits.deletedCount,
+            trials: trials.deletedCount,
+            attendance: attendance.deletedCount,
+            credentials: credentials.deletedCount
+          }
+        }
+      }], { session: dbSession });
+    });
+    response.status(204).send();
   } catch (error) { next(error); }
 });
 

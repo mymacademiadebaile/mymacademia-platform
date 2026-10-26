@@ -16,10 +16,12 @@
 .button,.secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 10px; padding: 10px 17px; border: 1px solid var(--primary); cursor: pointer; font-weight: 650; }
 .button { background: var(--primary); color: white; }
 .secondary { background: white; color: var(--primary); }
-.button:disabled,.secondary:disabled { opacity: .6; cursor: wait; }
+.danger { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; border-radius: 10px; padding: 10px 17px; border: 1px solid #b4233c; background: white; color: #9b2039; cursor: pointer; font-weight: 650; }
+.button:disabled,.secondary:disabled,.danger:disabled { opacity: .6; cursor: wait; }
 .button:hover { background: var(--primary-strong); }
 .secondary:hover { background: #f5f0fb; }
-.form input:focus-visible,.form select:focus-visible,.form textarea:focus-visible,.search:focus-visible,.button:focus-visible,.secondary:focus-visible,.row:focus-visible { outline: 3px solid #7c3aed; outline-offset: 3px; }
+.danger:hover { background: #fff0f3; }
+.form input:focus-visible,.form select:focus-visible,.form textarea:focus-visible,.search:focus-visible,.button:focus-visible,.secondary:focus-visible,.danger:focus-visible,.row:focus-visible { outline: 3px solid #7c3aed; outline-offset: 3px; }
 .list { list-style: none; margin: 0; padding: 0; }
 .list > li + li { border-top: 1px solid var(--border); }
 .row { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding-block: 18px; min-height: 70px; }
@@ -36,10 +38,11 @@
 .printArea { display: grid; justify-items: center; margin-block: 24px; }
 .printArea svg { display: block; width: min(100%, 380px); height: auto; border-radius: 16px; box-shadow: 0 12px 34px #21152924; }
 @media print {
+  @page { size: 85.6mm 53.98mm; margin: 0; }
   :global(body):has(.printArea) :global(*) { visibility: hidden; }
   .printArea,.printArea :global(*) { visibility: visible !important; }
-  .printArea { position: absolute; inset: 0 auto auto 0; width: 100%; margin: 0; padding: 0; background: white; }
-  .printArea svg { width: 100mm; max-width: 100%; border-radius: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .printArea { position: absolute; inset: 0 auto auto 0; width: 85.6mm; margin: 0; padding: 0; background: white; }
+  .printArea svg { width: 85.6mm; height: 53.98mm; max-width: none; border-radius: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 @media (max-width: 900px) { .detail { grid-template-columns: 1fr; gap: 0; } }
 @media (max-width: 550px) { .surface { padding: 18px; } .form { grid-template-columns: 1fr; } .row { align-items: flex-start; } .actions > * { flex: 1; } }

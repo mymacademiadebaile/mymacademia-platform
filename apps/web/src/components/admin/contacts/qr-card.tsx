@@ -39,7 +39,7 @@ export function QrCard({ id, person, academic }: { id: string; person: Credentia
       raster.src = svgUrl;
       await raster.decode();
       const canvas = document.createElement("canvas");
-      canvas.width = 1280; canvas.height = 1800;
+      canvas.width = 1712; canvas.height = 1080;
       const context = canvas.getContext("2d");
       if (!context) throw new Error("No se pudo crear la imagen de la credencial");
       context.drawImage(raster, 0, 0, canvas.width, canvas.height);
