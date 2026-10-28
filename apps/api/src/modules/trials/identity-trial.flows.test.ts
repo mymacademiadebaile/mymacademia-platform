@@ -165,11 +165,14 @@ describe("identity and trial invariants", () => {
   });
 
   it("converts a contact directly without requiring a free trial or duplicating a profile", async () => {
-    const contact = await person(), { danceClass, session } = await group();
-    await DanceClassModel.updateOne({ _id: danceClass._id }, { $set: { freeTrialEnabled: false } });
-    const results = await Promise.all([1, 2].map(() => convertContact(actor(), String(contact._id), { classId: String(danceClass._id) })));
-    expect(String(results[0].enrollment._id)).toBe(String(results[1].enrollment._id));
+    const contact = await person(), { session } = await group();
+    const birthDate = new Date("2000-05-14T12:00:00.000Z");
+    const results = await Promise.all([1, 2].map(() => convertContact(actor(), String(contact._id), { email: "nueva@example.test", birthDate })));
+    expect(String(results[0].student._id)).toBe(String(results[1].student._id));
     expect(await StudentModel.countDocuments({ _id: contact._id })).toBe(1);
+    expect(await EnrollmentModel.countDocuments({ studentId: contact._id })).toBe(0);
+    expect(await StudentModel.findById(contact._id)).toMatchObject({ email: "nueva@example.test", birthDate });
+    expect(await ContactModel.findById(contact._id)).toMatchObject({ email: "nueva@example.test" });
     expect(await TrialBookingModel.countDocuments({ studentId: contact._id })).toBe(0);
     await bookTrial(actor(), { contactId: String(contact._id), sessionId: String(session._id), kind: "COURTESY", notes: "Cortesía por invitación" });
     await mark(session, contact._id);
@@ -184,7 +187,7 @@ describe("identity and trial invariants", () => {
 
     const trial = await bookTrial(actor(), { contactId: String(contact._id), sessionId: String(free.session._id) });
     await mark(free.session, contact._id);
-    await convertContact(actor(), String(contact._id), { classId: String(regular.danceClass._id) });
+    await convertContact(actor(), String(contact._id));
     await ClassAttendanceModel.create({ organizationId: org, sessionId: regular.session._id, studentId: contact._id,
       contactId: contact._id, participantType: "ENROLLMENT", status: "PRESENT", recordedAt: new Date() });
 
@@ -204,7 +207,7 @@ describe("identity and trial invariants", () => {
 
   it("keeps a former student's contact available for another interest and reactivates the academic profile", async () => {
     const contact = await person(), first = await group(), next = await group();
-    await convertContact(actor(), String(contact._id), { classId: String(first.danceClass._id) });
+    await convertContact(actor(), String(contact._id));
     const response = await auth(request(app).patch(`/api/admin/students/${contact._id}`)).send({ isActive: false });
     expect(response.status).toBe(200);
     expect((await ContactModel.findById(contact._id))?.isActive).toBe(true);

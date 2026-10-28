@@ -25,6 +25,7 @@ checkInRouter.use((request, _response, next) => {
   next();
 });
 const cookieOptions = { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "strict" as const, path: "/api/check-in" };
+const persistentDeviceCookie = { ...cookieOptions, maxAge: 10 * 365 * 24 * 60 * 60 * 1000 };
 
 // An admin login is sufficient to open attendance registration; no device code is required.
 checkInRouter.post("/authorize", requireAuth, requireRole("ADMIN", "SUPER_ADMIN"), async (request, response, next) => {
@@ -40,18 +41,19 @@ checkInRouter.post("/authorize", requireAuth, requireRole("ADMIN", "SUPER_ADMIN"
     const branch = branches.find((item) => String(item._id) === (branchId ?? String(branches[0]._id)));
     if (!branch) throw new AppError(422, "Sede no disponible", "INVALID_BRANCH");
     const previous = request.cookies?.[DEVICE_COOKIE] as string | undefined;
-    const raw = opaqueToken(), expires = new Date(Date.now() + 8 * 60 * 60000);
+    const raw = opaqueToken();
     const device = await withRequiredTransaction(async (session) => {
       const existing = previous && /^[A-Za-z0-9_-]{43}$/.test(previous)
         ? await CheckInDeviceModel.findOne({ organizationId, branchId: branch._id, sessionHash: tokenHash(previous), revokedAt: { $exists: false } }).session(session)
         : null;
       const device = existing ?? new CheckInDeviceModel({ organizationId, branchId: branch._id, name: `Asistencia ${branch.name}`.slice(0, 80) });
-      device.set({ authorizedByUserId: userId, sessionHash: tokenHash(raw), sessionExpiresAt: expires, activatedAt: new Date() });
+      device.set({ authorizedByUserId: userId, sessionHash: tokenHash(raw), activatedAt: new Date() });
+      device.set("sessionExpiresAt", undefined);
       await device.save({ session });
       await AuditLogModel.create([{ organizationId, actorUserId: userId, action: "CHECK_IN_AUTHORIZED_BY_ADMIN_LOGIN", entityType: "CheckInDevice", entityId: device._id }], { session });
       return device;
     });
-    response.cookie(DEVICE_COOKIE, raw, { ...cookieOptions, expires });
+    response.cookie(DEVICE_COOKIE, raw, persistentDeviceCookie);
     response.json(deviceView(device));
   } catch (error) { next(error); }
 });
@@ -60,17 +62,17 @@ export const activationRateLimiter = rateLimit({ windowMs: 15 * 60000, limit: 10
   message: { message: "Esperá unos minutos antes de intentar activar nuevamente", error: "ACTIVATION_RATE_LIMIT" } });
 checkInRouter.post("/activate", activationRateLimiter, async (request, response, next) => {
   try {
-    const { code } = z.object({ code: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }).parse(request.body);
-    const raw = opaqueToken(), expires = new Date(Date.now() + 8 * 60 * 60000);
+    const { code } = z.object({ code: z.string().regex(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{10}$/) }).parse(request.body);
+    const raw = opaqueToken();
     const device = await withRequiredTransaction(async (session) => {
-      const device = await CheckInDeviceModel.findOneAndUpdate({ activationHash: tokenHash(code), activationExpiresAt: { $gt: new Date() }, revokedAt: { $exists: false } },
-        { $set: { sessionHash: tokenHash(raw), sessionExpiresAt: expires, activatedAt: new Date() }, $unset: { activationHash: 1, activationExpiresAt: 1 } }, { new: true, session });
-      if (!device) throw new AppError(401, "El código venció o ya fue utilizado. Solicitá uno nuevo en recepción.", "INVALID_ACTIVATION_CODE");
+      const device = await CheckInDeviceModel.findOneAndUpdate({ activationHash: tokenHash(code), revokedAt: { $exists: false } },
+        { $set: { sessionHash: tokenHash(raw), activatedAt: new Date() }, $unset: { activationHash: 1, activationExpiresAt: 1, sessionExpiresAt: 1 } }, { new: true, session });
+      if (!device) throw new AppError(401, "El código no es válido o ya fue utilizado. Solicitá uno nuevo en recepción.", "INVALID_ACTIVATION_CODE");
       await AuditLogModel.create([{ organizationId: device.organizationId, actorUserId: device.authorizedByUserId,
         action: "CHECK_IN_DEVICE_ACTIVATED", entityType: "CheckInDevice", entityId: device._id }], { session });
       return device;
     });
-    response.cookie(DEVICE_COOKIE, raw, { ...cookieOptions, expires });
+    response.cookie(DEVICE_COOKIE, raw, persistentDeviceCookie);
     for (const name of ["mym_access", "mym_refresh"]) response.clearCookie(name, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "lax", path: "/" });
     response.json(deviceView(device));
   } catch (error) { next(error); }

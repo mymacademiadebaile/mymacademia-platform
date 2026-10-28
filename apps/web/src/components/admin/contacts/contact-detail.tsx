@@ -15,16 +15,13 @@ type SessionOption = { id: string; startTime: string; endTime: string; status: s
 export function ContactDetail({ id }: { id: string }) {
   const router = useRouter();
   const [data, setData] = useState<ContactDetailResponse | null>(null);
-  const [classes, setClasses] = useState<Array<{ _id: string; name: string }>>([]), [sessions, setSessions] = useState<SessionOption[]>([]);
+  const [sessions, setSessions] = useState<SessionOption[]>([]);
   const [date, setDate] = useState(todayInArgentina), [kind, setKind] = useState("TRIAL");
   const [booking, setBooking] = useState(false), [conversion, setConversion] = useState(false), [edit, setEdit] = useState(false);
   const [error, setError] = useState(""), [message, setMessage] = useState(""), [busy, setBusy] = useState(false);
   const load = useCallback(async (signal?: AbortSignal) => {
-    const [detail, catalog] = await Promise.all([
-      apiFetch<ContactDetailResponse>(`/admin/contacts/${id}`, { signal }),
-      apiFetch<Array<{ _id: string; name: string }>>("/admin/classes", { signal })
-    ]);
-    if (!signal?.aborted) { setData(detail); setClasses(catalog); }
+    const detail = await apiFetch<ContactDetailResponse>(`/admin/contacts/${id}`, { signal });
+    if (!signal?.aborted) setData(detail);
   }, [id]);
   useEffect(() => { const controller = new AbortController(); setData(null); void load(controller.signal).catch((cause) => { if (!controller.signal.aborted) setError(apiMessage(cause)); }); return () => controller.abort(); }, [load]);
   useEffect(() => {
@@ -63,7 +60,7 @@ export function ContactDetail({ id }: { id: string }) {
     event.preventDefault(); const form = new FormData(event.currentTarget);
     setBusy(true); setError("");
     try {
-      await apiFetch(`/admin/contacts/${id}/convert`, { method: "POST", body: JSON.stringify({ classId: form.get("classId") }) });
+      await apiFetch(`/admin/contacts/${id}/convert`, { method: "POST", body: JSON.stringify({ email: form.get("email") || undefined, birthDate: form.get("birthDate") || undefined }) });
       router.push(`/admin/students/${id}`);
     } catch (cause) { setError(apiMessage(cause)); setBusy(false); }
   }
@@ -100,9 +97,10 @@ export function ContactDetail({ id }: { id: string }) {
         <button className={styles.secondary} onClick={() => { setBooking(!booking); setConversion(false); }}>Reservar clase sin cargo</button>
         <button className={styles.danger} disabled={busy} onClick={() => void remove()}>Eliminar posible alumno</button>
       </div>}
-      {conversion && !data.student && <section className={styles.surface}><h2>Convertir en alumno</h2><p>Elegí la clase para su primera inscripción. El historial y el DNI se conservan.</p>
+      {conversion && !data.student && <section className={styles.surface}><h2>Convertir en alumno</h2><p>Creá la ficha académica. La inscripción a una clase se realiza después desde la ficha del alumno.</p>
         <form className={styles.form} onSubmit={enroll}>
-          <label className={styles.wide}>Clase<select name="classId" required><option value="">Elegí una clase</option>{classes.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label>
+          <label>Email (opcional)<input name="email" type="email" defaultValue={data.contact.email} autoComplete="email" /></label>
+          <label>Fecha de nacimiento (opcional)<input name="birthDate" type="date" max={todayInArgentina()} /></label>
           <button className={styles.button} disabled={busy}>Confirmar conversión</button>
         </form></section>}
       {booking && !data.student && <section className={styles.surface}><h2>Reservar clase sin cargo</h2>
@@ -131,7 +129,6 @@ export function ContactDetail({ id }: { id: string }) {
           <label className={styles.check}><input name="marketing" type="checkbox" defaultChecked={data.contact.preferences?.marketing ?? false} />Aceptar novedades y promociones</label>
           <div className={styles.wide}><button className={styles.button} disabled={busy}>Guardar preferencias</button></div>
         </form></section>
-        {!!data.opportunities.length && <><h3>Seguimientos anteriores</h3><ul className={styles.list}>{data.opportunities.map((item) => <li key={item._id} className={styles.row}><span><strong>{item.classId?.name}</strong><small>{item.notes || item.status}</small></span></li>)}</ul></>}
       </details>
     </>}
   </>;

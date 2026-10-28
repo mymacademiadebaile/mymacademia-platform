@@ -7,6 +7,11 @@ import { ensureLocks, touchLocks } from "../scheduling/resource-lock.model";
 import { CheckInCredentialModel, type CheckInDevice } from "./check-in.models";
 
 export const opaqueToken = () => randomBytes(32).toString("base64url");
+/** Short, human-readable one-time code for activating an attendance tablet. */
+export const activationCode = () => {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from(randomBytes(10), (byte) => alphabet[byte % alphabet.length]).join("");
+};
 export const tokenHash = (value: string) => createHash("sha256").update(value).digest("hex");
 export const QR_PREFIX = "mym:check-in:";
 export function qrHash(value: string) {

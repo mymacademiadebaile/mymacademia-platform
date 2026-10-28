@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import type { Server } from "node:http";
 import bcrypt from "bcryptjs";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import express from "express";
@@ -6,8 +7,23 @@ import express from "express";
 /** Isolated UI verification only. Always creates its own ephemeral database; SMTP points to localhost. */
 async function main() {
   const database = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  const runId = (process.env.MYM_QA_RUN_ID ?? `qa-${Date.now()}-${process.pid}`).replace(/[^a-zA-Z0-9]/g, "_");
+  const databaseName = `qa_mym_${runId}`;
+  const databaseUri = database.getUri(databaseName);
+  let server: Server | undefined;
+  let stopped = false;
+  const stop = async () => {
+    if (stopped) return;
+    stopped = true;
+    if (server) await new Promise<void>((resolve) => server!.close(() => resolve()));
+    await mongoose.disconnect();
+    await database.stop();
+  };
+  process.on("SIGINT", () => { void stop().then(() => process.exit(0)); });
+  process.on("SIGTERM", () => { void stop().then(() => process.exit(0)); });
+  try {
   const port = Number(process.env.LOCAL_UI_API_PORT ?? 4000);
-  Object.assign(process.env, { NODE_ENV: "test", MONGODB_URI: database.getUri(), APP_ORIGIN: process.env.LOCAL_UI_APP_ORIGIN ?? "http://localhost:3000",
+  Object.assign(process.env, { NODE_ENV: "test", MONGODB_URI: databaseUri, APP_ORIGIN: process.env.LOCAL_UI_APP_ORIGIN ?? "http://localhost:3000",
     JWT_ACCESS_SECRET: "isolated-ui-test-secret-never-used-in-production", SMTP_HOST: "127.0.0.1", SMTP_PORT: "1",
     SMTP_SECURE: "false", SMTP_USER: "local@example.test", SMTP_PASSWORD: "local-only", RATE_LIMIT_MAX: "1000", AUTH_RATE_LIMIT_MAX: "100" });
   const { createApp } = await import("../app");
@@ -19,7 +35,7 @@ async function main() {
   const { ContactModel } = await import("../modules/contacts/contact.model");
   const { StudentModel } = await import("../modules/students/student.model");
   const { EnrollmentModel } = await import("../modules/enrollments/enrollment.model");
-  await mongoose.connect(database.getUri());
+  await mongoose.connect(databaseUri);
   await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
   const org = await OrganizationModel.create({ name: "M&M Academia · Verificación local", slug: "mym-academia" });
   const branch = await BranchModel.create({ organizationId: org._id, name: "Sede Centro" });
@@ -39,9 +55,11 @@ async function main() {
   const local = express();
   local.get("/__test/isolated", (_request, response) => response.json({ isolated: true }));
   local.use(createApp());
-  const server = local.listen(port, "127.0.0.1", () => console.log(`Isolated UI API ready on port ${port}; admin@example.test / LocalDemoOnly-1234; no remote database or SMTP`));
-  const stop = async () => { server.close(); await mongoose.disconnect(); await database.stop(); process.exit(0); };
-  process.on("SIGINT", () => void stop()); process.on("SIGTERM", () => void stop());
+  server = local.listen(port, "127.0.0.1", () => console.log(`Isolated UI API ready on port ${port}; database ${databaseName}; no remote database or SMTP`));
   void admin;
+  } catch (error) {
+    await stop();
+    throw error;
+  }
 }
 void main().catch(() => { console.error("Could not start isolated UI API"); process.exitCode = 1; });

@@ -37,8 +37,9 @@ export const adminContactsRouter = Router();
 adminContactsRouter.post("/:id/convert", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);
-    const input = z.object({ classId: objectIdSchema, billingPreference: z.enum(["MONTHLY", "PER_CLASS"]).optional(),
-      seriesIds: z.array(objectIdSchema).min(1).max(14).optional(), scheduleKeys: z.array(z.string().max(64)).min(1).max(14).optional() }).parse(request.body);
+    const input = z.object({
+      email: z.union([z.email(), z.literal("")]).optional().transform((value) => value?.trim().toLowerCase() || undefined),
+      birthDate: z.coerce.date().optional() }).parse(request.body);
     response.json(await convertContact({ organizationId: request.auth!.organizationId, userId: request.auth!.userId }, id, input));
   } catch (error) { next(error); }
 });

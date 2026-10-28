@@ -41,7 +41,6 @@ test("reception creates an interested person, reserves, records attendance and c
   const issuedBefore = (await (await page.request.get(`${API}/api/admin/check-in/contacts/${id}/credential`)).json()).issuedAt;
   expect(issuedBefore).toBeTruthy();
   await page.getByRole("button", { name: "Convertir en alumno" }).click();
-  await page.getByRole("combobox", { name: "Clase", exact: true }).selectOption({ index: 1 });
   await page.getByRole("button", { name: "Confirmar conversión" }).click();
   await expect(page).toHaveURL(new RegExp(`/admin/students/${id}$`));
   const converted = await (await page.request.get(`${API}/api/admin/contacts/${id}`)).json();

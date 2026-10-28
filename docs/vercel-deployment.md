@@ -19,6 +19,10 @@ usa el modelo actual `services`; no usa el modelo obsoleto
 
 ## Routing
 
+### Trabajo diario programado
+
+`vercel.json` declara `GET /api/internal/jobs/daily` con cron `0 9 * * *`: 09:00 UTC, aproximadamente 06:00 en Argentina. Configurar `CRON_SECRET` (mínimo 16 caracteres) en el entorno del proyecto antes de esperar ejecuciones; Vercel lo entrega como `Authorization: Bearer <secreto>`. Sin el secreto, el endpoint responde 401 y no toca la base. El job genera sesiones futuras y mensualidades del mes con las reglas comerciales existentes, y procesa recordatorios de deuda sólo cuando ambos interruptores están habilitados. Una marca persistida por organización y día impide dos ejecuciones simultáneas y permite reintentar una corrida fallida. Los cargos mantienen una clave única por alumno, clase y período. Revisar los logs `daily-job-completed`/`daily-job-failed` y las decisiones pendientes del primer mes parcial después del despliegue. En el plan Hobby, la hora efectiva de una programación diaria puede variar dentro de la hora indicada; esta configuración no garantiza puntualidad a las 06:00 exactas. La ejecución local y el archivo de configuración no prueban que el job haya corrido en producción.
+
 Las reglas de nivel superior se evalúan en este orden:
 
 | Solicitud pública | Service | Ruta que recibe el service |

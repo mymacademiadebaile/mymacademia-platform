@@ -23,6 +23,12 @@
       "buildCommand": "pnpm exec turbo run build --filter=@mym/api..."
     }
   },
+  "crons": [
+    {
+      "path": "/api/internal/jobs/daily",
+      "schedule": "0 9 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

@@ -1,13 +1,12 @@
 import { expect, test } from "@playwright/test";
-const API = process.env.E2E_API_URL ?? "http://localhost:4000";
 import { toDataURL } from "qrcode";
+import { API, activateTablet, issueTabletCode } from "./tablet";
 
-test("real QR camera decoding confirms persistence, sound, privacy, duplicates and server errors", async ({ page, playwright }) => {
-  const admin = await playwright.request.newContext({ baseURL: `${API}` });
-  expect((await (await admin.get("/__test/isolated")).json()).isolated).toBe(true);
-  await admin.post("/api/auth/login", { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
-  const contact = (await (await admin.get("/api/admin/students?q=Lucía")).json()).items[0];
-  const { qr } = await (await admin.post(`/api/admin/check-in/contacts/${contact._id}/credential/rotate`)).json();
+test("real QR camera decoding confirms persistence, sound, privacy, duplicates and server errors", async ({ page, request: admin }) => {
+  expect((await (await admin.get(`${API}/__test/isolated`)).json()).isolated).toBe(true);
+  expect((await admin.post(`${API}/api/auth/login`, { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } })).ok()).toBe(true);
+  const contact = (await (await admin.get(`${API}/api/admin/students?q=Lucía`)).json()).items[0];
+  const { qr } = await (await admin.post(`${API}/api/admin/check-in/contacts/${contact._id}/credential/rotate`)).json();
   const qrImage = await toDataURL(qr, { width: 600, margin: 4 });
   await page.addInitScript(({ qrImage }) => {
     const state = window as unknown as { tones: number[]; clearQr: () => void; showQr: () => void };
@@ -27,20 +26,14 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
     } });
   }, { qrImage });
   await page.setViewportSize({ width: 1280, height: 1000 });
-  await page.goto("/check-in");
-  await page.getByRole("link", { name: "Iniciar sesión como administrador" }).click();
-  await page.getByLabel("Email o usuario", { exact: true }).fill("admin@example.test");
-  await page.getByLabel("Contraseña", { exact: true }).fill("LocalDemoOnly-1234");
-  await page.getByRole("button", { name: "Ingresar", exact: true }).click();
-  await expect(page).toHaveURL(/\/asistencia$/);
-  await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
-  await expect(page.getByLabel("Código de activación")).toHaveCount(0);
+  const issued = await issueTabletCode(admin);
+  await activateTablet(page, issued.activationCode);
   const device = await (await page.request.get(`${API}/api/check-in/device`)).json();
-  expect((await page.request.get(`${API}/api/auth/me`)).ok()).toBe(true);
+  expect(device.id).toBe(issued.deviceId);
   await page.getByRole("button", { name: "Escanear QR" }).click();
   await expect(page.getByRole("heading", { name: "¡Bienvenida/o, Lucía!" })).toBeVisible();
   await expect(page.getByText("Tenés un pago pendiente.", { exact: false })).toBeVisible();
-  const detail = await (await admin.get("/api/admin/check-in/reception")).json();
+  const detail = await (await admin.get(`${API}/api/admin/check-in/reception`)).json();
   expect(detail.arrivals.some((arrival: { studentId: string; origin: string }) => arrival.studentId === contact._id && arrival.origin === "KIOSK")).toBe(true);
   const tones = () => page.evaluate(() => (window as unknown as { tones: number[] }).tones);
   expect(await tones()).toEqual([660, 880]);
@@ -61,7 +54,7 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
   expect((await tones()).slice(-2)).toEqual([310, 220]);
   expect((await tones()).filter((tone) => tone === 660)).toHaveLength(1);
   await page.evaluate(() => (window as unknown as { clearQr: () => void }).clearQr());
-  await admin.patch(`/api/admin/check-in/devices/${device.id}`, { data: { soundEnabled: false } });
+  await admin.patch(`${API}/api/admin/check-in/devices/${device.id}`, { data: { soundEnabled: false } });
   await page.unroute("**/api/check-in/scan");
   await expect(page.getByRole("heading", { name: "Acercá tu QR" })).toBeVisible({ timeout: 10000 });
   await expect(page.getByText("Sonido desactivado", { exact: false })).toBeVisible();
@@ -92,5 +85,4 @@ test("real QR camera decoding confirms persistence, sound, privacy, duplicates a
   await expect(page.getByRole("button", { name: "Escanear QR" })).toBeVisible();
   await expect(page.getByText("Lucía", { exact: false })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Te ayudamos en recepción" })).toHaveCount(0);
-  await admin.dispose();
 });

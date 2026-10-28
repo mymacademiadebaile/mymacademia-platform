@@ -50,8 +50,8 @@ export function QrCard({ id, person, academic }: { id: string; person: Credentia
     } catch { setError("No pudimos descargar la credencial. Probá imprimirla o volvé a intentarlo."); }
     finally { URL.revokeObjectURL(svgUrl); setBusy(false); }
   }
-  return <section className={styles.surface}><h2>Credencial de asistencia</h2><p>{image ? "Descargá o imprimí esta credencial para entregarla." : active
-    ? "El QR anterior sigue activo. Para descargar una credencial con estos datos y la condición actual, renovala y entregá la nueva; el QR anterior dejará de funcionar."
+  return <section className={styles.surface}><h2>Credencial de asistencia</h2><p>{image ? "Esta credencial se muestra una única vez. Descargala o imprimila ahora: si recargás la página, el QR seguirá activo pero no podrá volver a mostrarse." : active
+    ? "Hay una credencial activa. Por seguridad no podemos volver a mostrar su QR. Si necesitás otra copia, renovala: el QR anterior dejará de funcionar."
     : "Generá una credencial personal para acreditar asistencia con QR."}</p>
     {error && <p className={styles.error} role="alert">{error}</p>}
     <div className={styles.printArea}><CredentialArtwork ref={artwork} person={person} academic={academic} qrImage={image} /></div>

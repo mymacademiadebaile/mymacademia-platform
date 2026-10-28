@@ -3,18 +3,18 @@ import { academyNow } from "../../common/dates";
 import { AppError } from "../../common/http/app-error";
 import { withRequiredTransaction } from "../../common/required-transaction";
 import { AuditLogModel } from "../audit/audit-log.model";
-import { DanceClassModel, type DanceClass } from "../classes/class.model";
+import { type DanceClass } from "../classes/class.model";
 import { resolveBillingPreference } from "../enrollments/billing-preference";
-import { assertSeriesCapacity, currentRules, keysOf, resolveSelection } from "../enrollments/enrollment-capacity";
+import { assertSeriesCapacity, keysOf, resolveSelection } from "../enrollments/enrollment-capacity";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { newEnrollmentFields, recordBillingChange, reopenEnrollment } from "../enrollments/enrollment-service";
+import { StudentModel } from "../students/student.model";
 import type { ScheduleRule } from "../scheduling/schedule-service";
 import { ensureLocks, touchLocks } from "../scheduling/resource-lock.model";
-import { ensureAcademicProfile } from "./contact-service";
-import { OpportunityModel } from "./opportunity.model";
+import { ensureAcademicProfile, resolveContact } from "./contact-service";
 
 type Actor = { organizationId: string; userId: string };
-export interface ConversionInput { billingPreference?: "MONTHLY" | "PER_CLASS"; seriesIds?: string[]; scheduleKeys?: string[] }
+export interface ConversionInput { billingPreference?: "MONTHLY" | "PER_CLASS"; seriesIds?: string[]; scheduleKeys?: string[]; email?: string; birthDate?: Date }
 
 /** Shared by direct commercial conversion and trial conversion, inside their existing transaction. */
 export async function enrollContactInSession(actor: Actor, contactId: string, danceClass: DanceClass & { _id: Types.ObjectId },
@@ -38,20 +38,23 @@ export async function enrollContactInSession(actor: Actor, contactId: string, da
   return created;
 }
 
-export async function convertContact(actor: Actor, contactId: string, input: ConversionInput & { classId: string }) {
-  const preview = await DanceClassModel.findOne({ _id: input.classId, organizationId: actor.organizationId, status: "ACTIVE" });
-  if (!preview) throw new AppError(404, "Clase no disponible", "CLASS_NOT_FOUND");
-  const rules = await currentRules(actor.organizationId, preview);
+/** Creates an academic profile without enrolling the person in a class. */
+export async function convertContact(actor: Actor, contactId: string, input: Pick<ConversionInput, "email" | "birthDate"> = {}) {
   const keys = [`contact:${contactId}`]; await ensureLocks(actor.organizationId, keys);
   return withRequiredTransaction(async (dbSession) => {
     await touchLocks(actor.organizationId, keys, dbSession);
-    const danceClass = await DanceClassModel.findOne({ _id: input.classId, organizationId: actor.organizationId, status: "ACTIVE" }).session(dbSession);
-    if (!danceClass) throw new AppError(404, "Clase no disponible", "CLASS_NOT_FOUND");
-    const enrollment = await enrollContactInSession(actor, contactId, danceClass, rules, input, dbSession);
-    await OpportunityModel.updateOne({ organizationId: actor.organizationId, contactId, classId: danceClass._id },
-      { $set: { status: "CONVERTED", convertedEnrollmentId: enrollment._id } }, { upsert: true, session: dbSession });
-    await AuditLogModel.create([{ organizationId: actor.organizationId, actorUserId: actor.userId, action: "CONTACT_CONVERTED_TO_ENROLLMENT",
-      entityType: "Contact", entityId: contactId, metadata: { enrollmentId: enrollment._id, classId: danceClass._id } }], { session: dbSession });
-    return { enrollment };
+    if (input.email) {
+      const contact = await resolveContact(actor.organizationId, contactId, dbSession);
+      contact.email = input.email;
+      await contact.save({ session: dbSession });
+    }
+    const student = await ensureAcademicProfile(actor.organizationId, contactId, dbSession);
+    if (input.birthDate) {
+      student.birthDate = input.birthDate;
+      await student.save({ session: dbSession });
+    }
+    await AuditLogModel.create([{ organizationId: actor.organizationId, actorUserId: actor.userId, action: "CONTACT_CONVERTED_TO_STUDENT",
+      entityType: "Contact", entityId: contactId, metadata: { profileOnly: true } }], { session: dbSession });
+    return { student };
   });
 }

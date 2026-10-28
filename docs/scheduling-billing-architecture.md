@@ -168,9 +168,13 @@ group) document, so concurrent bookings for the last spot cannot both succeed.
 | Daily job by hand | `pnpm --filter @mym/api jobs:daily` |
 | Daily job in production | `GET /api/internal/jobs/daily` with `Authorization: Bearer $CRON_SECRET` |
 
-The daily job is not scheduled yet: add a Vercel Cron entry for `/api/internal/jobs/daily`
-and set `CRON_SECRET` when deploying. Without it, sessions are still generated on demand by the
-calendar and monthly fees can be generated from Pagos > Mensualidades.
+`vercel.json` now schedules the daily job at 09:00 UTC. Set `CRON_SECRET` when deploying;
+without it the endpoint returns 401. The job generates the rolling session window and current
+monthly fees, then processes opted-in debt reminders. A persisted organization/day lease prevents
+concurrent runs and permits a failed run to retry. Unique session and charge keys protect against
+duplicates. Mid-month first fees still wait for the existing administrator decision when the
+policy is `ASK`. The calendar and Pagos > Mensualidades remain on-demand paths. Deployment and
+production execution of the scheduled job have not been verified by local QA.
 
 Recommended rollout:
 

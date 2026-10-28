@@ -287,7 +287,7 @@ describe("authorized QR reception", () => {
     expect((await access.agent.post("/api/check-in/scan").send({ dni })).status).toBe(422);
     expect((await access.agent.post("/api/check-in/present").send({ qr: early.qr, sessionId: String(early.session._id) })).status).toBe(422);
   });
-  it("rejects revoked and expired devices, other branches and foreign origins", async () => {
+  it("rejects revoked devices, keeps tablet access open, and isolates branches and origins", async () => {
     const s = await scenario(), kiosk = await device();
     expect((await kiosk.agent.post("/api/check-in/scan").set("Origin", "https://foreign.example").send({ qr: s.qr })).status).toBe(403);
     const otherBranch = await BranchModel.create({ organizationId: org, name: "Otra sede" }); const other = await device(otherBranch._id);
@@ -295,7 +295,41 @@ describe("authorized QR reception", () => {
     await admin(request(app).post(`/api/admin/check-in/devices/${kiosk.id}/revoke`));
     expect((await kiosk.agent.post("/api/check-in/scan").send({ qr: s.qr })).status).toBe(401);
     await CheckInDeviceModel.updateOne({ _id: other.id }, { $set: { sessionExpiresAt: new Date("2026-10-23T20:59:00Z") } });
-    expect((await other.agent.get("/api/check-in/device")).status).toBe(401);
+    expect((await other.agent.get("/api/check-in/device")).status).toBe(200);
+  });
+  it("uses one branch access code and revokes every tablet linked to that branch", async () => {
+    const first = await admin(request(app).post("/api/admin/check-in/access-code")).send({ branchId: String(branch) });
+    expect(first.status).toBe(201);
+    const pending = await admin(request(app).get("/api/admin/check-in/devices"));
+    expect(pending.body.items.find((item: { id: string }) => item.id === first.body.deviceId)?.accessState).toBe("PENDING");
+    expect(JSON.stringify(pending.body)).not.toContain(first.body.activationCode);
+    expect(JSON.stringify(pending.body)).not.toContain("activationHash");
+    const tablet = request.agent(app);
+    expect((await tablet.post("/api/check-in/activate").send({ code: first.body.activationCode })).status).toBe(200);
+    expect((await tablet.get("/api/check-in/device")).status).toBe(200);
+    const active = await admin(request(app).get("/api/admin/check-in/devices"));
+    expect(active.body.items.find((item: { id: string }) => item.id === first.body.deviceId)?.accessState).toBe("ACTIVE");
+    const replacement = await admin(request(app).post("/api/admin/check-in/access-code")).send({ branchId: String(branch) });
+    expect(replacement.status).toBe(201);
+    expect(replacement.body.activationCode).not.toBe(first.body.activationCode);
+    expect((await tablet.get("/api/check-in/device")).status).toBe(401);
+    const renewedTablet = request.agent(app);
+    expect((await renewedTablet.post("/api/check-in/activate").send({ code: replacement.body.activationCode })).status).toBe(200);
+    expect((await admin(request(app).post("/api/admin/check-in/access-code/revoke")).send({ branchId: String(branch) })).status).toBe(204);
+    expect((await renewedTablet.get("/api/check-in/device")).status).toBe(401);
+    const revoked = await admin(request(app).get("/api/admin/check-in/devices"));
+    expect(revoked.body.items.find((item: { id: string }) => item.id === replacement.body.deviceId)?.accessState).toBe("REVOKED");
+  });
+  it("serializes concurrent replacement codes so only the newest one remains usable", async () => {
+    const issued = await Promise.all([1, 2].map(() => admin(request(app).post("/api/admin/check-in/access-code")).send({ branchId: String(branch) })));
+    expect(issued.map((response) => response.status)).toEqual([201, 201]);
+    const devices = await admin(request(app).get("/api/admin/check-in/devices"));
+    const pending = devices.body.items.filter((item: { branchId: string; accessState: string }) => item.branchId === String(branch) && item.accessState === "PENDING");
+    expect(pending).toHaveLength(1);
+    const activeCode = issued.find((response) => response.body.deviceId === pending[0].id)!;
+    expect((await request(app).post("/api/check-in/activate").send({ code: activeCode.body.activationCode })).status).toBe(200);
+    const oldCode = issued.find((response) => response !== activeCode)!;
+    expect((await request(app).post("/api/check-in/activate").send({ code: oldCode.body.activationCode })).status).toBe(401);
   });
   it("appends a valid late enrollment to the frozen roster and preserves its original rows", async () => {
     const s = await scenario(), kiosk = await device();

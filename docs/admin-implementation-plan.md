@@ -185,6 +185,8 @@ Nunca subir `.env` ni secretos al repositorio.
 
 ## 5. Estado actual verificado en código
 
+**Actualización 28/10/2026:** las tablas de este plan son una fotografía inicial y algunas celdas ya no describen la implementación actual. Para Recepción, identidad, presentismo y facturación, prevalecen `identity-check-in-architecture.md` y los informes en `qa/`: activación de tablet por código de un uso, autorización persistente hasta revocación, lista de accesos recuperable tras recargar, asistencia QR/DNI transaccional, mensualidades y cargos por clase con claves únicas. El job diario quedó agendado en `vercel.json` a las 09:00 UTC y ahora incluye mensualidades, además de sesiones y recordatorios optativos. La validación local no certifica el cron, SMTP ni la cámara física en producción. El recorrido de QA integra 4 profesores, 8 contactos y 10 alumnos en MongoDB efímera; la suite completa, Playwright y los resultados técnicos definitivos figuran en `qa/full-system-e2e-report.md`.
+
 La siguiente clasificación describe lo que existe en el repositorio. No significa necesariamente que todos los flujos estén terminados para producción.
 
 ### Leyenda
@@ -206,7 +208,7 @@ La siguiente clasificación describe lo que existe en el repositorio. No signifi
 | Pino HTTP | ✅ | Logging HTTP base. |
 | Cloudinary client | 🟡 | Servicio creado; falta flujo de upload usado por módulos reales. |
 | CI | ✅ | install/typecheck/test/build. |
-| Cobertura de tests | ❌ | Hoy es mínima; no alcanza para operaciones críticas. |
+| Cobertura de tests | ✅ | 483 casos API, 13 web y 11 recorridos Chromium en la última validación integral local; ver `qa/full-system-e2e-report.md`. |
 
 ### 5.2 Autenticación
 
@@ -217,11 +219,11 @@ La siguiente clasificación describe lo que existe en el repositorio. No signifi
 | `GET /auth/me` | ✅ | — |
 | Logout | ✅ | — |
 | Guards por rol | ✅ | ADMIN/PROFESSOR. |
-| Refresh token | ❌ | No existe actualmente. Decidir si V1 necesita renovación silenciosa. |
-| Recuperar contraseña | ❌ | Flujo completo email/token/password. |
-| Cambio de contraseña | ❌ | Admin y profesor. |
-| Bloqueo/rate limit específico de login | 🟡 | Hay rate limit general, no protección especializada. |
-| Gestión de sesión expirada en UI | 🟡 | Redirección básica; falta UX consistente. |
+| Refresh token | ✅ | Cookie de renovación y `POST /api/auth/refresh`, con prueba de regresión. |
+| Recuperar contraseña | ✅ | Rutas de solicitud y token, pantallas `/forgot-password` y `/reset-password`; entrega SMTP real pendiente de validación operativa. |
+| Cambio de contraseña | 🟡 | Administrador desde su perfil y recuperación para cuentas activas; cambio desde perfil de profesor no verificado en esta auditoría. |
+| Bloqueo/rate limit específico de login | ✅ | Limitador separado para credenciales y recuperación en `app.ts`. |
+| Gestión de sesión expirada en UI | ✅ | Renovación de acceso comprobada en Playwright; la tablet usa una cookie propia hasta revocación. |
 
 ### 5.3 Seed inicial
 

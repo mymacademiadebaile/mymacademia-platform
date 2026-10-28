@@ -1,6 +1,5 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
 import { CheckCircle2, CircleAlert, HandHelping, IdCard, MapPin, QrCode, ShieldCheck, Volume2, VolumeX, XCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { CheckInDeviceView, CheckInResult, CheckInScanResponse, CheckInSession } from "@mym/shared";
@@ -8,7 +7,7 @@ import { apiFetch, apiMessage, ApiError } from "@/lib/api";
 import { KioskAudio } from "./kiosk-audio";
 import styles from "./check-in.module.css";
 
-type Phase = "BOOT" | "LOGIN" | "UNAVAILABLE" | "BRANCH" | "READY" | "SCANNING" | "DNI" | "SELECT" | "RESULT" | "HELP";
+type Phase = "BOOT" | "ACTIVATE" | "UNAVAILABLE" | "READY" | "SCANNING" | "DNI" | "SELECT" | "RESULT" | "HELP";
 type Identity = { qr: string } | { dni: string };
 type Result = CheckInResult | { kind: "ERROR"; message: string };
 async function accessFetch<T>(path: string, init: RequestInit = {}) {
@@ -24,32 +23,19 @@ export function AttendanceRegistration() {
   const [dni, setDni] = useState("");
   const audio = useRef<KioskAudio | null>(null), request = useRef<AbortController | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
-  const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
-  const authorize = useCallback(async (branchId?: string) => {
-    try {
-      setDevice(await accessFetch<CheckInDeviceView>("/check-in/authorize", { method: "POST", body: JSON.stringify(branchId ? { branchId } : {}) }));
-      setBranches([]); setError(""); return true;
-    } catch (error) {
-      setDevice(null);
-      const payload = error instanceof ApiError ? error.payload as { error?: string; details?: { branches?: Array<{ id: string; name: string }> } } : undefined;
-      if (payload?.error === "KIOSK_BRANCH_REQUIRED" && payload.details?.branches) { setBranches(payload.details.branches); setPhase("BRANCH"); }
-      else if (error instanceof ApiError && (error.status === 401 || (error.status === 403 && payload?.error === "FORBIDDEN"))) { setPhase("LOGIN"); setError(error.status === 403 ? "Esta cuenta no es de administrador. Ingresá con una cuenta administrativa." : ""); }
-      else { setPhase("UNAVAILABLE"); setError(apiMessage(error)); }
-      return false;
-    }
-  }, []);
+  const [activationCode, setActivationCode] = useState("");
   const refreshDevice = useCallback(async () => {
     try { setDevice(await accessFetch<CheckInDeviceView>("/check-in/device")); setError(""); return true; }
     catch (error) {
-      if (error instanceof ApiError && error.status === 401) return authorize();
+      if (error instanceof ApiError && error.status === 401) { setDevice(null); setPhase("ACTIVATE"); return false; }
       setPhase("UNAVAILABLE"); setError(apiMessage(error)); return false;
     }
-  }, [authorize]);
+  }, []);
   useEffect(() => { void refreshDevice().then((ready) => { if (ready) setPhase("READY"); }); return () => { request.current?.abort(); audio.current?.dispose(); }; }, [refreshDevice]);
   useEffect(() => () => { stream?.getTracks().forEach((track) => track.stop()); }, [stream]);
-  useEffect(() => { if (["LOGIN", "UNAVAILABLE", "BRANCH"].includes(phase) && stream) { stream.getTracks().forEach((track) => track.stop()); setStream(null); } }, [phase, stream]);
+  useEffect(() => { if (["ACTIVATE", "UNAVAILABLE"].includes(phase) && stream) { stream.getTracks().forEach((track) => track.stop()); setStream(null); } }, [phase, stream]);
   useEffect(() => {
-    const hide = () => { if (document.hidden) { stream?.getTracks().forEach((track) => track.stop()); setStream(null); setResult(null); setSessions([]); setDni(""); pendingIdentity.current = null; setPhase(device ? "READY" : "LOGIN"); request.current?.abort("KIOSK_HIDDEN"); audio.current?.stop(); } };
+    const hide = () => { if (document.hidden) { stream?.getTracks().forEach((track) => track.stop()); setStream(null); setResult(null); setSessions([]); setDni(""); pendingIdentity.current = null; setPhase(device ? "READY" : "ACTIVATE"); request.current?.abort("KIOSK_HIDDEN"); audio.current?.stop(); } };
     document.addEventListener("visibilitychange", hide); return () => document.removeEventListener("visibilitychange", hide);
   }, [stream, device]);
   const reset = useCallback(() => { pendingIdentity.current = null; setDni(""); setResult(null); setSessions([]); setError(""); processing.current = false;
@@ -101,9 +87,10 @@ export function AttendanceRegistration() {
     } catch { setError("No pudimos habilitar la cámara. Revisá el permiso del navegador o pedí ayuda en recepción."); setPhase("HELP"); }
     finally { setBusy(false); }
   }
-  async function chooseBranch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); const form = new FormData(event.currentTarget); setBusy(true); setError("");
-    try { if (await authorize(String(form.get("branchId")))) setPhase("READY"); }
+  async function activate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError("");
+    try { setDevice(await accessFetch<CheckInDeviceView>("/check-in/activate", { method: "POST", body: JSON.stringify({ code: activationCode.replace(/[\s-]/g, "").toUpperCase() }) })); setActivationCode(""); setPhase("READY"); }
+    catch (cause) { setError(apiMessage(cause)); }
     finally { setBusy(false); }
   }
   async function useDni() {
@@ -117,9 +104,8 @@ export function AttendanceRegistration() {
     <div className={styles.layout}>
     <div className={styles.main}>
       {phase === "BOOT" && <p role="status">Preparando recepción…</p>}
-      {phase === "LOGIN" && <><h1>Ingresá para registrar asistencias</h1><p>Iniciá sesión con una cuenta de administrador en este navegador. Con eso alcanza para registrar asistencias.</p><Link className={styles.button} href="/login?next=/asistencia">Iniciar sesión como administrador</Link><button className={styles.secondary} onClick={() => void refreshDevice().then((ready) => { if (ready) setPhase("READY"); })}>Volver a intentar</button></>}
-      {phase === "UNAVAILABLE" && <><h1>No pudimos abrir el registro de asistencia</h1><p>Intentá nuevamente. Si el problema continúa, pedí ayuda en recepción.</p><button className={styles.button} onClick={() => { setPhase("BOOT"); setError(""); void refreshDevice().then((ready) => { if (ready) setPhase("READY"); }); }}>Volver a intentar</button><div className={styles.actions}><Link className={styles.secondary} href="/admin/reception">Ir a recepción</Link></div></>}
-      {phase === "BRANCH" && <><h1>¿En qué sede estás?</h1><p>Elegí la sede donde vas a registrar asistencias.</p><form className={styles.activation} onSubmit={chooseBranch}><label>Sede<select name="branchId" required>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label><button className={styles.button} disabled={busy}>Abrir registro de asistencia</button></form></>}
+      {phase === "ACTIVATE" && <><h1>Activá esta tablet</h1><p>Pedí en recepción el código de acceso. No necesitás iniciar sesión.</p><form className={styles.activation} onSubmit={activate}><label>Código de acceso<input name="code" autoComplete="one-time-code" autoFocus value={activationCode} onChange={(event) => setActivationCode(event.target.value.toUpperCase())} placeholder="ABCDE-FGHIJ" maxLength={11} required disabled={busy} /></label><button className={styles.button} disabled={busy}>{busy ? "Activando…" : "Activar registro"}</button></form></>}
+      {phase === "UNAVAILABLE" && <><h1>No pudimos abrir el registro de asistencia</h1><p>Intentá nuevamente. Si el problema continúa, pedí ayuda en recepción.</p><button className={styles.button} onClick={() => { setPhase("BOOT"); setError(""); void refreshDevice().then((ready) => { if (ready) setPhase("READY"); }); }}>Volver a intentar</button></>}
       {phase === "READY" && <><h1 className={styles.welcomeTitle}>Registrá tu <span>asistencia</span></h1><p>Elegí cómo acreditar tu presentismo en la clase.</p><div className={styles.methods}><button className={`${styles.button} ${styles.method}`} aria-label="Escanear QR" onClick={() => void start()} disabled={busy}><QrCode className={styles.methodIcon} aria-hidden /><span><strong>{busy ? "Habilitando…" : "Escanear QR"}</strong><small>Acercá tu credencial a la cámara</small></span></button><button className={`${styles.secondary} ${styles.method}`} aria-label="Usar DNI" onClick={() => void useDni()} disabled={busy}><IdCard className={styles.methodIcon} aria-hidden /><span><strong>Usar DNI</strong><small>Ingresá tu número de documento</small></span></button></div><p className={`${styles.reset} ${styles.privacy}`}><ShieldCheck size={18} aria-hidden /><span>La cámara sólo lee tu QR. No guardamos imágenes.</span></p></>}
       {phase === "DNI" && <><h1>Acreditá tu asistencia con DNI</h1><p>Ingresá el DNI que tenés cargado en la academia.</p><form className={styles.activation} onSubmit={(event) => { event.preventDefault(); const value = dni; setDni(""); void submit({ dni: value }); }}><label>DNI<input name="dni" inputMode="numeric" autoComplete="off" autoFocus value={dni} onChange={(event) => setDni(event.target.value)} minLength={6} maxLength={14} required disabled={busy} /></label><button className={styles.button} disabled={busy}>{busy ? "Registrando…" : "Registrar asistencia"}</button><button className={styles.secondary} type="button" onClick={reset} disabled={busy}>Cancelar</button></form></>}
       {phase === "SCANNING" && <><h1>Acercá tu QR</h1><p>Ubicalo dentro del recuadro. Vamos a buscar tu clase.</p><div className={styles.camera}><video ref={video} muted playsInline aria-label="Cámara para leer el QR" /></div><p role="status">{busy ? "Confirmando tu asistencia…" : "Listo para leer tu QR"}</p></>}

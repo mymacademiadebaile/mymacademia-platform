@@ -24,8 +24,8 @@ export type CheckInIdentity = string | { dni: string };
 /** Credential verification never uses administrative JWTs or a student login. */
 export async function authorizedDevice(raw: string | undefined, session?: ClientSession) {
   if (!raw || !/^[A-Za-z0-9_-]{43}$/.test(raw)) throw new AppError(401, "Activá este dispositivo desde recepción", "DEVICE_NOT_AUTHORIZED");
-  const device = await CheckInDeviceModel.findOne({ sessionHash: tokenHash(raw), revokedAt: { $exists: false }, sessionExpiresAt: { $gt: new Date() } }).session(session ?? null);
-  if (!device) throw new AppError(401, "La autorización del dispositivo venció o fue revocada. Pedí ayuda en recepción.", "DEVICE_NOT_AUTHORIZED");
+  const device = await CheckInDeviceModel.findOne({ sessionHash: tokenHash(raw), revokedAt: { $exists: false } }).session(session ?? null);
+  if (!device) throw new AppError(401, "La autorización del dispositivo fue revocada. Pedí ayuda en recepción.", "DEVICE_NOT_AUTHORIZED");
   return device;
 }
 

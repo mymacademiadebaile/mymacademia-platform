@@ -25,7 +25,8 @@ export const requireCronAuthorization: RequestHandler = (request, _response, nex
 /** Daily maintenance triggered by the platform scheduler. Disabled while CRON_SECRET is unset. */
 internalRouter.get("/jobs/daily", async (request, response, next) => {
   try {
-    response.json(await runDailyJobs());
+    const result = await runDailyJobs();
+    response.status(result.failedOrganizations.length ? 500 : 200).json(result);
   } catch (error) {
     next(error);
   }
