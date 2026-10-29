@@ -157,16 +157,11 @@
 .loginLink {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 42px;
   min-height: 42px;
-  padding: 0 14px;
   border: 1px solid var(--line);
   color: var(--foreground);
-  font-stretch: 72%;
-  font-variation-settings: "wdth" 72;
-  font-weight: 750;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   transition: border-color 220ms var(--ease-out), color 220ms var(--ease-out);
 }
 

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { LogIn } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PUBLIC_EVENTS, trackAttrs } from "@/lib/public-site/analytics";
 import { PUBLIC_NAV, SITE, whatsappHref } from "@/lib/public-site/site";
@@ -70,8 +71,8 @@ export function PublicHeader() {
         </nav>
 
         <div className={s.actions}>
-          <Link href="/login" className={s.loginLink}>
-            Ingresar
+          <Link href="/login" className={s.loginLink} aria-label="Ingresar al sistema" title="Ingresar al sistema">
+            <LogIn size={19} strokeWidth={1.8} aria-hidden="true" />
           </Link>
           <a
             className={s.cta}
