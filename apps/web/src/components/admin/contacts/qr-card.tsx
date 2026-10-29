@@ -50,6 +50,39 @@ export function QrCard({ id, person, academic }: { id: string; person: Credentia
     } catch { setError("No pudimos descargar la credencial. Probá imprimirla o volvé a intentarlo."); }
     finally { URL.revokeObjectURL(svgUrl); setBusy(false); }
   }
+  function printCredential() {
+    if (!image || !artwork.current) return;
+    setError("");
+    const svg = new XMLSerializer().serializeToString(artwork.current);
+    const frame = document.createElement("iframe");
+    frame.title = "Impresión de credencial";
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0";
+    const printDocument = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Credencial de asistencia</title><style>
+      @page { size: A4 portrait; margin: 0; }
+      html, body { margin: 0; padding: 0; background: #fff; }
+      .card { position: relative; width: 85.6mm; height: 53.98mm; margin: 15mm 0 0 15mm; break-inside: avoid; }
+      .card svg { display: block; width: 85.6mm; height: 53.98mm; }
+      .card::after { content: ""; position: absolute; inset: 0; box-sizing: border-box; border: .2mm solid #aaa; border-radius: 2.8mm; pointer-events: none; }
+      svg { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    </style></head><body><div class="card">${svg}</div></body></html>`;
+    let cleanupTimer: number;
+    const cleanup = () => { window.clearTimeout(cleanupTimer); frame.remove(); };
+    frame.addEventListener("load", async () => {
+      const printWindow = frame.contentWindow;
+      if (!printWindow) { setError("No pudimos abrir la impresión. Probá descargar la credencial."); cleanup(); return; }
+      try {
+        await printWindow.document.fonts.ready;
+        await new Promise<void>((resolve) => printWindow.requestAnimationFrame(() => resolve()));
+        printWindow.addEventListener("afterprint", cleanup, { once: true });
+        printWindow.focus();
+        printWindow.print();
+      } catch { setError("No pudimos abrir la impresión. Probá descargar la credencial."); cleanup(); }
+    }, { once: true });
+    frame.srcdoc = printDocument;
+    document.body.appendChild(frame);
+    cleanupTimer = window.setTimeout(cleanup, 60_000);
+  }
   return <section className={styles.surface}><h2>Credencial de asistencia</h2><p>{image ? "Esta credencial se muestra una única vez. Descargala o imprimila ahora: si recargás la página, el QR seguirá activo pero no podrá volver a mostrarse." : active
     ? "Hay una credencial activa. Por seguridad no podemos volver a mostrar su QR. Si necesitás otra copia, renovala: el QR anterior dejará de funcionar."
     : "Generá una credencial personal para acreditar asistencia con QR."}</p>
@@ -57,8 +90,9 @@ export function QrCard({ id, person, academic }: { id: string; person: Credentia
     <div className={styles.printArea}><CredentialArtwork ref={artwork} person={person} academic={academic} qrImage={image} /></div>
     <div className={styles.actions}><button className={styles.button} onClick={() => void change(false)} disabled={busy || loading}>{active ? "Renovar credencial" : "Generar credencial"}</button>
       {active && <button className={styles.secondary} disabled={busy} onClick={() => void change(true)}>Revocar credencial</button>}
-      {image && <><button className={styles.secondary} disabled={busy} onClick={() => void download()}>Descargar credencial</button><button className={styles.secondary} disabled={busy} onClick={() => window.print()}>Imprimir credencial</button></>}
+      {image && <><button className={styles.secondary} disabled={busy} onClick={() => void download()}>Descargar credencial</button><button className={styles.secondary} disabled={busy} onClick={printCredential}>Imprimir credencial</button></>}
       {error && loading && <button className={styles.secondary} onClick={() => { setError(""); void load().catch((cause) => setError(apiMessage(cause))); }}>Reintentar</button>}
     </div>
+    {image && <p className={styles.printHint}>Impresión: una credencial de 85,6 × 53,98 mm en hoja A4. Elegí escala 100 % o «Tamaño real».</p>}
   </section>;
 }

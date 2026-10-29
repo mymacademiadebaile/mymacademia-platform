@@ -30,6 +30,28 @@ test("admin issues and revokes tablet access, prints a QR and previews reminders
   expect(png.readUInt32BE(16)).toBe(1712);
   expect(png.readUInt32BE(20)).toBe(1080);
   await copyFile(await download.path(), "../../artifacts/credential-download.png");
+  await page.addInitScript(() => {
+    if (window.frameElement) window.print = () => document.documentElement.setAttribute("data-print-called", "true");
+  });
+  await page.getByRole("button", { name: "Imprimir credencial" }).click();
+  const frame = page.locator('iframe[title="Impresión de credencial"]');
+  const printed = page.frameLocator('iframe[title="Impresión de credencial"]');
+  await expect(printed.locator("html")).toHaveAttribute("data-print-called", "true");
+  const dimensions = await printed.locator(".card").evaluate((card) => ({ width: card.getBoundingClientRect().width, height: card.getBoundingClientRect().height }));
+  expect(dimensions.width).toBeCloseTo(85.6 * 96 / 25.4, 0);
+  expect(dimensions.height).toBeCloseTo(53.98 * 96 / 25.4, 0);
+  const printDocument = await frame.getAttribute("srcdoc");
+  expect(printDocument).toContain("Credencial de alumno de Lucía Pérez con QR de asistencia");
+  expect(printDocument).not.toContain("Panel general");
+  const printPage = await page.context().newPage();
+  await printPage.setContent(printDocument!);
+  await printPage.setViewportSize({ width: 794, height: 1123 });
+  await printPage.screenshot({ path: "../../artifacts/credential-print-sheet.png", fullPage: true, animations: "disabled" });
+  const pdf = await printPage.pdf({ printBackground: true, preferCSSPageSize: true });
+  expect(pdf.toString("latin1").match(/\/Type\s*\/Page\b/g)).toHaveLength(1);
+  await printPage.close();
+  await page.evaluate(() => document.querySelector<HTMLIFrameElement>('iframe[title="Impresión de credencial"]')?.contentWindow?.dispatchEvent(new Event("afterprint")));
+  await expect(frame).toHaveCount(0);
   await page.goto("/admin/reception");
   await page.getByRole("tab", { name: "Acceso de tablet" }).click();
   await page.getByRole("button", { name: /^(Generar|Renovar) código$/ }).click();

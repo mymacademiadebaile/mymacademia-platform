@@ -38,6 +38,15 @@ test("reception creates an interested person, reserves, records attendance and c
   await page.getByRole("button", { name: "Generar credencial" }).click();
   await expect(page.getByRole("img", { name: `Credencial de aspirante de ${firstName} Verificación con QR de asistencia` })).toBeVisible();
   await page.screenshot({ path: "../../artifacts/credential-aspirante-mobile.png", fullPage: true, animations: "disabled" });
+  await page.addInitScript(() => {
+    if (window.frameElement) window.print = () => document.documentElement.setAttribute("data-print-called", "true");
+  });
+  await page.getByRole("button", { name: "Imprimir credencial" }).click();
+  const printFrame = page.locator('iframe[title="Impresión de credencial"]');
+  await expect(page.frameLocator('iframe[title="Impresión de credencial"]').locator("html")).toHaveAttribute("data-print-called", "true");
+  expect(await printFrame.getAttribute("srcdoc")).toContain(`Credencial de aspirante de ${firstName} Verificación con QR de asistencia`);
+  await page.evaluate(() => document.querySelector<HTMLIFrameElement>('iframe[title="Impresión de credencial"]')?.contentWindow?.dispatchEvent(new Event("afterprint")));
+  await expect(printFrame).toHaveCount(0);
   const issuedBefore = (await (await page.request.get(`${API}/api/admin/check-in/contacts/${id}/credential`)).json()).issuedAt;
   expect(issuedBefore).toBeTruthy();
   await page.getByRole("button", { name: "Convertir en alumno" }).click();
