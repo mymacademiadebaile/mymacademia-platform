@@ -34,7 +34,7 @@ const nextMonth = () => {
   return date.toISOString().slice(0, 7);
 };
 
-async function danceClass(billingMode: "MONTHLY" | "PER_CLASS") {
+async function danceClass(billingMode: "MONTHLY" | "PER_CLASS" | "BOTH") {
   return DanceClassModel.create({
     organizationId, branchId, name: `Promoción ${++counter}`,
     professorIds: [new Types.ObjectId()], capacity: 20, billingMode,
@@ -60,6 +60,50 @@ beforeAll(async () => {
 afterAll(async () => { await database?.stop(); });
 
 describe("promotions and new pairs", () => {
+  it("grants one group promotion across two weekly schedules and both billing modes", async () => {
+    const group = await danceClass("BOTH");
+    await DanceClassModel.updateOne({ _id: group._id }, { $set: { schedules: [
+      { day: "MONDAY", startTime: "18:00", endTime: "19:00" },
+      { day: "THURSDAY", startTime: "18:00", endTime: "19:00" }
+    ] } });
+    const [monthlyPayer, monthlyBeneficiary, classPayer, classBeneficiary] = await Promise.all([student(), student(), student(), student()]);
+    const promotion = await auth(request(app).post("/api/admin/promotions")).send({
+      classId: String(group._id), name: "2x1 del grupo completo", kind: "TWO_FOR_ONE", appliesTo: "BOTH",
+      registrationFrom: today(), registrationTo: today(), benefitFrom: today(), benefitTo: periodBounds(nextMonth()).to
+    });
+    expect(promotion.status).toBe(201);
+    const listed = await auth(request(app).get(`/api/admin/promotions?classId=${group._id}`));
+    expect(listed.status).toBe(200);
+    expect(listed.body.items).toHaveLength(1);
+    const monthly = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/enroll-pair`)).send({
+      payerStudentId: String(monthlyPayer._id), beneficiaryStudentId: String(monthlyBeneficiary._id),
+      startDate: today(), billingPreference: "MONTHLY", joinPolicy: "FULL"
+    });
+    expect(monthly.status).toBe(201);
+    const fee = await ChargeModel.findOne({ organizationId, studentId: monthlyBeneficiary._id, classId: group._id, kind: "MONTHLY_FEE" });
+    expect(fee?.promotionDiscountCents).toBe(3_000_000);
+    const perClass = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/enroll-pair`)).send({
+      payerStudentId: String(classPayer._id), beneficiaryStudentId: String(classBeneficiary._id),
+      startDate: today(), billingPreference: "PER_CLASS"
+    });
+    expect(perClass.status).toBe(201);
+    for (const weekday of [1, 4]) {
+      const occurrence = new Date(`${today()}T12:00:00Z`);
+      occurrence.setUTCDate(occurrence.getUTCDate() + (weekday - occurrence.getUTCDay() + 7) % 7);
+      const serviceDate = occurrence.toISOString().slice(0, 10);
+      const quote = await quotePromotion({
+        organizationId: String(organizationId), classId: group._id, studentId: classBeneficiary._id,
+        kind: "CLASS_FEE", period: serviceDate.slice(0, 7), serviceDate, amountCents: 800_000
+      });
+      expect(quote?.discountCents).toBe(800_000);
+      const day = await auth(request(app).get(`/api/admin/sessions?date=${serviceDate}`));
+      const session = day.body.items.find((item: any) => item.class.id === String(group._id));
+      expect(session).toBeDefined();
+      const detail = await auth(request(app).get(`/api/admin/sessions/${session.id}`));
+      expect(detail.body.participants.find((item: any) => item.studentId === String(classBeneficiary._id)).payment.bonified).toBe(true);
+    }
+  });
+
   it("grants the 2x1 before the first monthly fee and keeps it after the payer leaves", async () => {
     const group = await danceClass("MONTHLY");
     const [payer, beneficiary] = await Promise.all([student(), student()]);
@@ -322,6 +366,35 @@ describe("promotions and new pairs", () => {
     expect(after?.promotionDiscountCents).toBe(600_000);
     expect(after?.balanceCents).toBe(2_400_000);
     expect(await FinancialAdjustmentModel.countDocuments({ chargeId: before!._id, promotionId: created.body._id })).toBe(1);
+  });
+
+  it("applies one group campaign to existing monthly and per-class charges", async () => {
+    const group = await danceClass("BOTH");
+    const [monthlyStudent, perClassStudent] = await Promise.all([student(), student()]);
+    await EnrollmentModel.create({
+      organizationId, branchId, classId: group._id, studentId: monthlyStudent._id, status: "ACTIVE",
+      periods: [{ startDate: periodBounds(today().slice(0, 7)).from }],
+      billingPreference: "MONTHLY", billingChanges: [{ effectiveDate: periodBounds(today().slice(0, 7)).from, mode: "MONTHLY" }]
+    });
+    await generateMonthlyCharges({ organizationId: String(organizationId), userId: String(adminId) }, today().slice(0, 7));
+    const classCharge = await auth(request(app).post("/api/admin/billing/charges")).send({
+      studentId: String(perClassStudent._id), classId: String(group._id), kind: "CLASS_FEE",
+      period: today().slice(0, 7), serviceDate: today(), concept: "Clase suelta",
+      amount: 8_000, dueDate: today()
+    });
+    expect(classCharge.status).toBe(201);
+    const created = await auth(request(app).post("/api/admin/promotions")).send({
+      classId: String(group._id), name: "Veinte por ciento del grupo", kind: "PERCENT", appliesTo: "BOTH",
+      percent: 20, benefitFrom: periodBounds(today().slice(0, 7)).from, benefitTo: periodBounds(today().slice(0, 7)).to
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.appliedExisting).toBe(2);
+    const [monthly, perClass] = await Promise.all([
+      ChargeModel.findOne({ organizationId, studentId: monthlyStudent._id, classId: group._id, kind: "MONTHLY_FEE" }),
+      ChargeModel.findById(classCharge.body.id)
+    ]);
+    expect(monthly?.promotionDiscountCents).toBe(600_000);
+    expect(perClass?.promotionDiscountCents).toBe(160_000);
   });
 
   it("applies a fixed discount to a manually created class charge with one recorded adjustment", async () => {

@@ -73,6 +73,14 @@
   gap: 14px;
 }
 
+.promotions {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border: 1px solid #e9e2ed;
+  border-radius: 16px;
+  background: white;
+}
+
 .webToggle {
   margin-bottom: 14px;
   padding: 12px 14px;

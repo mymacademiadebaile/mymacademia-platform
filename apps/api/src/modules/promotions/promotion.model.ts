@@ -2,7 +2,7 @@ import { Schema, Types, model } from "mongoose";
 
 export const PROMOTION_KINDS = ["PERCENT", "AMOUNT_OFF", "FINAL_PRICE", "TWO_FOR_ONE"] as const;
 export type PromotionKind = (typeof PROMOTION_KINDS)[number];
-export const PROMOTION_CHARGE_KINDS = ["MONTHLY_FEE", "CLASS_FEE"] as const;
+export const PROMOTION_CHARGE_KINDS = ["MONTHLY_FEE", "CLASS_FEE", "BOTH"] as const;
 
 export interface Promotion {
   organizationId: Types.ObjectId;

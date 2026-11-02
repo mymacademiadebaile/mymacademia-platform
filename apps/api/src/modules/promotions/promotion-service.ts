@@ -74,7 +74,7 @@ export async function quotePromotion(context: PromotionContext): Promise<Promoti
   const promotions = await PromotionModel.find({
     organizationId: context.organizationId,
     classId: context.classId,
-    appliesTo: context.kind,
+    appliesTo: { $in: [context.kind, "BOTH"] },
     benefitFrom: { $lte: to },
     benefitTo: { $gte: from },
     $or: [{ status: "ACTIVE" }, { kind: "TWO_FOR_ONE" }]

@@ -31,6 +31,7 @@ import { ClassStudentsCard } from "./class-detail-students-card";
 import { ClassChargeModal } from "./class-detail-charge-modal";
 import { ClassEditModal } from "./class-detail-edit-modal";
 import { FirstMonthModal } from "../billing/first-month-modal";
+import { PromotionsTab } from "../billing/promotions-tab";
 import styles from "./class-detail-layout.module.css";
 
 export function ClassDetailLive({ id }: { id: string }) {
@@ -113,7 +114,7 @@ export function ClassDetailLive({ id }: { id: string }) {
       <PageHeader
         eyebrow="GESTIÓN DE CLASE"
         title={danceClass.name}
-        description="Horarios, profesores, precios, pruebas, cupo y alumnos inscriptos."
+        description="Horarios, profesores, precios, promociones, pruebas, cupo y alumnos inscriptos."
       />
 
       {error && <ErrorBlock message={error} onRetry={() => void load()} />}
@@ -151,6 +152,8 @@ export function ClassDetailLive({ id }: { id: string }) {
 
       <div className={styles.grid}>
         <ClassScheduleCard danceClass={danceClass} />
+
+        <div className={styles.promotions}><PromotionsTab danceClass={danceClass} /></div>
 
         <ClassEnrollCard
           danceClass={danceClass}

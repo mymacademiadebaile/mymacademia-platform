@@ -197,15 +197,16 @@ mismo mecanismo permite mostrar y resolver cargos ya emitidos.
 
 ## Experiencia de administración
 
-En **Pagos → Promociones**, una creación breve:
+En la **ficha del grupo → Promociones**, una creación breve:
 
-1. Elegir grupo y plazo para inscribirse: «Una clase», «Una semana», «Un mes» o
-   «Elegir fechas». Por ejemplo, «Inscripción 2x1 a Bachata con Iri y Jero, del 9
+1. El grupo ya está elegido. Definir el plazo para inscribirse y cuánto dura el
+   beneficio: «Un encuentro puntual», «Una semana del grupo», «Un mes del grupo»
+   o fechas libres. Por ejemplo, «Inscripción 2x1 a Bachata con Iri y Jero, del 9
    al 15 de noviembre».
-2. Elegir beneficio: porcentaje, descuento fijo, precio final o 2x1, y si rige para
-   mensualidad o clases por fecha. Para 2x1, definir en esa misma creación cuánto
-   dura el beneficio concedido: una clase, semana, mes o rango. La vista previa
-   muestra ambas fechas por separado antes de activar.
+2. Elegir beneficio: porcentaje, descuento fijo, precio final o 2x1. Si el grupo
+   admite mensualidad y pago por clase, la misma promoción cubre ambas modalidades.
+   Los horarios semanales pertenecen al mismo grupo y no se seleccionan por separado,
+   salvo cuando el beneficio corresponde a un único encuentro.
 3. Elegir alumnos cuando corresponda. Para 2x1, poder inscribir a las dos personas
    en un mismo flujo y seleccionar titular y beneficiario antes de crear las cuotas.
    Antes de activar, mostrar una vista previa con importe original, descuento e
@@ -295,9 +296,11 @@ qué cada alumno debe el importe que figura en su cuenta.
 
 ## Implementación de esta entrega
 
-La pestaña **Pagos → Promociones** permite crear campañas por clase con descuento
+La sección **Clase → Promociones** permite crear campañas para el grupo con descuento
 porcentual, importe fijo a descontar, precio final o 2x1. Se define la vigencia
-del beneficio por fecha o por una sesión concreta. En el 2x1 se define además la
+del beneficio por fecha para todos sus horarios, o por un encuentro concreto.
+Si el grupo tiene cobro mensual o por clase, ambos quedan cubiertos por la misma
+campaña. En el 2x1 se define además la
 ventana para inscribir a dos alumnos nuevos en un mismo paso, con titular y
 beneficiario explícitos. La vista previa muestra la primera cuota o el precio
 por clase antes de confirmar el alta.

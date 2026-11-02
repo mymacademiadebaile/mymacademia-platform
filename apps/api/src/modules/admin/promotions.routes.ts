@@ -66,7 +66,8 @@ const createSchema = z.object({
 adminPromotionsRouter.get("/", async (request, response, next) => {
   try {
     const organizationId = request.auth!.organizationId;
-    const promotions = await PromotionModel.find({ organizationId }).sort({ createdAt: -1 }).lean();
+    const classId = request.query.classId ? objectIdSchema.parse(request.query.classId) : undefined;
+    const promotions = await PromotionModel.find({ organizationId, ...(classId ? { classId } : {}) }).sort({ createdAt: -1 }).lean();
     const [pairs, sessions] = await Promise.all([
       PromotionPairModel.find({ organizationId, promotionId: { $in: promotions.map((item) => item._id) } }).lean(),
       ClassSessionModel.find({ organizationId, _id: { $in: promotions.map((item) => item.sessionId).filter(Boolean) } })
@@ -98,7 +99,8 @@ adminPromotionsRouter.post("/", async (request, response, next) => {
     if (!danceClass) throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
     if (danceClass.billingMode === "FREE" ||
       input.appliesTo === "MONTHLY_FEE" && danceClass.billingMode === "PER_CLASS" ||
-      input.appliesTo === "CLASS_FEE" && danceClass.billingMode === "MONTHLY") {
+      input.appliesTo === "CLASS_FEE" && danceClass.billingMode === "MONTHLY" ||
+      input.appliesTo === "BOTH" && danceClass.billingMode !== "BOTH") {
       throw new AppError(422, "La clase no admite esa modalidad de promoción", "PROMOTION_BILLING_MODE");
     }
     if (input.sessionId) {
@@ -107,8 +109,9 @@ adminPromotionsRouter.post("/", async (request, response, next) => {
         throw new AppError(422, "La sesión debe pertenecer a la clase y estar dentro del beneficio", "PROMOTION_SESSION_INVALID");
       }
     }
+    const overlappingScopes = input.appliesTo === "BOTH" ? PROMOTION_CHARGE_KINDS : [input.appliesTo, "BOTH"];
     const overlapping = await PromotionModel.findOne({
-      organizationId, classId: input.classId, appliesTo: input.appliesTo, status: "ACTIVE",
+      organizationId, classId: input.classId, appliesTo: { $in: overlappingScopes }, status: "ACTIVE",
       benefitFrom: { $lte: input.benefitTo }, benefitTo: { $gte: input.benefitFrom },
       ...(input.kind === "TWO_FOR_ONE" ? { kind: { $ne: "TWO_FOR_ONE" } } : {})
     }).lean();
@@ -116,7 +119,7 @@ adminPromotionsRouter.post("/", async (request, response, next) => {
     const { promotion, appliedExisting } = await withTransaction(async (dbSession) => {
       await DanceClassModel.updateOne({ _id: input.classId, organizationId }, { $inc: { lockVersion: 1 } }, { session: dbSession });
       const concurrentOverlap = await PromotionModel.exists({
-        organizationId, classId: input.classId, appliesTo: input.appliesTo, status: "ACTIVE",
+        organizationId, classId: input.classId, appliesTo: { $in: overlappingScopes }, status: "ACTIVE",
         benefitFrom: { $lte: input.benefitTo }, benefitTo: { $gte: input.benefitFrom },
         ...(input.kind === "TWO_FOR_ONE" ? { kind: { $ne: "TWO_FOR_ONE" } } : {})
       }).session(dbSession ?? null);
@@ -132,12 +135,16 @@ adminPromotionsRouter.post("/", async (request, response, next) => {
       }], { session: dbSession });
       let appliedExisting = 0;
       if (input.kind !== "TWO_FOR_ONE") {
-        const scope = input.appliesTo === "MONTHLY_FEE"
-          ? { period: { $gte: input.benefitFrom.slice(0, 7), $lte: input.benefitTo.slice(0, 7) } }
-          : { serviceDate: { $gte: input.benefitFrom, $lte: input.benefitTo } };
+        const chargeScopes = [];
+        if (input.appliesTo !== "CLASS_FEE") chargeScopes.push({
+          kind: "MONTHLY_FEE", period: { $gte: input.benefitFrom.slice(0, 7), $lte: input.benefitTo.slice(0, 7) }
+        });
+        if (input.appliesTo !== "MONTHLY_FEE") chargeScopes.push({
+          kind: "CLASS_FEE", serviceDate: { $gte: input.benefitFrom, $lte: input.benefitTo }
+        });
         const charges = await ChargeModel.find({
-          organizationId, classId: input.classId, kind: input.appliesTo,
-          status: { $ne: "VOID" }, promotionId: { $exists: false }, ...scope
+          organizationId, classId: input.classId, $or: chargeScopes,
+          status: { $ne: "VOID" }, promotionId: { $exists: false }
         }).session(dbSession ?? null);
         const enrollments = await EnrollmentModel.find({
           organizationId, _id: { $in: charges.map((charge) => charge.enrollmentId).filter(Boolean) }
@@ -147,7 +154,7 @@ adminPromotionsRouter.post("/", async (request, response, next) => {
           const applied = await applyPromotionToExistingCharge(charge, {
             organizationId, classId: input.classId, studentId: charge.studentId,
             enrollment: charge.enrollmentId ? byId.get(String(charge.enrollmentId)) : null,
-            kind: input.appliesTo, period: charge.period, serviceDate: charge.serviceDate,
+            kind: charge.kind as "MONTHLY_FEE" | "CLASS_FEE", period: charge.period, serviceDate: charge.serviceDate,
             sessionId: charge.sessionId, amountCents: charge.amountCents
           }, dbSession, request.auth!.userId);
           if (applied) appliedExisting += 1;

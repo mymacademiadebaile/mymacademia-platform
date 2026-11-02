@@ -17,15 +17,13 @@ import billingStyles from "./billing-live.module.css";
 import { FirstMonthModal, type FirstMonthChoice, type FirstMonthTarget } from "./first-month-modal";
 import { collectedToast, openProof, ProofField, proofFileOf, tryUploadProof, uploadProof } from "./proof";
 import { useVoidCollection } from "./void-collection";
-import { PromotionsTab } from "./promotions-tab";
 
-type Tab = "charges" | "monthly" | "collections" | "promotions" | "review";
+type Tab = "charges" | "monthly" | "collections" | "review";
 
 const TAB_LABEL: Record<Tab, string> = {
   charges: "Por cobrar",
   monthly: "Mensualidades",
   collections: "Historial",
-  promotions: "Promociones",
   review: "Revisión"
 };
 
@@ -41,7 +39,7 @@ export function BillingLive() {
 
       <div className={billingStyles.navigation}>
         <div className={billingStyles.tabs} role="tablist" aria-label="Secciones de cobros">
-          {(["charges", "collections", "promotions"] as const).map((item) => (
+          {(["charges", "collections"] as const).map((item) => (
             <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => setTab(item)}>
               {TAB_LABEL[item]}
             </button>
@@ -51,7 +49,6 @@ export function BillingLive() {
 
       {tab === "charges" && <ChargesTab />}
       {tab === "collections" && <CollectionsTab />}
-      {tab === "promotions" && <PromotionsTab />}
     </section>
   );
 }

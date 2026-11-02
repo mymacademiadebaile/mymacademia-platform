@@ -12,12 +12,13 @@ import styles from "./promotions-tab.module.css";
 
 type Kind = "PERCENT" | "AMOUNT_OFF" | "FINAL_PRICE" | "TWO_FOR_ONE";
 type ChargeKind = "MONTHLY_FEE" | "CLASS_FEE";
+type PromotionScope = ChargeKind | "BOTH";
 type Promotion = {
   _id: string;
   classId: string;
   name: string;
   kind: Kind;
-  appliesTo: ChargeKind;
+  appliesTo: PromotionScope;
   percentBasisPoints?: number;
   valueCents?: number;
   registrationFrom?: string;
@@ -46,22 +47,22 @@ function datesForPreset(from: string, preset: "day" | "week" | "month") {
   return { from, to: end.toISOString().slice(0, 10) };
 }
 
-export function PromotionsTab() {
+export function PromotionsTab({ danceClass }: { danceClass: DanceClass }) {
   const { toast } = useAdminFeedback();
   const [items, setItems] = useState<Promotion[] | null>(null);
-  const [classes, setClasses] = useState<DanceClass[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [kind, setKind] = useState<Kind>("TWO_FOR_ONE");
-  const [classId, setClassId] = useState("");
-  const [appliesTo, setAppliesTo] = useState<ChargeKind>("MONTHLY_FEE");
+  const classId = danceClass._id;
+  const appliesTo: PromotionScope = danceClass.billingMode === "BOTH" ? "BOTH" : danceClass.billingMode === "PER_CLASS" ? "CLASS_FEE" : "MONTHLY_FEE";
   const [registration, setRegistration] = useState({ from: todayInArgentina(), to: todayInArgentina() });
   const [benefit, setBenefit] = useState(datesForPreset(todayInArgentina(), "month"));
   const [singleSession, setSingleSession] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const [sessionOptions, setSessionOptions] = useState<Array<{ id: string; startTime: string; endTime: string }>>([]);
   const [enrolling, setEnrolling] = useState<Promotion | null>(null);
+  const [pairBillingPreference, setPairBillingPreference] = useState<"MONTHLY" | "PER_CLASS">("MONTHLY");
   const [eligible, setEligible] = useState<StudentOption[]>([]);
   const [payerId, setPayerId] = useState("");
   const [beneficiaryId, setBeneficiaryId] = useState("");
@@ -72,23 +73,15 @@ export function PromotionsTab() {
   const [pairPreview, setPairPreview] = useState<{ kind: ChargeKind; period: string; payer: number; beneficiary: number; discount?: number } | null>(null);
   const [pairPreviewError, setPairPreviewError] = useState("");
   const [voiding, setVoiding] = useState<{ promotionId: string; pairId: string } | null>(null);
-  const selectedClass = useMemo(() => classes.find((item) => item._id === classId), [classes, classId]);
-  const enrollingClass = useMemo(() => classes.find((item) => item._id === enrolling?.classId), [classes, enrolling]);
-  const plans = enrollingClass
-    ? ([4, 8] as const).filter((plan) => ((plan === 4 ? enrollingClass.monthlyPrice4 : enrollingClass.monthlyPrice8) ?? 0) > 0)
-    : [];
+  const plans = useMemo(() => ([4, 8] as const).filter((plan) => ((plan === 4 ? danceClass.monthlyPrice4 : danceClass.monthlyPrice8) ?? 0) > 0), [danceClass.monthlyPrice4, danceClass.monthlyPrice8]);
 
   const load = useCallback(async () => {
     try {
-      const [promotions, classList] = await Promise.all([
-        apiFetch<{ items: Promotion[] }>("/admin/promotions"),
-        apiFetch<DanceClass[]>("/admin/classes")
-      ]);
+      const promotions = await apiFetch<{ items: Promotion[] }>(`/admin/promotions?classId=${classId}`);
       setItems(promotions.items);
-      setClasses(classList);
       setError("");
     } catch (requestError) { setError(apiMessage(requestError)); }
-  }, []);
+  }, [classId]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     if (!creating || !singleSession || !classId || !benefit.from) return;
@@ -113,21 +106,18 @@ export function PromotionsTab() {
       void apiFetch<{ kind: ChargeKind; period: string; payer: number; beneficiary: number; discount?: number }>(`/admin/promotions/${enrolling._id}/pair-preview`, {
         method: "POST", body: JSON.stringify({
           payerStudentId: payerId, beneficiaryStudentId: beneficiaryId, startDate,
-          billingPreference: enrolling.appliesTo === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS",
-          monthlyPlan: enrolling.appliesTo === "MONTHLY_FEE" && plans.length ? monthlyPlan : undefined,
-          joinPolicy: enrolling.appliesTo === "MONTHLY_FEE" && startDate.slice(8) !== "01" ? joinPolicy : undefined,
-          joinCustomAmount: enrolling.appliesTo === "MONTHLY_FEE" && startDate.slice(8) !== "01" && joinPolicy === "CUSTOM" && joinCustomAmount !== "" ? Number(joinCustomAmount) : undefined
+          billingPreference: pairBillingPreference,
+          monthlyPlan: pairBillingPreference === "MONTHLY" && plans.length ? monthlyPlan : undefined,
+          joinPolicy: pairBillingPreference === "MONTHLY" && startDate.slice(8) !== "01" ? joinPolicy : undefined,
+          joinCustomAmount: pairBillingPreference === "MONTHLY" && startDate.slice(8) !== "01" && joinPolicy === "CUSTOM" && joinCustomAmount !== "" ? Number(joinCustomAmount) : undefined
         })
       }).then((result) => { if (active) setPairPreview(result); })
         .catch((error) => { if (active) setPairPreviewError(apiMessage(error)); });
     }, 250);
     return () => { active = false; clearTimeout(timer); };
-  }, [enrolling, payerId, beneficiaryId, startDate, monthlyPlan, joinPolicy, joinCustomAmount, plans.length]);
+  }, [enrolling, payerId, beneficiaryId, startDate, monthlyPlan, pairBillingPreference, joinPolicy, joinCustomAmount, plans.length]);
 
   function openCreate() {
-    const first = classes.find((item) => ["ACTIVE", "PAUSED"].includes(item.status) && item.billingMode !== "FREE");
-    setClassId(first?._id ?? "");
-    setAppliesTo(first?.billingMode === "PER_CLASS" ? "CLASS_FEE" : "MONTHLY_FEE");
     setKind("TWO_FOR_ONE");
     setSingleSession(false);
     setSessionId("");
@@ -161,7 +151,7 @@ export function PromotionsTab() {
       ? todayInArgentina() : item.registrationFrom ?? todayInArgentina());
     setPayerId(""); setBeneficiaryId(""); setEligible([]);
     setPairPreview(null); setJoinCustomAmount("");
-    const danceClass = classes.find((row) => row._id === item.classId);
+    setPairBillingPreference(item.appliesTo === "CLASS_FEE" ? "PER_CLASS" : "MONTHLY");
     setMonthlyPlan(danceClass?.monthlyPrice4 ? 4 : 8);
     try {
       const data = await apiFetch<{ items: StudentOption[] }>(`/admin/promotions/${item._id}/eligible-students`);
@@ -176,10 +166,10 @@ export function PromotionsTab() {
     try {
       await apiFetch(`/admin/promotions/${enrolling._id}/enroll-pair`, { method: "POST", body: JSON.stringify({
         payerStudentId: payerId, beneficiaryStudentId: beneficiaryId, startDate,
-        billingPreference: enrolling.appliesTo === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS",
-        monthlyPlan: enrolling.appliesTo === "MONTHLY_FEE" && plans.length ? monthlyPlan : undefined,
-        joinPolicy: enrolling.appliesTo === "MONTHLY_FEE" && startDate.slice(8) !== "01" ? joinPolicy : undefined,
-        joinCustomAmount: enrolling.appliesTo === "MONTHLY_FEE" && startDate.slice(8) !== "01" && joinPolicy === "CUSTOM" ? Number(joinCustomAmount) : undefined
+        billingPreference: pairBillingPreference,
+        monthlyPlan: pairBillingPreference === "MONTHLY" && plans.length ? monthlyPlan : undefined,
+        joinPolicy: pairBillingPreference === "MONTHLY" && startDate.slice(8) !== "01" ? joinPolicy : undefined,
+        joinCustomAmount: pairBillingPreference === "MONTHLY" && startDate.slice(8) !== "01" && joinPolicy === "CUSTOM" ? Number(joinCustomAmount) : undefined
       }) });
       setEnrolling(null);
       toast({ title: "Pareja inscripta con 2x1", tone: "success" });
@@ -216,16 +206,16 @@ export function PromotionsTab() {
 
   return <div className={styles.page}>
     <div className={styles.intro}>
-      <div><h2>Promociones</h2><p>Definí el beneficio una vez. El descuento aparecerá en los cargos comprendidos por sus fechas.</p></div>
-      <button type="button" onClick={openCreate}>Crear promoción</button>
+      <div><h2>Promociones de {danceClass.name}</h2><p>La promoción pertenece a este grupo y cubre todos sus horarios durante las fechas elegidas. Los cobros reflejan el beneficio automáticamente.</p></div>
+      {danceClass.billingMode !== "FREE" && ["ACTIVE", "PAUSED"].includes(danceClass.status) && <button type="button" onClick={openCreate}>Crear promoción</button>}
     </div>
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {!items && !error && <LoadingBlock />}
     <div className={styles.list}>
       {items?.map((item) => <article key={item._id} className={styles.card}>
         <div className={styles.cardTop}>
-          <div><small>{KIND_LABEL[item.kind]} · {item.appliesTo === "MONTHLY_FEE" ? "Mensualidad" : "Por clase"}</small>
-            <h3>{item.name}</h3><p>{classes.find((row) => row._id === item.classId)?.name ?? "Clase"}</p></div>
+          <div><small>{KIND_LABEL[item.kind]} · {item.appliesTo === "BOTH" ? "Todo el grupo" : item.appliesTo === "MONTHLY_FEE" ? "Mensualidad" : "Por clase"}</small>
+            <h3>{item.name}</h3><p>{danceClass.name}</p></div>
           <span className={item.status === "ACTIVE" ? styles.active : styles.inactive}>{item.status === "ACTIVE" ? "Activa" : "Cerrada"}</span>
         </div>
         <p>Beneficio: {item.session ? `clase del ${item.session.sessionDate}, ${item.session.startTime}–${item.session.endTime}` : `${item.benefitFrom} al ${item.benefitTo}`}</p>
@@ -242,43 +232,39 @@ export function PromotionsTab() {
           {item.status === "ACTIVE" && <button className={styles.secondary} disabled={busy} onClick={() => void deactivate(item)}>Cerrar campaña</button>}
         </div>
       </article>)}
-      {items?.length === 0 && <p className={styles.empty}>Todavía no hay promociones. Creá la primera para empezar.</p>}
+      {items?.length === 0 && <p className={styles.empty}>Todavía no hay promociones para este grupo.</p>}
     </div>
 
-    <LiveModal open={creating} title="Nueva promoción" description="Elegí el grupo, las fechas y el descuento. Para 2x1, después inscribí la pareja." submitting={busy} submitDisabled={singleSession && !sessionId} submitLabel="Crear promoción" onClose={() => setCreating(false)} onSubmit={create}>
+    <LiveModal open={creating} title={`Promoción para ${danceClass.name}`} description="Elegí el beneficio y su vigencia. Se aplicará a los horarios del grupo; para un 2x1, después inscribí a la pareja." submitting={busy} submitDisabled={singleSession && !sessionId} submitLabel="Crear promoción" onClose={() => setCreating(false)} onSubmit={create}>
       <Field label="Nombre" wide><input name="name" required minLength={3} maxLength={120} placeholder="Ej.: 2x1 Bachata de diciembre" /></Field>
-      <Field label="Clase"><select value={classId} onChange={(event) => { setClassId(event.target.value); const found = classes.find((item) => item._id === event.target.value); setAppliesTo(found?.billingMode === "PER_CLASS" ? "CLASS_FEE" : "MONTHLY_FEE"); }} required>
-        <option value="">Elegir clase</option>{classes.filter((item) => ["ACTIVE", "PAUSED"].includes(item.status) && item.billingMode !== "FREE").map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
-      </select></Field>
       <Field label="Beneficio"><select value={kind} onChange={(event) => setKind(event.target.value as Kind)}>
         {Object.entries(KIND_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select></Field>
-      <Field label="Aplicar a"><select value={appliesTo} onChange={(event) => setAppliesTo(event.target.value as ChargeKind)}>
-        {selectedClass?.billingMode !== "PER_CLASS" && <option value="MONTHLY_FEE">Mensualidad</option>}
-        {selectedClass?.billingMode !== "MONTHLY" && <option value="CLASS_FEE">Clases individuales</option>}
-      </select></Field>
+      <p className={styles.note}>Alcance: {danceClass.name} · {singleSession ? "solo el encuentro elegido" : "todos sus horarios durante la vigencia"}{danceClass.billingMode === "BOTH" ? " · mensualidad y clases sueltas" : ""}.</p>
+      {danceClass.billingMode === "BOTH" && (kind === "AMOUNT_OFF" || kind === "FINAL_PRICE") && <p className={styles.note}>El importe indicado se aplica a cada cargo según la modalidad del alumno: cuota mensual o clase suelta.</p>}
       {kind === "PERCENT" && <Field label="Descuento (%)"><input name="percent" type="number" min="0.01" max="100" step="0.01" required /></Field>}
       {(kind === "AMOUNT_OFF" || kind === "FINAL_PRICE") && <Field label={kind === "FINAL_PRICE" ? "Precio final ($)" : "Descuento ($)"}><input name="value" type="number" min={kind === "FINAL_PRICE" ? "0" : "0.01"} step="0.01" required /></Field>}
       {kind === "TWO_FOR_ONE" && <>
         <Field label="Se pueden inscribir desde"><input type="date" value={registration.from} onChange={(event) => setRegistration({ ...registration, from: event.target.value })} required /></Field>
         <Field label="Se pueden inscribir hasta"><input type="date" min={registration.from} value={registration.to} onChange={(event) => setRegistration({ ...registration, to: event.target.value })} required /></Field>
       </>}
-      <div className={styles.presets}>Duración del beneficio: {(["day", "week", "month"] as const).map((preset) => <button type="button" key={preset} onClick={() => { setBenefit(datesForPreset(benefit.from, preset)); setSingleSession(preset === "day"); }}>{preset === "day" ? "Una clase" : preset === "week" ? "Una semana" : "Un mes"}</button>)}</div>
+      <div className={styles.presets}>Duración del beneficio: {(["day", "week", "month"] as const).map((preset) => <button type="button" key={preset} onClick={() => { setBenefit(datesForPreset(benefit.from, preset)); setSingleSession(preset === "day"); }}>{preset === "day" ? "Un encuentro puntual" : preset === "week" ? "Una semana del grupo" : "Un mes del grupo"}</button>)}</div>
       <Field label="Beneficio desde"><input type="date" value={benefit.from} onChange={(event) => setBenefit({ ...benefit, from: event.target.value })} required /></Field>
       <Field label="Beneficio hasta"><input type="date" min={benefit.from} value={benefit.to} onChange={(event) => setBenefit({ ...benefit, to: event.target.value })} required /></Field>
-      {singleSession && <Field label="Clase del día" wide><select value={sessionId} onChange={(event) => setSessionId(event.target.value)} required>
+      {singleSession && <Field label="Encuentro del día" wide><select value={sessionId} onChange={(event) => setSessionId(event.target.value)} required>
         <option value="">{sessionOptions.length ? "Elegí el horario" : "No hay clase programada ese día"}</option>
         {sessionOptions.map((item) => <option key={item.id} value={item.id}>{item.startTime}–{item.endTime}</option>)}
       </select></Field>}
     </LiveModal>
 
-    <LiveModal open={Boolean(enrolling)} title="Inscribir pareja 2x1" description={enrolling ? `${enrolling.name}. Elegí dos alumnos nuevos de ${enrollingClass?.name ?? "la clase"}; el descuento quedará asignado antes de crear sus cuotas.` : ""} submitting={busy} submitDisabled={!payerId || !beneficiaryId || payerId === beneficiaryId || !pairPreview} submitLabel="Inscribir a los dos" onClose={() => setEnrolling(null)} onSubmit={enrollPair}>
+    <LiveModal open={Boolean(enrolling)} title="Inscribir pareja 2x1" description={enrolling ? `${enrolling.name}. Elegí dos alumnos nuevos de ${danceClass.name}; el descuento quedará asignado antes de crear sus cuotas.` : ""} submitting={busy} submitDisabled={!payerId || !beneficiaryId || payerId === beneficiaryId || !pairPreview} submitLabel="Inscribir a los dos" onClose={() => setEnrolling(null)} onSubmit={enrollPair}>
       <Field label="Quién paga"><select value={payerId} onChange={(event) => setPayerId(event.target.value)} required><option value="">Elegir alumno</option>{eligible.map((item) => <option key={item._id} value={item._id}>{item.lastName}, {item.firstName}</option>)}</select></Field>
       <Field label="Quién recibe el beneficio"><select value={beneficiaryId} onChange={(event) => setBeneficiaryId(event.target.value)} required><option value="">Elegir alumno</option>{eligible.filter((item) => item._id !== payerId).map((item) => <option key={item._id} value={item._id}>{item.lastName}, {item.firstName}</option>)}</select></Field>
       {eligible.length < 2 && <p className={styles.note}>Primero cargá dos alumnos nuevos de esta clase en <Link href="/admin/students">Alumnos</Link>.</p>}
       <Field label="Fecha de inscripción"><input type="date" min={enrolling?.registrationFrom} max={enrolling?.registrationTo} value={startDate} onChange={(event) => setStartDate(event.target.value)} required /></Field>
-      {enrolling?.appliesTo === "MONTHLY_FEE" && plans.length > 0 && <Field label="Plan mensual"><select value={monthlyPlan} onChange={(event) => setMonthlyPlan(Number(event.target.value) as 4 | 8)}>{plans.map((plan) => <option key={plan} value={plan}>{plan} clases · {formatMoney(plan === 4 ? enrollingClass?.monthlyPrice4 ?? 0 : enrollingClass?.monthlyPrice8 ?? 0)}</option>)}</select></Field>}
-      {enrolling?.appliesTo === "MONTHLY_FEE" && startDate.slice(8) !== "01" && <><Field label="Primer mes"><select value={joinPolicy} onChange={(event) => setJoinPolicy(event.target.value as typeof joinPolicy)}><option value="FULL">Cuota completa</option><option value="PRORATED">Proporcional</option><option value="CUSTOM">Importe personalizado</option></select></Field>{joinPolicy === "CUSTOM" && <Field label="Importe del primer mes ($)"><input value={joinCustomAmount} onChange={(event) => setJoinCustomAmount(event.target.value)} type="number" min="0" step="0.01" required /></Field>}</>}
+      {enrolling?.appliesTo === "BOTH" && <Field label="Modalidad de ambos"><select value={pairBillingPreference} onChange={(event) => setPairBillingPreference(event.target.value as "MONTHLY" | "PER_CLASS")}><option value="MONTHLY">Mensualidad</option><option value="PER_CLASS">Por clase</option></select></Field>}
+      {pairBillingPreference === "MONTHLY" && plans.length > 0 && <Field label="Plan mensual"><select value={monthlyPlan} onChange={(event) => setMonthlyPlan(Number(event.target.value) as 4 | 8)}>{plans.map((plan) => <option key={plan} value={plan}>{plan} clases · {formatMoney(plan === 4 ? danceClass.monthlyPrice4 ?? 0 : danceClass.monthlyPrice8 ?? 0)}</option>)}</select></Field>}
+      {pairBillingPreference === "MONTHLY" && startDate.slice(8) !== "01" && <><Field label="Primer mes"><select value={joinPolicy} onChange={(event) => setJoinPolicy(event.target.value as typeof joinPolicy)}><option value="FULL">Cuota completa</option><option value="PRORATED">Proporcional</option><option value="CUSTOM">Importe personalizado</option></select></Field>{joinPolicy === "CUSTOM" && <Field label="Importe del primer mes ($)"><input value={joinCustomAmount} onChange={(event) => setJoinCustomAmount(event.target.value)} type="number" min="0" step="0.01" required /></Field>}</>}
       {pairPreview && <div className={styles.preview}><strong>Vista previa · {pairPreview.kind === "MONTHLY_FEE" ? `primera cuota (${pairPreview.period})` : "por clase comprendida"}</strong><span>Quien paga: {formatMoney(pairPreview.payer)} · Beneficiario: {formatMoney(pairPreview.beneficiary)}</span>{pairPreview.discount ? <small>Bonificación: {formatMoney(pairPreview.discount)}</small> : null}</div>}
       {pairPreviewError && <p className={styles.error} role="alert">{pairPreviewError}</p>}
       {enrolling && startDate.slice(0, 7) < enrolling.benefitFrom.slice(0, 7) && <p className={styles.note}>La primera cuota anterior al beneficio conserva su precio habitual.</p>}

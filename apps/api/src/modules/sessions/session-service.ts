@@ -185,7 +185,7 @@ export async function loadSessionParticipants(
   const perClass = participants.filter((item) => item.billingType === "PER_CLASS");
   if (perClass.length && ["SCHEDULED", "IN_PROGRESS", "COMPLETED"].includes(session.status)) {
     const hasPromotion = await PromotionModel.exists({
-      organizationId, classId: session.classId, appliesTo: "CLASS_FEE",
+      organizationId, classId: session.classId, appliesTo: { $in: ["CLASS_FEE", "BOTH"] },
       benefitFrom: { $lte: session.sessionDate }, benefitTo: { $gte: session.sessionDate },
       $or: [{ status: "ACTIVE" }, { kind: "TWO_FOR_ONE" }]
     });

@@ -74,7 +74,7 @@ async function assertSessionPromotionRequiresSession(input: {
   amountCents: number;
 }) {
   const promotions = await PromotionModel.find({
-    organizationId: input.organizationId, classId: input.classId, appliesTo: "CLASS_FEE",
+    organizationId: input.organizationId, classId: input.classId, appliesTo: { $in: ["CLASS_FEE", "BOTH"] },
     sessionId: { $exists: true }, benefitFrom: { $lte: input.serviceDate }, benefitTo: { $gte: input.serviceDate }
   }).select("_id sessionId").lean();
   for (const promotion of promotions) {
