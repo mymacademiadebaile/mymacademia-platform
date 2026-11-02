@@ -29,6 +29,10 @@ interface StylePageProps {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  return (await fetchPublicDanceStyles()).map((style) => ({ slug: style.seoSlug }));
+}
+
 export async function generateMetadata({ params }: StylePageProps): Promise<Metadata> {
   const style = await fetchPublicDanceStyle((await params).slug);
   if (!style) return NOT_FOUND_METADATA;

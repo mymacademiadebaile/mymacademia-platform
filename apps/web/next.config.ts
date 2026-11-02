@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// Must match SITE.url in src/lib/public-site/site.ts (asserted by next-config.test.ts).
+// Must match SITE.url in src/lib/public-site/site.ts (asserted by host-policy.test.ts).
 const OFFICIAL_ORIGIN = "https://www.mymacademiadebaile.com.ar";
 const OFFICIAL_HOST = "www\\.mymacademiadebaile\\.com\\.ar";
 // Vercel's production alias duplicates the public site. Only indexable pages move;
@@ -18,24 +18,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }]
   },
   async headers() {
-    // These routes have no session-specific content. Caching the complete HTML
-    // response at Vercel's edge prevents repeated SSR work from bots and
-    // visitors while the public data cache refreshes independently.
-    const headers = [
-      {
-        key: "Cache-Control",
-        value: "public, max-age=60, s-maxage=300, stale-while-revalidate=86400"
-      }
-    ];
-
     return [
-      { source: "/", headers },
-      { source: "/clases/:path*", headers },
-      { source: "/horarios", headers },
-      { source: "/contacto", headers },
-      { source: "/profesores/:path*", headers },
-      { source: "/sitemap.xml", headers },
-      { source: "/robots.txt", headers },
+      { source: "/robots.txt", headers: [{ key: "Cache-Control", value: "public, max-age=60, s-maxage=300, stale-while-revalidate=86400" }] },
       // Previews, deployment URLs and the Vercel alias stay crawlable (robots.txt
       // allows them) so search engines can read this header and the redirects.
       {

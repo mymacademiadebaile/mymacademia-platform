@@ -20,13 +20,24 @@ const catalog = {
   schedule: []
 };
 
+let mode = "ok";
 createServer((request, response) => {
+  if (request.method === "POST" && request.url?.startsWith("/__test/mode/")) {
+    const requested = request.url.slice("/__test/mode/".length);
+    if (!["ok", "down", "empty"].includes(requested)) {
+      response.writeHead(400).end();
+      return;
+    }
+    mode = requested;
+    response.writeHead(204).end();
+    return;
+  }
   const payloads = {
-    "/api/public/catalog": catalog,
+    "/api/public/catalog": mode === "empty" ? { ...catalog, styles: [] } : catalog,
     "/api/public/social-links": {},
     "/api/public/site-images": { academySpace: {} }
   };
   const payload = request.method === "GET" ? payloads[request.url] : undefined;
-  response.writeHead(payload ? 200 : 404, { "Content-Type": "application/json" });
+  response.writeHead(mode === "down" && payload ? 503 : payload ? 200 : 404, { "Content-Type": "application/json" });
   response.end(JSON.stringify(payload ?? { error: "NOT_FOUND" }));
 }).listen(4100, "127.0.0.1");

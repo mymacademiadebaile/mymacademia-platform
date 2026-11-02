@@ -2,9 +2,7 @@ import type { MetadataRoute } from "next";
 import { fetchPublicDanceStyles, fetchPublicProfessors } from "@/lib/public-site/queries";
 import { absoluteUrl } from "@/lib/public-site/site";
 
-// Built from the published catalog at request time; the public response receives
-// the same short CDN cache policy as the marketing pages.
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [styles, professors] = await Promise.all([fetchPublicDanceStyles(), fetchPublicProfessors()]);

@@ -6,13 +6,16 @@
  */
 import type { DanceStyle, PublicProfessor, PublicSocialLinks, ScheduleEntry, WeekDay } from "./types";
 
-// Browser requests use the same-origin `/api` path. Server components instead
-// use Vercel's private service binding when it is available, because Node's
-// fetch requires an absolute URL. The local development fallback stays intact.
+// Prerendering must use the production public API: the private Services binding
+// is only guaranteed at runtime. PUBLIC_BUILD_API_URL can override the build
+// source for local verification without changing runtime traffic.
+const BUILD_API_URL = process.env.PUBLIC_BUILD_API_URL ?? "https://www.mymacademiadebaile.com.ar/api";
 const API_URL = (
-  process.env.API_INTERNAL_URL
-    ? `${process.env.API_INTERNAL_URL.replace(/\/+$/, "")}/api`
-    : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api"
+  process.env.NEXT_PHASE === "phase-production-build"
+    ? BUILD_API_URL
+    : process.env.API_INTERNAL_URL
+      ? `${process.env.API_INTERNAL_URL.replace(/\/+$/, "")}/api`
+      : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api"
 ).replace(/\/+$/, "");
 
 interface ApiImage {
@@ -129,13 +132,19 @@ export function mapCatalog(data: ApiCatalog): PublicCatalog {
 
 async function fetchCatalogUncached(): Promise<PublicCatalog> {
   const response = await fetch(`${API_URL}/public/catalog`, {
-    // Cross-request caching is owned by `unstable_cache` in queries.ts.
-    cache: "no-store"
+    next: { tags: ["public-site"] }
   });
   if (!response.ok) {
     throw new Error(`Public API responded ${response.status}`);
   }
-  return mapCatalog((await response.json()) as ApiCatalog);
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object" ||
+      !Array.isArray((data as ApiCatalog).styles) || !(data as ApiCatalog).styles.length ||
+      !Array.isArray((data as ApiCatalog).professors) ||
+      !Array.isArray((data as ApiCatalog).schedule)) {
+    throw new Error("Public API returned an empty or invalid catalog");
+  }
+  return mapCatalog(data as ApiCatalog);
 }
 
 export async function fetchCatalogFromApi(): Promise<PublicCatalog> {
@@ -145,7 +154,7 @@ export async function fetchCatalogFromApi(): Promise<PublicCatalog> {
 /** Links shown in the public footer; the API only returns configured, safe social URLs. */
 async function fetchPublicSocialLinksUncached(): Promise<PublicSocialLinks> {
   const response = await fetch(`${API_URL}/public/social-links`, {
-    cache: "no-store"
+    next: { tags: ["public-site"] }
   });
   if (!response.ok) {
     throw new Error(`Public social links API responded ${response.status}`);
@@ -163,7 +172,7 @@ interface ApiSiteImages {
 
 async function fetchPublicSiteImagesUncached(): Promise<ApiSiteImages> {
   const response = await fetch(`${API_URL}/public/site-images`, {
-    cache: "no-store"
+    next: { tags: ["public-site"] }
   });
   if (!response.ok) {
     throw new Error(`Public site images API responded ${response.status}`);

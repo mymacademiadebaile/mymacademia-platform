@@ -5,11 +5,9 @@
  * and classes the admin published. Set `PUBLIC_DATA_SOURCE=mock` to work on the site
  * without a backend (fictional content from `mock-data.ts`).
  *
- * If the API is unreachable the site still renders: sections without data are hidden
- * and the next request retries (failed fetches are never cached).
+ * API failures reject so ISR keeps the last successfully generated page.
  */
 import { cache } from "react";
-import { unstable_cache } from "next/cache";
 import {
   fetchCatalogFromApi,
   fetchPublicSiteImagesFromApi,
@@ -30,29 +28,8 @@ import type { Branch, DanceStyle, FaqItem, PublicImage, PublicProfessor, PublicS
 
 const USE_MOCK = process.env.PUBLIC_DATA_SOURCE === "mock";
 
-const EMPTY_CATALOG: PublicCatalog = { styles: [], professors: [], entries: [] };
-
-/**
- * Public pages remain dynamic so builds do not depend on a running API. Cache
- * the published payloads independently: without this, every page view wakes
- * the API service and repeats the same read-only MongoDB queries.
- */
-const PUBLIC_DATA_REVALIDATE_SECONDS = 300;
-
-const loadCachedCatalog = unstable_cache(fetchCatalogFromApi, ["public-catalog-v1"], {
-  revalidate: PUBLIC_DATA_REVALIDATE_SECONDS,
-  tags: ["public-site"]
-});
-
-const loadCachedSocialLinks = unstable_cache(fetchPublicSocialLinksFromApi, ["public-social-links-v1"], {
-  revalidate: PUBLIC_DATA_REVALIDATE_SECONDS,
-  tags: ["public-site"]
-});
-
-const loadCachedSiteImages = unstable_cache(fetchPublicSiteImagesFromApi, ["public-site-images-v1"], {
-  revalidate: PUBLIC_DATA_REVALIDATE_SECONDS,
-  tags: ["public-site"]
-});
+const loadSocialLinks = cache(fetchPublicSocialLinksFromApi);
+const loadSiteImages = cache(fetchPublicSiteImagesFromApi);
 
 /** One catalog load per request (React cache dedupes the parallel calls of a page). */
 const loadCatalog = cache(async (): Promise<PublicCatalog & { isPlaceholder: boolean }> => {
@@ -65,12 +42,7 @@ const loadCatalog = cache(async (): Promise<PublicCatalog & { isPlaceholder: boo
     };
   }
 
-  try {
-    return { ...(await loadCachedCatalog()), isPlaceholder: false };
-  } catch (error) {
-    console.error("[public-site] could not load the public catalog", error);
-    return { ...EMPTY_CATALOG, isPlaceholder: false };
-  }
+  return { ...(await fetchCatalogFromApi()), isPlaceholder: false };
 });
 
 export async function fetchPublicDanceStyles(): Promise<DanceStyle[]> {
@@ -107,12 +79,7 @@ export async function fetchPrimaryBranch(): Promise<Branch> {
 export async function fetchPublicSocialLinks(): Promise<PublicSocialLinks> {
   if (USE_MOCK) return {};
 
-  try {
-    return await loadCachedSocialLinks();
-  } catch (error) {
-    console.error("[public-site] could not load public social links", error);
-    return {};
-  }
+  return loadSocialLinks();
 }
 
 export async function fetchPublicFaq(): Promise<FaqItem[]> {
@@ -123,36 +90,31 @@ export async function fetchPublicFaq(): Promise<FaqItem[]> {
 export async function fetchSiteImages(): Promise<Record<keyof typeof mockImages, PublicImage>> {
   if (USE_MOCK) return mockImages;
 
-  try {
-    const configured = await loadCachedSiteImages();
-    const makeImage = (
-      image: { src: string; width?: number; height?: number } | undefined,
-      fallback: PublicImage,
-      alt: string
-    ) => image
-      ? { ...fallback, ...image, alt, isPlaceholder: false, credit: undefined }
-      : fallback;
+  const configured = await loadSiteImages();
+  const makeImage = (
+    image: { src: string; width?: number; height?: number } | undefined,
+    fallback: PublicImage,
+    alt: string
+  ) => image
+    ? { ...fallback, ...image, alt, isPlaceholder: false, credit: undefined }
+    : fallback;
 
-    return {
-      ...mockImages,
-      spaceBarre: makeImage(
-        configured.academySpace.tall,
-        mockImages.spaceBarre,
-        "Salón de M&M Academia de Baile"
-      ),
-      spaceGroup: makeImage(
-        configured.academySpace.wide,
-        mockImages.spaceGroup,
-        "Clase en el salón de M&M Academia de Baile"
-      ),
-      spaceClass: makeImage(
-        configured.academySpace.detail,
-        mockImages.spaceClass,
-        "Detalle del salón de M&M Academia de Baile"
-      )
-    };
-  } catch (error) {
-    console.error("[public-site] could not load configured site images", error);
-    return mockImages;
-  }
+  return {
+    ...mockImages,
+    spaceBarre: makeImage(
+      configured.academySpace.tall,
+      mockImages.spaceBarre,
+      "Salón de M&M Academia de Baile"
+    ),
+    spaceGroup: makeImage(
+      configured.academySpace.wide,
+      mockImages.spaceGroup,
+      "Clase en el salón de M&M Academia de Baile"
+    ),
+    spaceClass: makeImage(
+      configured.academySpace.detail,
+      mockImages.spaceClass,
+      "Detalle del salón de M&M Academia de Baile"
+    )
+  };
 }

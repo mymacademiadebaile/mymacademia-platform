@@ -13,6 +13,7 @@ import { breadcrumbJsonLd, jsonLdGraph, personJsonLd } from "@/lib/public-site/j
 import {
   fetchPublicDanceStyles,
   fetchPublicProfessor,
+  fetchPublicProfessors,
   fetchPublicSchedule,
   fetchSiteImages,
   fetchUpcomingClasses
@@ -22,6 +23,10 @@ import { whatsappHref } from "@/lib/public-site/site";
 
 interface ProfessorPageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  return (await fetchPublicProfessors()).filter((professor) => !professor.isPlaceholder).map((professor) => ({ slug: professor.slug }));
 }
 
 export async function generateMetadata({ params }: ProfessorPageProps): Promise<Metadata> {
