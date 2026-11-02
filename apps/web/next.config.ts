@@ -52,6 +52,13 @@ const nextConfig: NextConfig = {
       destination: `${OFFICIAL_ORIGIN}${source}`,
       permanent: true
     }));
+  },
+  async rewrites() {
+    // Outside Vercel (e.g. Render) /api/* does not go through vercel.json routing:
+    // Next proxies it to the API service so auth cookies stay same-origin.
+    const apiOrigin = process.env.API_INTERNAL_URL?.replace(/\/+$/, "");
+    if (!apiOrigin) return [];
+    return [{ source: "/api/:path*", destination: `${apiOrigin}/api/:path*` }];
   }
 };
 
