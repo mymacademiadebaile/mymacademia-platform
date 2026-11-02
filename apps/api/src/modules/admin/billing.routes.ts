@@ -22,6 +22,7 @@ import {
   ensureClassCharge,
   generateMonthlyCharges,
   planMonthlyCharge,
+  priceCents,
   voidCharge
 } from "../billing/charge-service";
 import { ChargeModel, type Charge } from "../billing/charge.model";
@@ -47,6 +48,8 @@ import { duplicateChargeError, loadChargeContext } from "../payments/payment-cha
 import { ensureReceiptSequence } from "../payments/sequence.model";
 import { formatReceiptMoney, receiptPdfBuffer, writeReceiptPdf, type ReceiptData } from "../payments/receipt-pdf";
 import { calendarDateSchema, objectIdSchema, receivedAtInputSchema } from "./admin.schemas";
+import { quotePromotion, recordPromotionAdjustment } from "../promotions/promotion-service";
+import { PromotionModel } from "../promotions/promotion.model";
 
 const periodSchema = z.string().regex(PERIOD_PATTERN, "El período debe tener formato YYYY-MM");
 /** Pesos with at most two decimals, converted to integer cents. */
@@ -62,8 +65,32 @@ const actorOf = (request: Express.Request) => ({
   userId: request.auth!.userId
 });
 
+async function assertSessionPromotionRequiresSession(input: {
+  organizationId: string;
+  classId: string;
+  studentId: string;
+  enrollment?: { priceOverride?: { perClassCents?: number } } | null;
+  serviceDate: string;
+  amountCents: number;
+}) {
+  const promotions = await PromotionModel.find({
+    organizationId: input.organizationId, classId: input.classId, appliesTo: "CLASS_FEE",
+    sessionId: { $exists: true }, benefitFrom: { $lte: input.serviceDate }, benefitTo: { $gte: input.serviceDate }
+  }).select("_id sessionId").lean();
+  for (const promotion of promotions) {
+    const quote = await quotePromotion({
+      organizationId: input.organizationId, classId: input.classId, studentId: input.studentId,
+      enrollment: input.enrollment, kind: "CLASS_FEE", period: periodOf(input.serviceDate),
+      serviceDate: input.serviceDate, sessionId: promotion.sessionId, amountCents: input.amountCents
+    });
+    if (quote && String(quote.promotionId) === String(promotion._id)) {
+      throw new AppError(409, "Esta promoción corresponde a una sesión concreta. Registrá el cargo desde Clase del día", "PROMOTION_SESSION_ONLY");
+    }
+  }
+}
+
 /** API view of a charge: amounts in pesos plus its state today. */
-function presentCharge(charge: ChargeView & Partial<Pick<Charge, "origin" | "joinPolicy" | "voidReason">>, today = academyNow().date) {
+function presentCharge(charge: ChargeView & Partial<Pick<Charge, "origin" | "joinPolicy" | "voidReason" | "promotionName" | "promotionDiscountCents">>, today = academyNow().date) {
   const state = chargeState(charge, today);
   return {
     id: String(charge._id),
@@ -87,6 +114,8 @@ function presentCharge(charge: ChargeView & Partial<Pick<Charge, "origin" | "joi
     overdue: state.overdue,
     origin: charge.origin ?? (charge.legacy ? "MIGRATED" : "MANUAL"),
     joinPolicy: charge.joinPolicy ?? null,
+    promotionName: charge.promotionName ?? null,
+    promotionDiscount: toPesos(charge.promotionDiscountCents ?? 0),
     voidReason: charge.voidReason ?? null,
     legacyPaymentId: charge.legacyPaymentId ? String(charge.legacyPaymentId) : charge.legacy ? String(charge._id) : null,
     createdAt: charge.createdAt
@@ -249,11 +278,19 @@ adminBillingRouter.post("/charges", async (request, response, next) => {
     if (input.serviceDate && periodOf(input.serviceDate) !== input.period) {
       throw new AppError(422, "El período no coincide con la fecha de la clase", "INVALID_PERIOD");
     }
-    const charge = await createManualCharge(
+    if (input.kind === "CLASS_FEE" && input.classId) {
+      const enrollment = await EnrollmentModel.findOne({ organizationId, classId: input.classId, studentId: input.studentId }).lean();
+      await assertSessionPromotionRequiresSession({
+        organizationId, classId: input.classId, studentId: input.studentId,
+        enrollment, serviceDate: input.serviceDate!, amountCents: input.amount
+      });
+    }
+    const charge = await withTransaction((dbSession) => createManualCharge(
       actorOf(request),
-      { ...input, amountCents: input.amount },
-      student.branchId
-    );
+      { ...input, amountCents: input.amount, applyPromotions: input.kind !== "OTHER" },
+      student.branchId,
+      dbSession
+    ));
     response.status(201).json(presentCharge(charge.toObject()));
   } catch (error) {
     next(error);
@@ -778,6 +815,10 @@ adminBillingRouter.post("/sessions/:id/collect", async (request, response, next)
       charge = result.charge;
     }
     if (charge.status !== "OPEN" || charge.balanceCents <= 0) {
+      if (charge.promotionDiscountCents && charge.paidCents === 0) {
+        response.json({ collection: null, charge: presentCharge(charge.toObject()), replayed: true });
+        return;
+      }
       throw new AppError(409, "No hay saldo pendiente para esta clase", "NOTHING_TO_COLLECT");
     }
     const amountCents = input.amount ?? charge.balanceCents;
@@ -844,7 +885,7 @@ adminBillingRouter.post("/classes/:id/collect", async (request, response, next) 
     };
     if (await replay()) return;
 
-    const { student, danceClass } = await loadChargeContext(actor.organizationId, { studentId: input.studentId, classId }, input.paymentType);
+    const { student, danceClass, enrollment } = await loadChargeContext(actor.organizationId, { studentId: input.studentId, classId }, input.paymentType);
     const kind = input.paymentType === "MONTHLY" ? "MONTHLY_FEE" : "CLASS_FEE";
     const period = input.paymentType === "MONTHLY" ? input.period! : periodOf(input.serviceDate!);
     const receivedAt = input.receivedAt ?? new Date();
@@ -856,41 +897,51 @@ adminBillingRouter.post("/classes/:id/collect", async (request, response, next) 
       kind,
       status: { $ne: "VOID" },
       ...(kind === "MONTHLY_FEE" ? { period } : { serviceDate: input.serviceDate })
-    }).lean<ChargeView & { status: string; balanceCents: number }>();
+    }).lean<ChargeView & { status: string; balanceCents: number; promotionDiscountCents?: number }>();
     if (existingCharge && (existingCharge.status !== "OPEN" || existingCharge.balanceCents <= 0)) {
+      if (existingCharge.promotionDiscountCents && existingCharge.paidCents === 0) {
+        response.json({ collection: null, charge: presentCharge(existingCharge), replayed: true });
+        return;
+      }
       throw duplicateChargeError(input.paymentType);
     }
 
-    const defaultAmount = kind === "CLASS_FEE" ? danceClass.pricePerClass ?? 0 : danceClass.monthlyPrice ?? 0;
-    const chargeCents = input.amount ?? toCents(defaultAmount);
-    if (!existingCharge && chargeCents <= 0) {
-      throw new AppError(422, "Configurá un importe mayor a cero para registrar el cobro", "INVALID_PAYMENT_AMOUNT");
+    if (!existingCharge && kind === "CLASS_FEE") {
+      await assertSessionPromotionRequiresSession({
+        organizationId: actor.organizationId, classId: String(danceClass._id), studentId: String(student._id),
+        enrollment, serviceDate: input.serviceDate!, amountCents: priceCents(danceClass, enrollment, "CLASS_FEE")
+      });
     }
+
+    const chargeCents = kind === "CLASS_FEE" ? priceCents(danceClass, enrollment, "CLASS_FEE") : 0;
+    if (!existingCharge && kind === "CLASS_FEE" && chargeCents <= 0) throw new AppError(422, "La clase no tiene precio configurado", "ZERO_PRICE");
 
     // The receipt sequence must exist before the transaction starts (it is not visible to a snapshot taken earlier).
     await ensureReceiptSequence(actor.organizationId);
     let result;
     try {
       result = await withTransaction(async (dbSession) => {
-        const created = existingCharge
-          ? null
-          : await createManualCharge(
-              actor,
-              {
-                studentId: String(student._id),
-                classId: String(danceClass._id),
-                kind,
-                period,
-                serviceDate: kind === "CLASS_FEE" ? input.serviceDate : undefined,
-                concept: (kind === "CLASS_FEE" ? "Clase · " : "Mensualidad · ") + danceClass.name,
-                amountCents: chargeCents,
-                dueDate: kind === "CLASS_FEE" ? input.serviceDate! : academyDateOf(receivedAt)
-              },
-              student.branchId,
-              dbSession
-            );
+        let created: HydratedDocument<Charge> | null = null;
+        if (!existingCharge && kind === "MONTHLY_FEE") {
+          await DanceClassModel.updateOne(
+            { _id: danceClass._id, organizationId: actor.organizationId },
+            { $inc: { lockVersion: 1 } }, { session: dbSession }
+          );
+          const planned = await planMonthlyCharge(actor.organizationId, enrollment.toObject(), danceClass, period, { dbSession });
+          if (!planned.charge) throw new AppError(422, "Primero definí la mensualidad de este alumno", `MONTHLY_CHARGE_${planned.skip}`);
+          [created] = await ChargeModel.create([{ ...planned.charge, origin: "MANUAL", createdByUserId: actor.userId }], { session: dbSession });
+          await recordPromotionAdjustment(created, dbSession, actor.userId);
+        } else if (!existingCharge) {
+          created = await createManualCharge(actor, {
+            studentId: String(student._id), classId: String(danceClass._id), kind,
+            period, serviceDate: input.serviceDate,
+            concept: "Clase · " + danceClass.name,
+            amountCents: chargeCents, dueDate: input.serviceDate!, applyPromotions: true
+          }, student.branchId, dbSession);
+        }
         const chargeId = String(existingCharge?._id ?? created!._id);
         const balanceCents = existingCharge?.balanceCents ?? created!.balanceCents;
+        if (balanceCents <= 0) return { collected: null, chargeId };
         const collectCents = Math.min(input.amount ?? balanceCents, balanceCents);
         try {
           const collected = await registerCollection(
@@ -918,7 +969,7 @@ adminBillingRouter.post("/classes/:id/collect", async (request, response, next) 
       throw error;
     }
     const charge = await ChargeModel.findById(result.chargeId).lean<ChargeView>();
-    response.status(201).json({ collection: presentCollection(result.collected.collection), charge: presentCharge(charge!), replayed: false });
+    response.status(201).json({ collection: result.collected ? presentCollection(result.collected.collection) : null, charge: presentCharge(charge!), replayed: false });
   } catch (error) {
     next(error);
   }

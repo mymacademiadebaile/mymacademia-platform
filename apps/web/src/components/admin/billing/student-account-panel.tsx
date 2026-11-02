@@ -233,12 +233,13 @@ export function StudentAccountPanel({ studentId, onChanged }: { studentId: strin
                 {charge.className ? " · " + charge.className : ""} · vence {formatDateOnly(charge.dueDate)} · {formatMoney(charge.owed)}
                 {charge.paid > 0 && charge.balance > 0 ? " · pagado " + formatMoney(charge.paid) : ""}
                 {charge.adjustments ? " · ajustes " + formatMoney(charge.adjustments) : ""}
+                {charge.promotionName ? " · promoción " + charge.promotionName : ""}
                 {charge.legacy ? " · sistema anterior" : ""}
               </small>
             </div>
             <div className={styles.participantActions}>
               <span className={`${styles.badge} ${statusClass(charge.status)}`}>
-                {CHARGE_STATUS_LABEL[charge.status]}
+                {charge.status === "PAID" && charge.promotionDiscount && charge.paid === 0 ? "Bonificado" : CHARGE_STATUS_LABEL[charge.status]}
                 {charge.balance > 0 && charge.status !== "VOID" ? " · " + formatMoney(charge.balance) : ""}
               </span>
               {!charge.legacy && charge.status !== "VOID" && charge.balance > 0 && (

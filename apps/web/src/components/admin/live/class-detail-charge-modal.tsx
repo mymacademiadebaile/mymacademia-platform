@@ -54,8 +54,8 @@ export function ClassChargeModal({
       ) : (
         <Field label="Período"><input name="period" type="month" defaultValue={todayInArgentina().slice(0, 7)} required /></Field>
       )}
-      <Field label="Importe">
-        <input value={chargeAmount || ""} onChange={(event) => onAmountChange(Number(event.target.value))} type="number" min="1" step="0.01" required />
+      <Field label="Dinero recibido (opcional)">
+        <input value={chargeAmount || ""} onChange={(event) => onAmountChange(Number(event.target.value))} type="number" min="0.01" step="0.01" placeholder="Vacío: cobrar el saldo calculado" />
       </Field>
       <Field label="Medio de pago">
         <select name="paymentMethod" defaultValue="CASH" required>

@@ -5,7 +5,7 @@ import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import type { BillingPreference, DanceClass } from "./live-types";
 import type { Enrollment } from "./class-detail-types";
 import { newIdempotencyKey } from "../scheduling/scheduling-types";
-import { monthlyPriceFor, normalizedMode, preferenceForClass } from "./class-detail-helpers";
+import { normalizedMode, preferenceForClass } from "./class-detail-helpers";
 
 export function useClassCharge(danceClass: DanceClass | null) {
   const { toast } = useAdminFeedback();
@@ -23,13 +23,13 @@ export function useClassCharge(danceClass: DanceClass | null) {
     setChargingEnrollment(enrollment);
     setChargeKey(newIdempotencyKey());
     setChargePaymentType(paymentType);
-    setChargeAmount(paymentType === "MONTHLY" ? monthlyPriceFor(danceClass, enrollment.monthlyPlan) : danceClass.pricePerClass ?? 0);
+    setChargeAmount(0);
   }
 
   function changeChargePaymentType(paymentType: BillingPreference) {
     if (!danceClass) return;
     setChargePaymentType(paymentType);
-    setChargeAmount(paymentType === "MONTHLY" ? monthlyPriceFor(danceClass) : danceClass.pricePerClass ?? 0);
+    setChargeAmount(0);
   }
 
   async function registerCharge(event: FormEvent<HTMLFormElement>) {
@@ -40,23 +40,25 @@ export function useClassCharge(danceClass: DanceClass | null) {
     setChargeSubmitting(true);
 
     try {
-      const result = await apiFetch<{ collection: { id: string } }>("/admin/billing/classes/" + danceClass._id + "/collect", {
+      const result = await apiFetch<{ collection: { id: string } | null }>("/admin/billing/classes/" + danceClass._id + "/collect", {
         method: "POST",
         body: JSON.stringify({
           studentId: chargingEnrollment.studentId._id,
           paymentType: chargePaymentType,
           serviceDate: chargePaymentType === "PER_CLASS" ? form.get("classDate") : undefined,
           period: chargePaymentType === "MONTHLY" ? form.get("period") : undefined,
-          amount: chargeAmount,
+          amount: chargeAmount > 0 ? chargeAmount : undefined,
           method: form.get("paymentMethod"),
           receivedAt: form.get("paidAt") || undefined,
           notes: form.get("notes") || undefined,
           idempotencyKey: chargeKey
         })
       });
-      const proofError = await tryUploadProof(result.collection.id, proofFileOf(form));
+      const proofError = result.collection ? await tryUploadProof(result.collection.id, proofFileOf(form)) : null;
       setChargingEnrollment(null);
-      toast(collectedToast(proofError, chargingEnrollment.studentId.firstName + " " + chargingEnrollment.studentId.lastName + " · " + danceClass.name));
+      toast(result.collection
+        ? collectedToast(proofError, chargingEnrollment.studentId.firstName + " " + chargingEnrollment.studentId.lastName + " · " + danceClass.name)
+        : { title: "Clase bonificada", description: "El cargo quedó cubierto por la promoción, sin registrar dinero recibido.", tone: "success" });
     } catch (requestError) {
       toast({ title: "No se pudo registrar el cobro", description: apiMessage(requestError), tone: "error" });
     } finally {

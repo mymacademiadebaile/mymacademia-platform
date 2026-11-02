@@ -17,7 +17,9 @@ import { StudentModel } from "../students/student.model";
 import { sessionCoverage, type CoverageResult } from "../billing/coverage-service";
 import { ClassSessionModel } from "./class-session.model";
 import { DanceClassModel } from "../classes/class.model";
-import { ensureClassCharge } from "../billing/charge-service";
+import { ensureClassCharge, priceCents } from "../billing/charge-service";
+import { PromotionModel } from "../promotions/promotion.model";
+import { quotePromotion } from "../promotions/promotion-service";
 import { withRequiredTransaction } from "../../common/required-transaction";
 import { attendanceParticipant, assertSeatAvailable, ensureLocks, touchLocks, sessionLockKey, freezeIfEnded, freezeRoster, loadRoster } from "./roster-service";
 
@@ -177,6 +179,31 @@ export async function loadSessionParticipants(
           : resolvedBillingPreference(danceClass, enrollment ? billingModeOn(enrollment, session.sessionDate) : "PER_CLASS");
       return { ...item, student: studentById.get(item.studentId), billingType };
     });
+
+  // Materialize a fully bonified class fee before coverage is read, so reception sees
+  // "Bonificado" instead of offering to collect money that the student does not owe.
+  const perClass = participants.filter((item) => item.billingType === "PER_CLASS");
+  if (perClass.length && ["SCHEDULED", "IN_PROGRESS", "COMPLETED"].includes(session.status)) {
+    const hasPromotion = await PromotionModel.exists({
+      organizationId, classId: session.classId, appliesTo: "CLASS_FEE",
+      benefitFrom: { $lte: session.sessionDate }, benefitTo: { $gte: session.sessionDate },
+      $or: [{ status: "ACTIVE" }, { kind: "TWO_FOR_ONE" }]
+    });
+    if (hasPromotion) {
+      for (const participant of perClass) {
+        const enrollment = participant.enrollmentId ? enrollmentById.get(participant.enrollmentId) : undefined;
+        const amountCents = priceCents(danceClass, enrollment, "CLASS_FEE");
+        const quote = await quotePromotion({
+          organizationId, classId: session.classId, studentId: participant.studentId,
+          enrollment, kind: "CLASS_FEE", period: session.sessionDate.slice(0, 7),
+          serviceDate: session.sessionDate, sessionId: session._id, amountCents
+        });
+        if (quote?.discountCents === amountCents && amountCents > 0) {
+          await ensureClassCharge({ organizationId }, String(session._id), participant.studentId);
+        }
+      }
+    }
+  }
 
   const coverage = await sessionCoverage(organizationId, session, danceClass, participants);
 

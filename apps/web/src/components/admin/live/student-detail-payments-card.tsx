@@ -47,13 +47,13 @@ export function StudentPaymentsCard({
             <div className={styles.paymentRow} key={charge.id}>
               <span>
                 <strong>{charge.concept}</strong>
-                <small>{CHARGE_KIND_LABEL[charge.kind]}</small>
+                <small>{CHARGE_KIND_LABEL[charge.kind]}{charge.promotionName ? ` · ${charge.promotionName}` : ""}</small>
               </span>
               <span>{charge.kind === "CLASS_FEE" && charge.serviceDate ? formatDateOnly(charge.serviceDate) : charge.period}</span>
               <span>{formatDateOnly(charge.dueDate)}</span>
               <span>$ {charge.owed.toLocaleString("es-AR")}</span>
               <span className={status === "PAID" ? styles.statusPaid : status === "OVERDUE" ? styles.statusOverdue : styles.statusPending}>
-                {status === "PAID" ? "Pagado" : status === "OVERDUE" ? "Vencido" : status === "PARTIAL" ? "Pago parcial" : "Pendiente"}
+                {status === "PAID" ? charge.promotionDiscount && charge.paid === 0 ? "Bonificado" : "Pagado" : status === "OVERDUE" ? "Vencido" : status === "PARTIAL" ? "Pago parcial" : "Pendiente"}
               </span>
               <span className={styles.rowActions}>
                 {open && (

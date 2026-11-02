@@ -50,6 +50,8 @@ type SessionParticipant = {
     balanceAmount?: number;
     paymentMethod?: string;
     receiptNumber?: string;
+    promotionName?: string;
+    bonified?: boolean;
   };
 };
 
@@ -94,6 +96,7 @@ function paymentLabel(participant: SessionParticipant) {
 
   if (status === "FREE") return participant.participantType === "TRIAL" ? "Prueba gratis" : participant.participantType === "COURTESY" ? "Cortesía" : "Sin cargo";
   if (status === "PAID") {
+    if (participant.payment.bonified) return `Bonificado${participant.payment.promotionName ? ` · ${participant.payment.promotionName}` : ""}`;
     // The covering payment can differ from the current billing type (history is kept).
     return (participant.payment.paymentType ?? participant.billingType) === "MONTHLY"
       ? "Mensual al día"
@@ -218,7 +221,7 @@ export function SessionLive({ id }: { id: string }) {
     try {
       // The API creates the class fee (or monthly fee) when it does not exist yet and collects it.
       const amount = hasOpenCharge(paying) || paymentAmount === paying.payment.amount ? undefined : paymentAmount;
-      const result = await apiFetch<{ collection: { id: string } }>("/admin/billing/sessions/" + data.id + "/collect", {
+      const result = await apiFetch<{ collection: { id: string } | null }>("/admin/billing/sessions/" + data.id + "/collect", {
         method: "POST",
         body: JSON.stringify({
           studentId: paying.studentId,
@@ -229,7 +232,9 @@ export function SessionLive({ id }: { id: string }) {
         })
       });
 
-      toast(collectedToast(await tryUploadProof(result.collection.id, proofFileOf(form))));
+      toast(result.collection
+        ? collectedToast(await tryUploadProof(result.collection.id, proofFileOf(form)))
+        : { title: "Clase bonificada", description: "La promoción cubrió el cargo sin registrar un cobro.", tone: "success" });
       setPaying(null);
       await load();
     } catch (requestError) {

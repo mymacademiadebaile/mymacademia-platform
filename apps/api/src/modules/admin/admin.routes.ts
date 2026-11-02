@@ -21,6 +21,7 @@ import { adminNotificationsRouter } from "./notifications.routes";
 import { adminSessionsRouter } from "./sessions.routes";
 import { adminUsersRouter } from "./users.routes";
 import { adminBillingRouter } from "./billing.routes";
+import { adminPromotionsRouter } from "./promotions.routes";
 import {
   adminCalendarRouter,
   adminHolidaysRouter,
@@ -50,6 +51,7 @@ adminRouter.use("/spaces", adminSpacesRouter);
 adminRouter.use("/holidays", adminHolidaysRouter);
 adminRouter.use("/payments", adminPaymentsRouter);
 adminRouter.use("/billing", adminBillingRouter);
+adminRouter.use("/promotions", adminPromotionsRouter);
 adminRouter.use("/communications", adminCommunicationsRouter);
 adminRouter.use("/notifications", adminNotificationsRouter);
 adminRouter.use("/audit", adminAuditRouter);

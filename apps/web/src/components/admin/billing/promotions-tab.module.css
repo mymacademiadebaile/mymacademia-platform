@@ -1,0 +1,26 @@
+.page { display: grid; gap: 18px; }
+.intro { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+.intro h2 { margin: 0; color: #241334; font-size: 22px; }
+.intro p, .card p, .note { margin: 6px 0 0; color: #675e6c; font-size: 13px; line-height: 1.5; }
+.intro > button, .actions button { min-height: 38px; padding: 0 13px; border: 0; border-radius: 9px; background: #5b21b6; color: #fff; font-size: 12px; font-weight: 750; cursor: pointer; }
+.list { display: grid; gap: 10px; }
+.card { padding: 16px; border: 1px solid #e7e0eb; border-radius: 13px; background: #fff; }
+.cardTop { display: flex; justify-content: space-between; gap: 14px; }
+.card small { color: #6d28d9; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.card h3 { margin: 5px 0 0; color: #251a2c; font-size: 17px; }
+.active, .inactive { height: fit-content; padding: 5px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+.active { background: #ede9fe; color: #5b21b6; }
+.inactive { background: #f1eef2; color: #756b7a; }
+.actions { display: flex; gap: 8px; margin-top: 13px; }
+.pairs { display: grid; gap: 6px; margin-top: 13px; padding-top: 12px; border-top: 1px solid #eee8f1; }
+.pair { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #43394a; font-size: 12px; }
+.pair button { border: 0; background: transparent; color: #5b21b6; font-size: 12px; font-weight: 700; cursor: pointer; }
+.actions .secondary { border: 1px solid #ded5e5; background: #fff; color: #4b3f54; }
+.presets { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; grid-column: 1 / -1; color: #5d5264; font-size: 12px; font-weight: 700; }
+.presets button { padding: 6px 8px; border: 1px solid #d9c9ee; border-radius: 6px; background: #faf8ff; color: #5b21b6; cursor: pointer; }
+.note { grid-column: 1 / -1; }
+.preview { display: grid; gap: 5px; grid-column: 1 / -1; padding: 12px; border: 1px solid #d9c9ee; border-radius: 9px; background: #faf8ff; color: #32263a; font-size: 13px; }
+.preview small { color: #5b21b6; font-size: 12px; }
+.empty, .error { padding: 16px; border: 1px solid #e7e0eb; border-radius: 10px; color: #675e6c; font-size: 13px; }
+.error { color: #b42318; }
+@media (max-width: 640px) { .intro { flex-direction: column; } }

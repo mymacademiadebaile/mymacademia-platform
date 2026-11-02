@@ -17,6 +17,8 @@ export interface FinancialAdjustment {
   reason: string;
   accountingDate: string;
   sourceChargeIds: Types.ObjectId[];
+  promotionId?: Types.ObjectId;
+  promotionPairId?: Types.ObjectId;
   createdByUserId?: Types.ObjectId;
 }
 
@@ -30,9 +32,16 @@ const financialAdjustmentSchema = new Schema<FinancialAdjustment>(
     reason: { type: String, required: true, trim: true, maxlength: 500 },
     accountingDate: { type: String, required: true, match: /^\d{4}-\d{2}-\d{2}$/ },
     sourceChargeIds: { type: [Schema.Types.ObjectId], default: [] },
+    promotionId: { type: Schema.Types.ObjectId, ref: "Promotion" },
+    promotionPairId: { type: Schema.Types.ObjectId, ref: "PromotionPair" },
     createdByUserId: { type: Schema.Types.ObjectId, ref: "User" }
   },
   { timestamps: true }
+);
+
+financialAdjustmentSchema.index(
+  { organizationId: 1, chargeId: 1, promotionId: 1 },
+  { unique: true, partialFilterExpression: { promotionId: { $type: "objectId" } } }
 );
 
 export const FinancialAdjustmentModel = model<FinancialAdjustment>("FinancialAdjustment", financialAdjustmentSchema);

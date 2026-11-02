@@ -34,6 +34,8 @@ import { DanceClassModel } from "../classes/class.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { OrganizationModel } from "../core/organization.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
+import { priceCents } from "../billing/charge-service";
+import { quotePromotion } from "../promotions/promotion-service";
 import { loadRoster } from "../sessions/roster-service";
 import {
   dateOnlyInputSchema,
@@ -220,6 +222,21 @@ async function buildPaymentFilter(
 }
 
 export const adminPaymentsRouter = Router();
+
+async function assertNoPromotedLegacyCharge(input: {
+  organizationId: string; studentId: Types.ObjectId; classId: Types.ObjectId;
+  enrollment: any; danceClass: any; paymentType: "MONTHLY" | "PER_CLASS";
+  period: string; classDateKey?: string; sessionId?: Types.ObjectId;
+}) {
+  const kind = input.paymentType === "MONTHLY" ? "MONTHLY_FEE" : "CLASS_FEE";
+  const quote = await quotePromotion({
+    organizationId: input.organizationId, classId: input.classId, studentId: input.studentId,
+    enrollment: input.enrollment, kind, period: input.period,
+    serviceDate: input.classDateKey, sessionId: input.sessionId,
+    amountCents: priceCents(input.danceClass, input.enrollment, kind)
+  });
+  if (quote) throw new AppError(409, "Este alumno tiene una promoción. Registrá el cargo y el cobro desde Cobros para conservar el descuento", "PROMOTION_USE_BILLING");
+}
 
 adminPaymentsRouter.get("/", async (request, response, next) => {
   try {
@@ -507,6 +524,11 @@ adminPaymentsRouter.post("/quick-charge", async (request, response, next) => {
       organizationId, classId: input.classId, enrollmentId: enrollment._id,
       paymentType: input.paymentType, sessionId: input.sessionId, classDate: classDateKey
     });
+    await assertNoPromotedLegacyCharge({
+      organizationId, studentId: student._id, classId: danceClass._id,
+      enrollment, danceClass, paymentType: input.paymentType, period,
+      classDateKey, sessionId: session?._id
+    });
     const defaultAmount =
       input.paymentType === "PER_CLASS"
         ? danceClass.pricePerClass ?? 0
@@ -598,6 +620,11 @@ adminPaymentsRouter.post("/", async (request, response, next) => {
     const session = await resolveChargeSession({
       organizationId, classId: input.classId, enrollmentId: enrollment._id,
       paymentType: input.paymentType, sessionId: input.sessionId, classDate: classDateKey
+    });
+    await assertNoPromotedLegacyCharge({
+      organizationId, studentId: student._id, classId: danceClass._id,
+      enrollment, danceClass, paymentType: input.paymentType, period,
+      classDateKey, sessionId: session?._id
     });
 
     await assertNoActiveDuplicate({

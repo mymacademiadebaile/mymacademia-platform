@@ -18,6 +18,8 @@ export interface CoverageResult {
   /** Id of the legacy Payment when the coverage comes from one (older screens use it). */
   paymentId?: string;
   chargeId?: string;
+  promotionName?: string;
+  bonified?: boolean;
   /** Pesos, for compatibility with screens that show amounts in pesos. */
   amount: number;
   paidAmount: number;
@@ -141,6 +143,8 @@ export function pickCoverage(
     paymentType: best.view.kind === "MONTHLY_FEE" ? "MONTHLY" : "PER_CLASS",
     paymentId: best.view.legacyPaymentId ? String(best.view.legacyPaymentId) : undefined,
     chargeId: String(best.view._id),
+    promotionName: (best.view as ChargeView & { promotionName?: string }).promotionName,
+    bonified: Boolean((best.view as ChargeView & { promotionDiscountCents?: number }).promotionDiscountCents && best.state.paidCents === 0 && best.state.balanceCents === 0),
     amount: toPesos(best.state.owedCents),
     paidAmount: toPesos(best.state.paidCents),
     balanceAmount: toPesos(best.state.balanceCents),

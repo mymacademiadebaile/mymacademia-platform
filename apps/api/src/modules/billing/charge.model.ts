@@ -43,6 +43,11 @@ export interface Charge {
   /** Unique identity while the charge is not void. */
   chargeKey?: string;
   joinPolicy?: MidMonthPolicy;
+  /** Immutable snapshot of the automatic benefit granted when this charge was created. */
+  promotionId?: Types.ObjectId;
+  promotionPairId?: Types.ObjectId;
+  promotionName?: string;
+  promotionDiscountCents?: number;
   legacyPaymentId?: Types.ObjectId;
   notes?: string;
   createdByUserId?: Types.ObjectId;
@@ -75,6 +80,10 @@ const chargeSchema = new Schema<Charge>(
     origin: { type: String, enum: CHARGE_ORIGINS, default: "MANUAL" },
     chargeKey: { type: String },
     joinPolicy: { type: String, enum: MID_MONTH_POLICIES },
+    promotionId: { type: Schema.Types.ObjectId, ref: "Promotion" },
+    promotionPairId: { type: Schema.Types.ObjectId, ref: "PromotionPair" },
+    promotionName: { type: String, trim: true, maxlength: 120 },
+    promotionDiscountCents: { type: Number, min: 0 },
     legacyPaymentId: { type: Schema.Types.ObjectId, ref: "Payment" },
     notes: { type: String, trim: true, maxlength: 1000 },
     createdByUserId: { type: Schema.Types.ObjectId, ref: "User" },

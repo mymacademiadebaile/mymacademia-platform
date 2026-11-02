@@ -19,6 +19,7 @@ import { BillingPeriodModel } from "./billing-period.model";
 import { ChargeModel, classChargeKey, classDayChargeKey, monthlyChargeKey } from "./charge.model";
 import { coveringSessions, hasMonthlyCoverage } from "./coverage-service";
 import { unmirroredLegacyPayments } from "./legacy-adapter";
+import { promotedChargeFields, quotePromotion, recordPromotionAdjustment } from "../promotions/promotion-service";
 
 export interface Actor {
   organizationId: string;
@@ -91,6 +92,8 @@ export interface MonthlyChargeOptions {
   policy?: MidMonthPolicy;
   customCents?: number;
   dueDay?: number;
+  dbSession?: ClientSession;
+  assumeBeneficiaryPromotionId?: string;
 }
 
 /**
@@ -152,6 +155,11 @@ export async function planMonthlyCharge(
   if (listCents <= 0) return { skip: "ZERO_PRICE" };
 
   const dueDay = options.dueDay ?? settings.monthlyDueDay;
+  const promotion = await quotePromotion({
+    organizationId, classId: danceClass._id, studentId: enrollment.studentId,
+    enrollment, kind: "MONTHLY_FEE", period, amountCents, dbSession: options.dbSession,
+    assumeBeneficiaryPromotionId: options.assumeBeneficiaryPromotionId
+  });
   return {
     charge: {
       organizationId: new Types.ObjectId(organizationId),
@@ -164,11 +172,9 @@ export async function planMonthlyCharge(
       concept: `Mensualidad ${period} · ${danceClass.name}`,
       listCents,
       amountCents,
-      adjustmentsCents: 0,
+      ...promotedChargeFields(amountCents, promotion),
       paidCents: 0,
-      balanceCents: amountCents,
       dueDate: monthlyDueDate(period, dueDay, joinedOn),
-      status: amountCents > 0 ? "OPEN" : "PAID",
       origin: "GENERATED",
       chargeKey: monthlyChargeKey(enrollment.studentId, danceClass._id, period),
       ...(policy ? { joinPolicy: policy } : {})
@@ -213,7 +219,7 @@ export async function generateMonthlyCharges(
   );
 
   const pendingDecision: Array<{ enrollmentId: string; studentId: string; classId: string; joinedOn: string }> = [];
-  const documents: Array<Record<string, unknown>> = [];
+  const documents: Array<{ enrollment: any; danceClass: any }> = [];
   for (const enrollment of enrollments) {
     const danceClass = classById.get(String(enrollment.classId));
     if (!danceClass) continue;
@@ -228,18 +234,30 @@ export async function generateMonthlyCharges(
         joinedOn: joined?.startDate ?? from
       });
     }
-    if (planned.charge) documents.push(planned.charge);
+    if (planned.charge) documents.push({ enrollment, danceClass });
   }
 
   let created = 0;
-  if (documents.length) {
+  for (const { enrollment, danceClass } of documents) {
     try {
-      const inserted = await ChargeModel.insertMany(documents, { ordered: false });
-      created = inserted.length;
-    } catch (error: any) {
-      const failures = error?.writeErrors ?? [];
-      if (!failures.length || failures.some((item: any) => (item.code ?? item.err?.code) !== 11000)) throw error;
-      created = error?.insertedDocs?.length ?? documents.length - failures.length;
+      const inserted = await withTransaction(async (dbSession) => {
+        // Campaign creation touches the same class lock. Re-quote inside this
+        // transaction so a concurrent campaign cannot leave a full-price fee.
+        await DanceClassModel.updateOne(
+          { _id: danceClass._id, organizationId: actor.organizationId },
+          { $inc: { lockVersion: 1 } }, { session: dbSession }
+        );
+        const planned = await planMonthlyCharge(actor.organizationId, enrollment, danceClass, period, {
+          dueDay: settings.monthlyDueDay, dbSession
+        });
+        if (!planned.charge) return false;
+        const [charge] = await ChargeModel.create([planned.charge], { session: dbSession });
+        await recordPromotionAdjustment(charge, dbSession, actor.userId);
+        return true;
+      });
+      if (inserted) created += 1;
+    } catch (error) {
+      if (!isDuplicateKey(error)) throw error;
     }
   }
 
@@ -308,7 +326,17 @@ export async function createMonthlyChargeForEnrollment(
   }
 
   try {
-    const charge = await ChargeModel.create({ ...planned.charge, origin: "MANUAL", createdByUserId: actor.userId });
+    const charge = await withTransaction(async (dbSession) => {
+      await DanceClassModel.updateOne(
+        { _id: danceClass._id, organizationId: actor.organizationId },
+        { $inc: { lockVersion: 1 } }, { session: dbSession }
+      );
+      const current = await planMonthlyCharge(actor.organizationId, enrollment, danceClass, period, { ...options, dbSession });
+      if (!current.charge) throw new AppError(422, "La mensualidad ya no corresponde a esta inscripción", "MONTHLY_CHARGE_CHANGED");
+      const [created] = await ChargeModel.create([{ ...current.charge, origin: "MANUAL", createdByUserId: actor.userId }], { session: dbSession });
+      await recordPromotionAdjustment(created, dbSession, actor.userId);
+      return created;
+    });
     await AuditLogModel.create({
       organizationId: actor.organizationId,
       actorUserId: actor.userId,
@@ -331,7 +359,7 @@ export async function createMonthlyChargeForEnrollment(
  * 3. an existing class fee (also of the original session when rescheduled) is returned as is;
  * 4. otherwise a new CLASS_FEE is created, due on the class day.
  */
-export async function ensureClassCharge(actor: Actor, sessionId: string, studentId: string, dbSession?: ClientSession) {
+async function ensureClassChargeInSession(actor: Actor, sessionId: string, studentId: string, dbSession?: ClientSession) {
   const session = await ClassSessionModel.findOne({ _id: sessionId, organizationId: actor.organizationId }).session(dbSession ?? null).lean<any>();
   if (!session) throw new AppError(404, "Clase del día no encontrada", "CLASS_SESSION_NOT_FOUND");
   if (!["SCHEDULED", "IN_PROGRESS", "COMPLETED"].includes(session.status)) {
@@ -390,6 +418,19 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
   const listCents = priceCents(danceClass, enrollment ?? undefined, "CLASS_FEE");
   if (listCents <= 0) throw new AppError(422, "La clase no tiene precio por clase configurado", "ZERO_PRICE");
 
+  await DanceClassModel.updateOne(
+    { _id: danceClass._id, organizationId: actor.organizationId },
+    { $inc: { lockVersion: 1 } }, { session: dbSession }
+  );
+
+  const promotion = await quotePromotion({
+    organizationId: actor.organizationId,
+    classId: danceClass._id, studentId, enrollment,
+    kind: "CLASS_FEE", period: periodOf(rootDate ?? session.sessionDate),
+    serviceDate: rootDate ?? session.sessionDate, sessionId: rootSessionId,
+    amountCents: listCents, dbSession
+  });
+
   try {
     const [charge] = await ChargeModel.create([{
       organizationId: actor.organizationId,
@@ -404,15 +445,14 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
       concept: `Clase ${rootDate ?? session.sessionDate} · ${danceClass.name}`,
       listCents,
       amountCents: listCents,
-      adjustmentsCents: 0,
+      ...promotedChargeFields(listCents, promotion),
       paidCents: 0,
-      balanceCents: listCents,
       dueDate: rootDate ?? session.sessionDate,
-      status: "OPEN",
       origin: "SESSION",
       chargeKey: classChargeKey(studentId, rootSessionId),
       createdByUserId: actor.userId
     }], { session: dbSession });
+    await recordPromotionAdjustment(charge, dbSession, actor.userId);
     if (actor.userId) {
       await AuditLogModel.create([{
         organizationId: actor.organizationId,
@@ -433,6 +473,16 @@ export async function ensureClassCharge(actor: Actor, sessionId: string, student
   }
 }
 
+export async function ensureClassCharge(actor: Actor, sessionId: string, studentId: string, dbSession?: ClientSession) {
+  if (dbSession) return ensureClassChargeInSession(actor, sessionId, studentId, dbSession);
+  try {
+    return await withTransaction((session) => ensureClassChargeInSession(actor, sessionId, studentId, session));
+  } catch (error) {
+    if (!isDuplicateKey(error)) throw error;
+    return withTransaction((session) => ensureClassChargeInSession(actor, sessionId, studentId, session));
+  }
+}
+
 /** A charge typed by hand (other concepts, or past obligations of inactive students). */
 export async function createManualCharge(
   actor: Actor,
@@ -446,6 +496,7 @@ export async function createManualCharge(
     amountCents: number;
     dueDate: string;
     notes?: string;
+    applyPromotions?: boolean;
   },
   branchId: Types.ObjectId,
   dbSession?: ClientSession
@@ -463,6 +514,25 @@ export async function createManualCharge(
     }
   }
 
+  const enrollment = input.applyPromotions && input.classId
+    ? await EnrollmentModel.findOne({ organizationId: actor.organizationId, classId: input.classId, studentId: input.studentId })
+        .session(dbSession ?? null).lean<any>()
+    : null;
+  if (input.applyPromotions && input.classId) {
+    await DanceClassModel.updateOne(
+      { _id: input.classId, organizationId: actor.organizationId },
+      { $inc: { lockVersion: 1 } }, { session: dbSession }
+    );
+  }
+  const promotion = input.applyPromotions && input.classId && input.kind !== "OTHER"
+    ? await quotePromotion({
+        organizationId: actor.organizationId,
+        classId: input.classId, studentId: input.studentId, enrollment,
+        kind: input.kind, period: input.period, serviceDate: input.serviceDate,
+        amountCents: input.amountCents, dbSession
+      })
+    : null;
+
   try {
     const [charge] = await ChargeModel.create([{
       organizationId: actor.organizationId,
@@ -475,16 +545,15 @@ export async function createManualCharge(
       concept: input.concept,
       listCents: input.amountCents,
       amountCents: input.amountCents,
-      adjustmentsCents: 0,
+      ...promotedChargeFields(input.amountCents, promotion),
       paidCents: 0,
-      balanceCents: input.amountCents,
       dueDate: input.dueDate,
-      status: "OPEN",
       origin: "MANUAL",
       chargeKey,
       notes: input.notes,
       createdByUserId: actor.userId
     }], { session: dbSession });
+    await recordPromotionAdjustment(charge, dbSession, actor.userId);
     await AuditLogModel.create(
       [{
         organizationId: actor.organizationId,

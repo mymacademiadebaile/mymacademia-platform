@@ -24,6 +24,8 @@ export type ChargeView = {
   overdue: boolean;
   origin: string;
   joinPolicy: string | null;
+  promotionName?: string | null;
+  promotionDiscount?: number;
   voidReason: string | null;
   legacyPaymentId: string | null;
   className?: string | null;
