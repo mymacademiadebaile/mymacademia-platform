@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
@@ -28,18 +28,50 @@ export function ReceptionLive() {
   const [view, setView] = useState<"arrivals" | "access">("arrivals"), [busy, setBusy] = useState(false), [accessCode, setAccessCode] = useState<AccessCode | null>(null);
   const [selectedDate, setSelectedDate] = useState(todayInArgentina), [selectedClass, setSelectedClass] = useState(""), [selectedBranch, setSelectedBranch] = useState("");
   const [error, setError] = useState(""), [message, setMessage] = useState(""), [copied, setCopied] = useState(false);
-  const load = useCallback(async () => {
-    const [reception, branchList, deviceList] = await Promise.all([
+  const [refreshing, setRefreshing] = useState(false), [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const pending = useRef<{ date: string; promise: Promise<void> } | null>(null);
+  const requestId = useRef(0), lastReturnRefreshAt = useRef(0);
+  const load = useCallback((force = false): Promise<void> => {
+    if (!force && pending.current?.date === selectedDate) return pending.current.promise;
+    const currentRequest = ++requestId.current;
+    setRefreshing(true);
+    setError("");
+    const promise = Promise.all([
       apiFetch<Reception>(`/admin/check-in/reception?date=${selectedDate}`),
       apiFetch<Branch[]>("/admin/branches"),
       apiFetch<{ items: AccessDevice[] }>("/admin/check-in/devices")
-    ]);
-    const activeBranches = branchList.filter((branch) => branch.isActive);
-    setData(reception); setBranches(activeBranches); setDevices(deviceList.items);
-    setAccessCode((current) => current && deviceList.items.some((device) => device.id === current.deviceId && device.accessState === "PENDING") ? current : null);
-    setSelectedBranch((current) => current && activeBranches.some((branch) => branch._id === current) ? current : (activeBranches[0]?._id ?? ""));
+    ]).then(([reception, branchList, deviceList]) => {
+      if (currentRequest !== requestId.current) return;
+      const activeBranches = branchList.filter((branch) => branch.isActive);
+      setData(reception); setBranches(activeBranches); setDevices(deviceList.items);
+      setAccessCode((current) => current && deviceList.items.some((device) => device.id === current.deviceId && device.accessState === "PENDING") ? current : null);
+      setSelectedBranch((current) => current && activeBranches.some((branch) => branch._id === current) ? current : (activeBranches[0]?._id ?? ""));
+      setLastUpdatedAt(new Date());
+    }).catch((cause) => {
+      if (currentRequest === requestId.current) setError(apiMessage(cause));
+    }).finally(() => {
+      if (currentRequest === requestId.current) setRefreshing(false);
+      if (pending.current?.promise === promise) pending.current = null;
+    });
+    pending.current = { date: selectedDate, promise };
+    return promise;
   }, [selectedDate]);
-  useEffect(() => { void load().catch((cause) => setError(apiMessage(cause))); const timer = setInterval(() => { if (!document.hidden) void load().catch(() => undefined); }, 15000); return () => clearInterval(timer); }, [load]);
+  useEffect(() => {
+    void load();
+    const refreshOnReturn = () => {
+      if (document.hidden) return;
+      const now = Date.now();
+      if (now - lastReturnRefreshAt.current < 1500) return;
+      lastReturnRefreshAt.current = now;
+      void load();
+    };
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    window.addEventListener("focus", refreshOnReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshOnReturn);
+      window.removeEventListener("focus", refreshOnReturn);
+    };
+  }, [load]);
   async function perform<T>(path: string, method: string, body?: object): Promise<{ ok: true; value: T } | { ok: false }> {
     setBusy(true); setError(""); setMessage("");
     try { return { ok: true, value: await apiFetch<T>(path, { method, ...(body ? { body: JSON.stringify(body) } : {}) }) }; }
@@ -52,7 +84,7 @@ export function ReceptionLive() {
     if (result.ok) {
       setAccessCode({ branchId: result.value.branchId, deviceId: result.value.deviceId, code: result.value.activationCode });
       setCopied(false); setMessage("Código generado. El anterior dejó de funcionar.");
-      await load().catch((cause) => setError(apiMessage(cause)));
+      await load(true);
     }
   }
   async function revokeCode() {
@@ -60,7 +92,7 @@ export function ReceptionLive() {
     const result = await perform<void>("/admin/check-in/access-code/revoke", "POST", { branchId: selectedBranch });
     if (result.ok) {
       setAccessCode(null); setCopied(false); toast("Acceso revocado");
-      await load().catch((cause) => setError(apiMessage(cause)));
+      await load(true);
     }
   }
   async function copyCode() { if (!accessCode) return; try { await navigator.clipboard.writeText(accessCode.code); setCopied(true); } catch { setCopied(false); } }
@@ -70,7 +102,7 @@ export function ReceptionLive() {
   const visibleDevices = [...authorizedDevices, ...branchDevices.filter((device) => device.accessState !== "ACTIVE" && device.accessState !== "PENDING").slice(0, 1)];
   const visibleArrivals = data?.arrivals.filter((item) => !selectedClass || String(item.session?.classId._id) === selectedClass) ?? [];
   const indicators = currentClass ? [["Asistencias", currentClass.attendance], ["Cupo", currentClass.capacity], ["Inscriptos", currentClass.enrolled], ["Lugares libres", Math.max(0, currentClass.capacity - currentClass.enrolled)]] : [["Asistencias", data?.arrivals.length ?? 0], ["Cupo total", data?.classes.reduce((total, item) => total + item.capacity, 0) ?? 0], ["Inscriptos", data?.classes.reduce((total, item) => total + item.enrolled, 0) ?? 0], ["Clases", data?.classes.length ?? 0]];
-  return <><PageHeader title="Recepción" description="Presentes del día, avisos financieros y registro de asistencia." /><div className={styles.toolbar}><div className={table.receptionControls}><div className={table.viewTabs} role="tablist" aria-label="Vistas de recepción"><button role="tab" aria-selected={view === "arrivals"} className={view === "arrivals" ? styles.button : styles.secondary} onClick={() => setView("arrivals")}>Llegadas del día</button><button role="tab" aria-selected={view === "access"} className={view === "access" ? styles.button : styles.secondary} onClick={() => setView("access")}>Acceso de tablet</button></div></div><div className={table.quickActions}><Link className={styles.secondary} href="/admin/contacts">Buscar persona y ayudar con QR</Link><Link className={table.registrationAction} href="/asistencia">Registrar asistencia</Link></div><button className={table.refreshButton} aria-label="Actualizar asistencias" title="Actualizar asistencias" onClick={() => void load().catch((cause) => setError(apiMessage(cause)))}><RefreshCw size={18} aria-hidden="true" /></button></div>{error && <p className={styles.error} role="alert">{error}</p>}{message && <p className={styles.message} role="status">{message}</p>}
+  return <><PageHeader title="Recepción" description="Presentes del día, avisos financieros y registro de asistencia." /><div className={styles.toolbar}><div className={table.receptionControls}><div className={table.viewTabs} role="tablist" aria-label="Vistas de recepción"><button role="tab" aria-selected={view === "arrivals"} className={view === "arrivals" ? styles.button : styles.secondary} onClick={() => setView("arrivals")}>Llegadas del día</button><button role="tab" aria-selected={view === "access"} className={view === "access" ? styles.button : styles.secondary} onClick={() => setView("access")}>Acceso de tablet</button></div></div><div className={table.quickActions}><Link className={styles.secondary} href="/admin/contacts">Buscar persona y ayudar con QR</Link><Link className={table.registrationAction} href="/asistencia">Registrar asistencia</Link></div><div className={table.refreshControls}><span role="status">{lastUpdatedAt ? `Última actualización: ${lastUpdatedAt.toLocaleTimeString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: "2-digit", minute: "2-digit" })}` : "Sin actualizar"}</span><button className={table.refreshButton} type="button" disabled={refreshing || busy} onClick={() => void load()}><RefreshCw size={18} aria-hidden="true" />{refreshing ? "Actualizando…" : "Actualizar"}</button></div></div>{error && <p className={styles.error} role="alert">{error}</p>}{message && <p className={styles.message} role="status">{message}</p>}
     {view === "arrivals" ? <section className={styles.surface} aria-busy={!data}><div className={table.arrivalsHeader}><div><h2>Asistencias</h2><p>Consultá quién asistió y la ocupación de cada grupo.</p></div><div className={table.arrivalFilters}><div className={table.dateFilter}><label htmlFor="arrival-date">Fecha</label><input id="arrival-date" type="date" value={selectedDate} max={todayInArgentina()} onChange={(event) => { setSelectedDate(event.target.value); setSelectedClass(""); }} /></div><div className={table.dateFilter}><label htmlFor="arrival-class">Clase</label><select id="arrival-class" value={selectedClass} onChange={(event) => setSelectedClass(event.target.value)}><option value="">Todas las clases</option>{data?.classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div></div></div>{!data ? <p role="status">Cargando asistencias…</p> : <><div className={table.metrics} aria-label="Indicadores de asistencia">{indicators.map(([label, value]) => <div key={String(label)}><strong>{value}</strong><span>{label}</span></div>)}</div><div className={table.arrivalsSummary}><strong>{visibleArrivals.length} {visibleArrivals.length === 1 ? "asistencia" : "asistencias"}</strong><span>{currentClass?.name ?? "Todas las clases"} · {data.date.split("-").reverse().join("/")}</span>{selectedDate !== todayInArgentina() && <button className={table.todayButton} onClick={() => setSelectedDate(todayInArgentina())}>Ver hoy</button>}</div>{!visibleArrivals.length ? <p className={table.empty}>No hay asistencias registradas para este filtro.</p> : <div className={table.tableWrap}><table className={`${table.table} ${table.arrivalsTable}`}><thead><tr><th>Persona</th><th>Clase</th><th>Hora</th></tr></thead><tbody>{visibleArrivals.map((item) => <tr key={item._id}><td><Link href={`/admin/contacts/${item.studentId}`}>{item.personName}</Link><small>{personType(item.participantType)}</small></td><td>{item.session ? <Link href={`/admin/sessions/${item.session._id}`}>{item.session.classId.name}</Link> : "Clase no disponible"}<small>{item.session?.startTime ?? "—"}</small></td><td><strong>{arrivalTime(item.recordedAt)}</strong><small>{arrivalMethod(item)}</small></td></tr>)}</tbody></table></div>}</>}</section>  : <section className={styles.surface}>
       <div className={table.accessHeader}>
         <div><h2>Acceso de tablets</h2><p>Autorizá el Registro de asistencia de cada sede sin compartir una cuenta administrativa.</p></div>

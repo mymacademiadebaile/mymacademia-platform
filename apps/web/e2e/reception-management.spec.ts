@@ -109,3 +109,31 @@ test("admin issues and revokes tablet access, prints a QR and previews reminders
   await page.screenshot({ path: "../../artifacts/reminders-mobile.png", fullPage: true, animations: "disabled" });
   expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test("reception refreshes on demand and on return without polling", async ({ page }) => {
+  await page.request.post(`${API}/api/auth/login`, { data: { login: "admin@example.test", password: "LocalDemoOnly-1234" } });
+  let reads = 0;
+  page.on("request", (request) => {
+    if (/\/api\/admin\/(check-in\/(reception|devices)|branches)(\?|$)/.test(request.url())) reads += 1;
+  });
+  await page.clock.install();
+  await page.goto("/admin/reception");
+  await expect(page.getByText(/Última actualización:/)).toBeVisible();
+  const initialReads = reads;
+
+  await page.clock.fastForward(31_000);
+  expect(reads).toBe(initialReads);
+
+  const refresh = page.getByRole("button", { name: "Actualizar", exact: true });
+  await refresh.click();
+  await expect(refresh).toBeEnabled();
+  await expect.poll(() => reads).toBe(initialReads + 3);
+
+  await page.evaluate(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+  });
+  await expect.poll(() => reads).toBe(initialReads + 6);
+  await expect(refresh).toBeEnabled();
+  expect(reads).toBe(initialReads + 6);
+});
