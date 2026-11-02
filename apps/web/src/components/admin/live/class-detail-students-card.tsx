@@ -1,5 +1,6 @@
-import { CircleDollarSign, Trash2 } from "lucide-react";
+import { CircleDollarSign, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { formatDateOnly } from "@/lib/dates";
 import type { BillingPreference, DanceClass } from "./live-types";
 import type { Enrollment } from "./class-detail-types";
 import { availableMonthlyPlans, defaultMonthlyPlan, monthlyPriceFor, normalizedMode, preferenceForClass, preferenceLabel } from "./class-detail-helpers";
@@ -9,14 +10,16 @@ import common from "./class-detail-common.module.css";
 type Props = {
   danceClass: DanceClass;
   enrollments: Enrollment[];
+  history: Enrollment[];
   busy: boolean;
   onChangeBilling: (enrollment: Enrollment, next: BillingPreference) => void;
   onChangeMonthlyPlan: (enrollment: Enrollment, next: 4 | 8) => void;
   onCharge: (enrollment: Enrollment) => void;
   onRemove: (enrollment: Enrollment) => void;
+  onReenroll: (enrollment: Enrollment) => void;
 };
 
-export function ClassStudentsCard({ danceClass, enrollments, busy, onChangeBilling, onChangeMonthlyPlan, onCharge, onRemove }: Props) {
+export function ClassStudentsCard({ danceClass, enrollments, history, busy, onChangeBilling, onChangeMonthlyPlan, onCharge, onRemove, onReenroll }: Props) {
   const mode = normalizedMode(danceClass);
   const plans = availableMonthlyPlans(danceClass);
 
@@ -24,7 +27,7 @@ export function ClassStudentsCard({ danceClass, enrollments, busy, onChangeBilli
     <section className={common.card + " " + styles.studentsCard}>
       <div className={common.cardHeader}><span>ALUMNOS</span><h3>Inscriptos actuales</h3></div>
       <div className={styles.studentList}>
-        {enrollments.length === 0 && <p className={common.helper}>Todavía no hay alumnos inscriptos.</p>}
+        {enrollments.length === 0 && <p className={common.helper}>No hay inscripciones activas en este momento.</p>}
         {enrollments.map((enrollment) => (
           <div key={enrollment._id}>
             <Link href={"/admin/students/" + enrollment.studentId._id} className={styles.studentIdentity}>
@@ -71,6 +74,21 @@ export function ClassStudentsCard({ danceClass, enrollments, busy, onChangeBilli
           </div>
         ))}
       </div>
+      {history.length > 0 && <details className={styles.history} open={enrollments.length === 0}>
+        <summary>Inscripciones anteriores ({history.length})</summary>
+        <div className={styles.historyList}>
+          {history.map((enrollment) => {
+            const lastPeriod = enrollment.periods?.at(-1);
+            return <div key={enrollment._id} className={styles.historyRow}>
+              <Link href={"/admin/students/" + enrollment.studentId._id}>
+                <strong>{enrollment.studentId.firstName} {enrollment.studentId.lastName}</strong>
+                <span>Alta {formatDateOnly(lastPeriod?.startDate)} · Baja {formatDateOnly(lastPeriod?.endDate ?? enrollment.endedAt)}{lastPeriod?.endReason ? ` · ${lastPeriod.endReason}` : ""}</span>
+              </Link>
+              {enrollment.studentId.isActive && enrollment.studentId.branchId === danceClass.branchId && <button type="button" disabled={busy} onClick={() => onReenroll(enrollment)}><Plus size={13} /> Inscribir</button>}
+            </div>;
+          })}
+        </div>
+      </details>}
     </section>
   );
 }

@@ -315,6 +315,8 @@ export interface ApplyWeeklySchedulesOptions {
   /** Reuse the caller's transaction. The caller must acquire RULES_LOCK_KEY before reading the class. */
   session?: ClientSession;
   lockHeld?: boolean;
+  /** When explicitly set, assign this space to every recurring slot from today on. */
+  spaceId?: string | null;
 }
 
 function assertWeeklyScheduleInput(schedules: WeeklyScheduleSlot[]) {
@@ -342,10 +344,12 @@ function assertWeeklyScheduleInput(schedules: WeeklyScheduleSlot[]) {
   }
 }
 
-function planWeeklySchedules(current: ScheduleRule[], schedules: WeeklyScheduleSlot[]): WeeklySchedulePlan {
+function planWeeklySchedules(current: ScheduleRule[], schedules: WeeklyScheduleSlot[], spaceId?: string | null): WeeklySchedulePlan {
   const wanted = schedules.map((slot) => ({ ...slot, key: slotKey(slot) }));
-  const remainingCurrent = current.filter((rule) => !wanted.some((slot) => slot.key === slotKey(rule)));
-  const remainingWanted = wanted.filter((slot) => !current.some((rule) => slotKey(rule) === slot.key));
+  const matches = (rule: ScheduleRule, slot: WeeklyScheduleSlot) =>
+    slotKey(rule) === slotKey(slot) && (spaceId === undefined || String(rule.spaceId ?? "") === (spaceId ?? ""));
+  const remainingCurrent = current.filter((rule) => !wanted.some((slot) => matches(rule, slot)));
+  const remainingWanted = wanted.filter((slot) => !current.some((rule) => matches(rule, slot)));
   const changing: WeeklySchedulePlan["changing"] = [];
 
   for (const slot of [...remainingWanted]) {
@@ -360,12 +364,12 @@ function planWeeklySchedules(current: ScheduleRule[], schedules: WeeklyScheduleS
   return { ending: remainingCurrent, changing, creating: remainingWanted };
 }
 
-function changedRule(rule: ScheduleRule, slot: WeeklyScheduleSlot, today: string) {
+function changedRule(rule: ScheduleRule, slot: WeeklyScheduleSlot, today: string, spaceId?: string | null) {
   return {
     day: slot.day,
     startTime: slot.startTime,
     endTime: slot.endTime,
-    spaceId: rule.spaceId,
+    spaceId: spaceId === undefined ? rule.spaceId : spaceId ? new Types.ObjectId(spaceId) : undefined,
     professorIds: rule.professorIds ?? [],
     validFrom: rule.validFrom > today ? rule.validFrom : today,
     validTo: rule.validTo
@@ -379,16 +383,18 @@ async function validateWeeklySchedulePlan(
   current: ScheduleRule[],
   plan: WeeklySchedulePlan,
   today: string,
-  dbSession?: ClientSession
+  dbSession?: ClientSession,
+  spaceId?: string | null
 ) {
   const excludedSeries = [...new Set(current.map((rule) => String(rule.seriesId)))];
   const candidates = [
-    ...plan.changing.map(({ rule, slot }) => changedRule(rule, slot, today)),
+    ...plan.changing.map(({ rule, slot }) => changedRule(rule, slot, today, spaceId)),
     ...plan.creating.map((slot) => ({
       day: slot.day,
       startTime: slot.startTime,
       endTime: slot.endTime,
       validFrom: today,
+      spaceId: spaceId === undefined ? danceClass.defaultSpaceId : spaceId ? new Types.ObjectId(spaceId) : undefined,
       professorIds: [] as Types.ObjectId[]
     }))
   ];
@@ -425,9 +431,10 @@ async function changeScheduleSeriesInTransaction(
   rule: ScheduleRule,
   slot: WeeklyScheduleSlot,
   fromDate: string,
-  dbSession?: ClientSession
+  dbSession?: ClientSession,
+  spaceId?: string | null
 ) {
-  const next = changedRule(rule, slot, fromDate);
+  const next = changedRule(rule, slot, fromDate, spaceId);
   let updated: ScheduleRule;
   if (next.validFrom === rule.validFrom) {
     await ClassScheduleModel.updateOne(
@@ -474,7 +481,8 @@ async function createScheduleSeriesInTransaction(
   danceClass: any,
   slot: WeeklyScheduleSlot,
   validFrom: string,
-  dbSession?: ClientSession
+  dbSession?: ClientSession,
+  spaceId?: string | null
 ) {
   const [created] = await ClassScheduleModel.create(
     [
@@ -487,6 +495,7 @@ async function createScheduleSeriesInTransaction(
         startTime: slot.startTime,
         endTime: slot.endTime,
         validFrom,
+        spaceId: spaceId === undefined ? danceClass.defaultSpaceId : spaceId ? new Types.ObjectId(spaceId) : undefined,
         professorIds: [],
         createdByUserId: actor.userId
       }
@@ -516,13 +525,13 @@ export async function applyWeeklySchedules(
     const current = (await loadRules(actor.organizationId, { classIds: [danceClass._id], from: today }, dbSession)).filter(
       (rule) => ruleCoversDate(rule, today) || rule.validFrom > today
     );
-    const plan = planWeeklySchedules(current, schedules);
+    const plan = planWeeklySchedules(current, schedules, options.spaceId);
 
-    await validateWeeklySchedulePlan(actor, danceClass, current, plan, today, dbSession);
+    await validateWeeklySchedulePlan(actor, danceClass, current, plan, today, dbSession, options.spaceId);
 
     for (const rule of plan.ending) await endScheduleSeriesInTransaction(actor, rule, today, dbSession);
-    for (const { rule, slot } of plan.changing) await changeScheduleSeriesInTransaction(actor, rule, slot, today, dbSession);
-    for (const slot of plan.creating) await createScheduleSeriesInTransaction(actor, danceClass, slot, today, dbSession);
+    for (const { rule, slot } of plan.changing) await changeScheduleSeriesInTransaction(actor, rule, slot, today, dbSession, options.spaceId);
+    for (const slot of plan.creating) await createScheduleSeriesInTransaction(actor, danceClass, slot, today, dbSession, options.spaceId);
 
     await refreshScheduleCache(actor.organizationId, danceClass._id, dbSession);
     await generateSessions(actor.organizationId, { ...rollingWindow(today, 0), classIds: [danceClass._id] }, dbSession);

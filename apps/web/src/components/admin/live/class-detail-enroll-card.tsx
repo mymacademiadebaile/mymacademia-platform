@@ -49,7 +49,7 @@ export function ClassEnrollCard(props: Props) {
   const num = () => ++step;
 
   return (
-    <section className={common.card}>
+    <section id="class-enroll-card" className={common.card}>
       <div className={common.cardHeader}><span>INSCRIPCIÓN</span><h3>Agregar alumno</h3></div>
       <div className={styles.enrollSteps}>
         <div className={styles.enrollStep}>

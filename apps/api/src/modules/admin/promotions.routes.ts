@@ -14,7 +14,8 @@ import { resolveMonthlyPlan } from "../classes/monthly-plans";
 import { resolveBillingPreference } from "../enrollments/billing-preference";
 import { assertSeriesCapacity, currentRules, keysOf, resolveSelection } from "../enrollments/enrollment-capacity";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
-import { newEnrollmentFields } from "../enrollments/enrollment-service";
+import { enrollmentPeriods } from "../enrollments/enrollment-validity";
+import { newEnrollmentFields, recordBillingChange, reopenEnrollment } from "../enrollments/enrollment-service";
 import { PromotionModel, PROMOTION_CHARGE_KINDS, PROMOTION_KINDS } from "../promotions/promotion.model";
 import { PromotionPairModel } from "../promotions/promotion-pair.model";
 import { ClassSessionModel } from "../sessions/class-session.model";
@@ -188,7 +189,7 @@ adminPromotionsRouter.get("/:id/eligible-students", async (request, response, ne
     if (!danceClass) throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
     const [students, enrolledIds] = await Promise.all([
       StudentModel.find({ organizationId, branchId: danceClass.branchId, isActive: true }).select("firstName lastName").sort({ lastName: 1, firstName: 1 }).lean(),
-      EnrollmentModel.distinct("studentId", { organizationId, classId: promotion.classId })
+      EnrollmentModel.distinct("studentId", { organizationId, classId: promotion.classId, status: "ACTIVE" })
     ]);
     const enrolled = new Set(enrolledIds.map(String));
     response.json({ items: students.filter((student) => !enrolled.has(String(student._id))) });
@@ -237,15 +238,15 @@ adminPromotionsRouter.post("/:id/pair-preview", async (request, response, next) 
       throw new AppError(422, "La fecha no califica para esta promoción", "PROMOTION_REGISTRATION_CLOSED");
     }
     if (input.payerStudentId === input.beneficiaryStudentId) throw new AppError(422, "Elegí dos personas diferentes", "PROMOTION_PAIR_SAME_STUDENT");
-    const [danceClass, students, alreadyEnrolled] = await Promise.all([
+    const [danceClass, students, prior] = await Promise.all([
       DanceClassModel.findOne({ _id: promotion.classId, organizationId }).lean<any>(),
       StudentModel.find({ organizationId, _id: { $in: [input.payerStudentId, input.beneficiaryStudentId] }, isActive: true }).lean(),
-      EnrollmentModel.exists({ organizationId, classId: promotion.classId, studentId: { $in: [input.payerStudentId, input.beneficiaryStudentId] } })
+      EnrollmentModel.find({ organizationId, classId: promotion.classId, studentId: { $in: [input.payerStudentId, input.beneficiaryStudentId] } }).lean<any[]>()
     ]);
     if (!danceClass || students.length !== 2 || students.some((student) => String(student.branchId) !== String(danceClass.branchId))) {
       throw new AppError(422, "Elegí dos alumnos activos de la sede", "PROMOTION_PAIR_CONTEXT_NOT_FOUND");
     }
-    if (alreadyEnrolled) throw new AppError(409, "El 2x1 es para nuevos inscriptos de esta clase", "PROMOTION_REQUIRES_NEW_ENROLLMENT");
+    if (prior.some((enrollment) => enrollment.status === "ACTIVE")) throw new AppError(409, "El 2x1 es para alumnos que se inscriben ahora; uno ya está activo en esta clase", "PROMOTION_REQUIRES_NEW_ENROLLMENT");
     const mode = resolveBillingPreference(danceClass.billingMode, input.billingPreference);
     if (promotion.appliesTo === "MONTHLY_FEE" && mode !== "MONTHLY" || promotion.appliesTo === "CLASS_FEE" && mode !== "PER_CLASS") {
       throw new AppError(422, "Elegí la modalidad que cubre el 2x1", "PROMOTION_PAIR_BILLING_MODE");
@@ -254,35 +255,67 @@ adminPromotionsRouter.post("/:id/pair-preview", async (request, response, next) 
     const rules = await currentRules(organizationId, danceClass);
     const seriesIds = resolveSelection(rules, input);
     if (mode === "PER_CLASS") {
-      const base = priceCents(danceClass, { monthlyPlan }, "CLASS_FEE");
+      const payerPrior = prior.find((item) => String(item.studentId) === input.payerStudentId);
+      const beneficiaryPrior = prior.find((item) => String(item.studentId) === input.beneficiaryStudentId);
+      const payerBase = priceCents(danceClass, payerPrior, "CLASS_FEE");
+      const beneficiaryBase = priceCents(danceClass, beneficiaryPrior, "CLASS_FEE");
       const serviceDate = promotion.benefitFrom < startDate ? startDate : promotion.benefitFrom;
       const quote = await quotePromotion({
         organizationId, classId: danceClass._id, studentId: input.beneficiaryStudentId,
         kind: "CLASS_FEE", period: periodOf(serviceDate), serviceDate, sessionId: promotion.sessionId,
-        amountCents: base, assumeBeneficiaryPromotionId: id
+        amountCents: beneficiaryBase, assumeBeneficiaryPromotionId: id
       });
-      response.json({ kind: "CLASS_FEE", period: periodOf(serviceDate), payer: toPesos(base), beneficiary: toPesos(base - (quote?.discountCents ?? 0)) });
+      response.json({ kind: "CLASS_FEE", period: periodOf(serviceDate), payer: toPesos(payerBase), beneficiary: toPesos(beneficiaryBase - (quote?.discountCents ?? 0)) });
       return;
     }
-    const draft = (studentId: string) => ({
-      _id: new Types.ObjectId(), organizationId: new Types.ObjectId(organizationId), branchId: danceClass.branchId,
-      classId: danceClass._id, studentId: new Types.ObjectId(studentId), status: "ACTIVE",
-      periods: [{ startDate }], billingPreference: "MONTHLY", billingChanges: [{ effectiveDate: startDate, mode: "MONTHLY" }],
-      seriesIds, monthlyPlan, joinPolicy: input.joinPolicy,
-      joinCustomCents: input.joinCustomAmount === undefined ? undefined : toCents(input.joinCustomAmount)
-    });
+    const draft = (studentId: string) => {
+      const previous = prior.find((item) => String(item.studentId) === studentId);
+      const periods = previous ? enrollmentPeriods(previous).map((item) => ({ ...item })) : [];
+      const last = periods.at(-1);
+      if (last?.endDate && last.endDate >= startDate) last.endDate = undefined;
+      else periods.push({ startDate });
+      let billingChanges = [...(previous?.billingChanges ?? [])];
+      if (!billingChanges.length && previous?.billingPreference && previous.billingPreference !== "MONTHLY") {
+        billingChanges = [{ effectiveDate: periods[0].startDate, mode: previous.billingPreference }];
+      }
+      return {
+        _id: previous?._id ?? new Types.ObjectId(), organizationId: new Types.ObjectId(organizationId), branchId: danceClass.branchId,
+        classId: danceClass._id, studentId: new Types.ObjectId(studentId), status: "ACTIVE",
+        periods, billingPreference: "MONTHLY", billingChanges: [
+          ...billingChanges.filter((change: { effectiveDate: string }) => change.effectiveDate < startDate),
+          { effectiveDate: startDate, mode: "MONTHLY" }
+        ],
+        seriesIds, monthlyPlan, joinPolicy: input.joinPolicy, priceOverride: previous?.priceOverride,
+        joinCustomCents: input.joinCustomAmount === undefined ? undefined : toCents(input.joinCustomAmount)
+      };
+    };
     const period = periodOf(startDate);
     const options = { policy: input.joinPolicy, customCents: input.joinCustomAmount === undefined ? undefined : toCents(input.joinCustomAmount) };
-    const [payer, beneficiary] = await Promise.all([
+    const [payer, beneficiary, existingCharges] = await Promise.all([
       planMonthlyCharge(organizationId, draft(input.payerStudentId), danceClass, period, options),
-      planMonthlyCharge(organizationId, draft(input.beneficiaryStudentId), danceClass, period, { ...options, assumeBeneficiaryPromotionId: id })
+      planMonthlyCharge(organizationId, draft(input.beneficiaryStudentId), danceClass, period, { ...options, assumeBeneficiaryPromotionId: id }),
+      ChargeModel.find({ organizationId, classId: danceClass._id, kind: "MONTHLY_FEE", period,
+        studentId: { $in: [input.payerStudentId, input.beneficiaryStudentId] }, status: { $ne: "VOID" } }).lean()
     ]);
     if (!payer.charge || !beneficiary.charge) throw new AppError(422, "Definí cómo cobrar el primer mes para ver el importe", "PROMOTION_PREVIEW_NEEDS_DECISION");
+    const payerExisting = existingCharges.find((charge) => String(charge.studentId) === input.payerStudentId);
+    const beneficiaryExisting = existingCharges.find((charge) => String(charge.studentId) === input.beneficiaryStudentId);
+    const existingQuote = beneficiaryExisting ? await quotePromotion({
+      organizationId, classId: danceClass._id, studentId: input.beneficiaryStudentId,
+      enrollment: draft(input.beneficiaryStudentId), kind: "MONTHLY_FEE", period,
+      amountCents: beneficiaryExisting.amountCents, assumeBeneficiaryPromotionId: id
+    }) : null;
+    if (existingQuote && beneficiaryExisting?.promotionId) throw new AppError(409, "La cuota del mes ya tiene otra promoción", "PROMOTION_EXISTING_CHARGE_CONFLICT");
+    if (existingQuote && beneficiaryExisting && existingQuote.discountCents > beneficiaryExisting.balanceCents) {
+      throw new AppError(409, "La cuota ya tiene cobros; resolvé el saldo a favor o devolución antes de aplicar el 2x1", "PROMOTION_PAID_CHARGE");
+    }
     response.json({
       kind: "MONTHLY_FEE", period,
-      payer: toPesos(payer.charge.balanceCents as number),
-      beneficiary: toPesos(beneficiary.charge.balanceCents as number),
-      discount: toPesos(beneficiary.charge.promotionDiscountCents as number ?? 0)
+      payer: toPesos(payerExisting ? payerExisting.amountCents + payerExisting.adjustmentsCents : payer.charge.balanceCents as number),
+      beneficiary: toPesos(beneficiaryExisting
+        ? beneficiaryExisting.amountCents + beneficiaryExisting.adjustmentsCents - (existingQuote?.discountCents ?? 0)
+        : beneficiary.charge.balanceCents as number),
+      discount: toPesos(beneficiaryExisting ? existingQuote?.discountCents ?? 0 : beneficiary.charge.promotionDiscountCents as number ?? 0)
     });
   } catch (error) { next(error); }
 });
@@ -327,7 +360,9 @@ adminPromotionsRouter.post("/:id/enroll-pair", async (request, response, next) =
     const result = await withTransaction(async (dbSession) => {
       const prior = await EnrollmentModel.find({ organizationId, classId: danceClass._id, studentId: { $in: [payer._id, beneficiary._id] } })
         .session(dbSession ?? null);
-      if (prior.length) throw new AppError(409, "El 2x1 es para nuevos inscriptos de esta clase", "PROMOTION_REQUIRES_NEW_ENROLLMENT");
+      if (prior.some((enrollment) => enrollment.status === "ACTIVE")) {
+        throw new AppError(409, "El 2x1 es para alumnos que se inscriben ahora; uno ya está activo en esta clase", "PROMOTION_REQUIRES_NEW_ENROLLMENT");
+      }
       const assigned = await PromotionPairModel.exists({ organizationId, classId: danceClass._id,
         voidedAt: { $exists: false },
         participantIds: { $in: [payer._id, beneficiary._id] }, benefitFrom: { $lte: promotion.benefitTo }, benefitTo: { $gte: promotion.benefitFrom } })
@@ -336,14 +371,28 @@ adminPromotionsRouter.post("/:id/enroll-pair", async (request, response, next) =
 
       const enrollments = [];
       for (const student of [payer, beneficiary]) {
-        await assertSeriesCapacity(organizationId, danceClass, seriesIds, rules, dbSession);
-        const [enrollment] = await EnrollmentModel.create([{
-          organizationId, branchId: danceClass.branchId, classId: danceClass._id, studentId: student._id,
-          ...newEnrollmentFields({ startDate, billingPreference, userId }),
-          seriesIds, scheduleKeys: keysOf(rules, seriesIds), monthlyPlan,
-          joinPolicy: input.joinPolicy,
-          joinCustomCents: input.joinCustomAmount === undefined ? undefined : toCents(input.joinCustomAmount)
-        }], { session: dbSession });
+        const previous = prior.find((item) => item.studentId.equals(student._id));
+        await assertSeriesCapacity(organizationId, danceClass, seriesIds, rules, dbSession, previous?._id);
+        let enrollment;
+        if (previous) {
+          reopenEnrollment(previous, startDate);
+          recordBillingChange(previous, billingPreference, startDate, userId);
+          previous.branchId = danceClass.branchId;
+          previous.seriesIds = seriesIds;
+          previous.scheduleKeys = keysOf(rules, seriesIds);
+          previous.monthlyPlan = monthlyPlan;
+          previous.joinPolicy = input.joinPolicy;
+          previous.joinCustomCents = input.joinCustomAmount === undefined ? undefined : toCents(input.joinCustomAmount);
+          enrollment = await previous.save({ session: dbSession });
+        } else {
+          [enrollment] = await EnrollmentModel.create([{
+            organizationId, branchId: danceClass.branchId, classId: danceClass._id, studentId: student._id,
+            ...newEnrollmentFields({ startDate, billingPreference, userId }),
+            seriesIds, scheduleKeys: keysOf(rules, seriesIds), monthlyPlan,
+            joinPolicy: input.joinPolicy,
+            joinCustomCents: input.joinCustomAmount === undefined ? undefined : toCents(input.joinCustomAmount)
+          }], { session: dbSession });
+        }
         enrollments.push(enrollment);
       }
       const [pair] = await PromotionPairModel.create([{
@@ -357,6 +406,27 @@ adminPromotionsRouter.post("/:id/enroll-pair", async (request, response, next) =
       const charges = [];
       if (billingPreference === "MONTHLY") {
         for (const enrollment of enrollments) {
+          const period = periodOf(startDate);
+          const existingCharge = await ChargeModel.findOne({
+            organizationId, classId: danceClass._id, studentId: enrollment.studentId,
+            kind: "MONTHLY_FEE", period, status: { $ne: "VOID" }
+          }).session(dbSession ?? null);
+          if (existingCharge) {
+            if (enrollment.studentId.equals(beneficiary._id)) {
+              const context = {
+                organizationId, classId: danceClass._id, studentId: enrollment.studentId,
+                enrollment: enrollment.toObject(), kind: "MONTHLY_FEE" as const, period,
+                amountCents: existingCharge.amountCents
+              };
+              const quote = await quotePromotion({ ...context, dbSession });
+              if (quote && existingCharge.promotionId) {
+                throw new AppError(409, "La cuota del mes ya tiene otra promoción", "PROMOTION_EXISTING_CHARGE_CONFLICT");
+              }
+              if (quote) await applyPromotionToExistingCharge(existingCharge, context, dbSession, userId);
+            }
+            charges.push(await ChargeModel.findById(existingCharge._id).session(dbSession ?? null) ?? existingCharge);
+            continue;
+          }
           const planned = await planMonthlyCharge(organizationId, enrollment.toObject(), danceClass, periodOf(startDate), {
             policy: input.joinPolicy,
             customCents: input.joinCustomAmount === undefined ? undefined : toCents(input.joinCustomAmount),

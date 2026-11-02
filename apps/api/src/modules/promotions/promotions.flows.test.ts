@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../../app";
-import { academyNow, periodBounds } from "../../common/dates";
+import { academyNow, addDays, periodBounds } from "../../common/dates";
 import { env } from "../../config/env";
 import { startReplicaSet } from "../../test/mongo";
 import { ChargeModel } from "../billing/charge.model";
@@ -217,25 +217,119 @@ describe("promotions and new pairs", () => {
     expect(later?.balanceCents).toBe(3_000_000 - Math.round(3_000_000 / mondays));
   });
 
-  it("rejects a 2x1 for someone previously enrolled in that class", async () => {
+  it("allows an inactive former student to join a new 2x1 while preserving the earlier period", async () => {
     const group = await danceClass("MONTHLY");
     const [payer, beneficiary] = await Promise.all([student(), student()]);
-    await EnrollmentModel.create({
+    const oldEnrollment = await EnrollmentModel.create({
       organizationId, branchId, classId: group._id, studentId: payer._id, status: "INACTIVE",
-      periods: [{ startDate: today(), endDate: today() }], billingPreference: "MONTHLY",
-      billingChanges: [{ effectiveDate: today(), mode: "MONTHLY" }]
+      periods: [{ startDate: addDays(today(), -14), endDate: addDays(today(), -7) }], billingPreference: "MONTHLY",
+      billingChanges: [{ effectiveDate: addDays(today(), -14), mode: "MONTHLY" }]
     });
     const promotion = await auth(request(app).post("/api/admin/promotions")).send({
       classId: String(group._id), name: "2x1 para nuevos", kind: "TWO_FOR_ONE", appliesTo: "MONTHLY_FEE",
       registrationFrom: today(), registrationTo: today(), benefitFrom: today(), benefitTo: periodBounds(today().slice(0, 7)).to
     });
     expect(promotion.status).toBe(201);
-    const enrolled = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/enroll-pair`)).send({
+    const eligible = await auth(request(app).get(`/api/admin/promotions/${promotion.body._id}/eligible-students`));
+    expect(eligible.body.items.map((item: any) => item._id)).toContain(String(payer._id));
+    const payload = {
       payerStudentId: String(payer._id), beneficiaryStudentId: String(beneficiary._id),
       startDate: today(), billingPreference: "MONTHLY", joinPolicy: "FULL"
+    };
+    const preview = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/pair-preview`)).send(payload);
+    expect(preview.status).toBe(200);
+    const enrolled = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/enroll-pair`)).send(payload);
+    expect(enrolled.status).toBe(201);
+    expect(enrolled.body.enrollmentIds[0]).toBe(String(oldEnrollment._id));
+    const reopened = await EnrollmentModel.findById(oldEnrollment._id);
+    expect(reopened?.status).toBe("ACTIVE");
+    expect(reopened?.periods).toHaveLength(2);
+    expect(reopened?.periods[0].endDate).toBe(addDays(today(), -7));
+    expect(reopened?.periods[1].startDate).toBe(today());
+    expect(await EnrollmentModel.countDocuments({ organizationId, classId: group._id, studentId: payer._id })).toBe(1);
+    const payerCharge = await ChargeModel.findOne({ organizationId, classId: group._id, studentId: payer._id, kind: "MONTHLY_FEE" });
+    expect(preview.body.payer).toBe((payerCharge?.balanceCents ?? 0) / 100);
+  });
+
+  it("still rejects adding an already active student to a new 2x1 pair", async () => {
+    const group = await danceClass("PER_CLASS");
+    const [payer, beneficiary] = await Promise.all([student(), student()]);
+    await EnrollmentModel.create({ organizationId, branchId, classId: group._id, studentId: payer._id, status: "ACTIVE", periods: [{ startDate: today() }] });
+    const promotion = await auth(request(app).post("/api/admin/promotions")).send({
+      classId: String(group._id), name: "2x1 para altas", kind: "TWO_FOR_ONE", appliesTo: "CLASS_FEE",
+      registrationFrom: today(), registrationTo: today(), benefitFrom: today(), benefitTo: periodBounds(today().slice(0, 7)).to
+    });
+    const eligible = await auth(request(app).get(`/api/admin/promotions/${promotion.body._id}/eligible-students`));
+    expect(eligible.body.items.map((item: any) => item._id)).not.toContain(String(payer._id));
+    const enrolled = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/enroll-pair`)).send({
+      payerStudentId: String(payer._id), beneficiaryStudentId: String(beneficiary._id), startDate: today(), billingPreference: "PER_CLASS"
     });
     expect(enrolled.status).toBe(409);
-    expect(await EnrollmentModel.countDocuments({ organizationId, classId: group._id, studentId: beneficiary._id })).toBe(0);
+  });
+
+  it("reuses an unpaid monthly charge when a former student joins a 2x1 again", async () => {
+    const group = await danceClass("MONTHLY");
+    const [payer, beneficiary] = await Promise.all([student(), student()]);
+    const former = await EnrollmentModel.create({
+      organizationId, branchId, classId: group._id, studentId: beneficiary._id, status: "ACTIVE",
+      periods: [{ startDate: periodBounds(today().slice(0, 7)).from }], billingPreference: "MONTHLY",
+      billingChanges: [{ effectiveDate: periodBounds(today().slice(0, 7)).from, mode: "MONTHLY" }]
+    });
+    await generateMonthlyCharges({ organizationId: String(organizationId), userId: String(adminId) }, today().slice(0, 7));
+    const previousCharge = await ChargeModel.findOne({ organizationId, studentId: beneficiary._id, classId: group._id });
+    expect(previousCharge?.balanceCents).toBe(3_000_000);
+    await EnrollmentModel.updateOne({ _id: former._id }, { $set: { status: "INACTIVE", "periods.0.endDate": today(), endedAt: new Date() } });
+    const promotion = await auth(request(app).post("/api/admin/promotions")).send({
+      classId: String(group._id), name: "2x1 tras una baja", kind: "TWO_FOR_ONE", appliesTo: "MONTHLY_FEE",
+      registrationFrom: today(), registrationTo: today(),
+      benefitFrom: periodBounds(today().slice(0, 7)).from, benefitTo: periodBounds(today().slice(0, 7)).to
+    });
+    const payload = { payerStudentId: String(payer._id), beneficiaryStudentId: String(beneficiary._id),
+      startDate: today(), billingPreference: "MONTHLY", joinPolicy: "FULL" };
+    const preview = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/pair-preview`)).send(payload);
+    expect(preview.status).toBe(200);
+    expect(preview.body.beneficiary).toBe(0);
+    const enrolled = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/enroll-pair`)).send(payload);
+    expect(enrolled.status).toBe(201);
+    expect(enrolled.body.enrollmentIds[1]).toBe(String(former._id));
+    expect(await ChargeModel.countDocuments({ organizationId, studentId: beneficiary._id, classId: group._id, kind: "MONTHLY_FEE" })).toBe(1);
+    const discounted = await ChargeModel.findById(previousCharge!._id);
+    expect(discounted?.balanceCents).toBe(0);
+    expect(discounted?.promotionDiscountCents).toBe(3_000_000);
+    expect(await FinancialAdjustmentModel.countDocuments({ chargeId: previousCharge!._id, promotionId: promotion.body._id })).toBe(1);
+  });
+
+  it("allows a former per-class student into a promoted class session", async () => {
+    const group = await danceClass("PER_CLASS");
+    const [payer, beneficiary] = await Promise.all([student(), student()]);
+    const oldEnrollment = await EnrollmentModel.create({
+      organizationId, branchId, classId: group._id, studentId: beneficiary._id, status: "INACTIVE",
+      periods: [{ startDate: addDays(today(), -14), endDate: today() }], billingPreference: "PER_CLASS",
+      billingChanges: [{ effectiveDate: addDays(today(), -14), mode: "PER_CLASS" }]
+    });
+    const monday = new Date(`${today()}T12:00:00Z`);
+    monday.setUTCDate(monday.getUTCDate() + (8 - monday.getUTCDay()) % 7);
+    const classDate = monday.toISOString().slice(0, 10);
+    const promotion = await auth(request(app).post("/api/admin/promotions")).send({
+      classId: String(group._id), name: "2x1 con alta posterior", kind: "TWO_FOR_ONE", appliesTo: "CLASS_FEE",
+      registrationFrom: today(), registrationTo: today(), benefitFrom: classDate, benefitTo: classDate
+    });
+    const preview = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/pair-preview`)).send({
+      payerStudentId: String(payer._id), beneficiaryStudentId: String(beneficiary._id),
+      startDate: today(), billingPreference: "PER_CLASS"
+    });
+    expect(preview.status).toBe(200);
+    expect(preview.body.beneficiary).toBe(0);
+    const enrolled = await auth(request(app).post(`/api/admin/promotions/${promotion.body._id}/enroll-pair`)).send({
+      payerStudentId: String(payer._id), beneficiaryStudentId: String(beneficiary._id),
+      startDate: today(), billingPreference: "PER_CLASS"
+    });
+    expect(enrolled.status).toBe(201);
+    expect(enrolled.body.enrollmentIds[1]).toBe(String(oldEnrollment._id));
+    const day = await auth(request(app).get(`/api/admin/sessions?date=${classDate}`));
+    const session = day.body.items.find((item: any) => item.class.id === String(group._id));
+    const detail = await auth(request(app).get(`/api/admin/sessions/${session.id}`));
+    expect(detail.body.participants.find((item: any) => item.studentId === String(beneficiary._id)).payment.bonified).toBe(true);
   });
 
   it("shows the beneficiary as bonified when opening the promoted class session", async () => {

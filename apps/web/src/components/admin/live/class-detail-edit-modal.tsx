@@ -3,6 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import type { BillingMode, Branch, CatalogItem, DanceClass, Professor } from "./live-types";
 import { Field, LiveModal } from "./live-common";
 import type { ScheduleDraft } from "./class-detail-types";
+import type { DanceSpace } from "../scheduling/scheduling-types";
 import { availableMonthlyPlans, dayLabels, refId } from "./class-detail-helpers";
 import styles from "./class-detail-modals.module.css";
 
@@ -10,11 +11,16 @@ type Props = {
   open: boolean;
   danceClass: DanceClass;
   branches: Branch[];
+  spaces: DanceSpace[];
   professors: Professor[];
   catalogs: CatalogItem[];
   busy: boolean;
   editBillingMode: BillingMode;
   editSchedules: ScheduleDraft[];
+  editBranchId: string;
+  editSpaceId: string;
+  onBranchChange: (value: string) => void;
+  onSpaceChange: (value: string) => void;
   onBillingModeChange: (value: BillingMode) => void;
   onSchedulesChange: (updater: (current: ScheduleDraft[]) => ScheduleDraft[]) => void;
   onUpdateSchedule: (index: number, patch: Partial<ScheduleDraft>) => void;
@@ -26,11 +32,16 @@ export function ClassEditModal({
   open,
   danceClass,
   branches,
+  spaces,
   professors,
   catalogs,
   busy,
   editBillingMode,
   editSchedules,
+  editBranchId,
+  editSpaceId,
+  onBranchChange,
+  onSpaceChange,
   onBillingModeChange,
   onSchedulesChange,
   onUpdateSchedule,
@@ -57,20 +68,32 @@ export function ClassEditModal({
   const monthlyPrice8 = danceClass.monthlyPrice8 && danceClass.monthlyPrice8 > 0
     ? danceClass.monthlyPrice8
     : "";
+  const selectableSpaces = spaces.filter((space) =>
+    space.branchId === editBranchId && (space.status === "ACTIVE" || space._id === editSpaceId)
+  );
 
   return (
     <LiveModal
       open={open}
       title="Editar clase"
-      description="Podés cambiar precios, modalidad, profesores y horarios."
+      description="Podés cambiar precios, modalidad, profesores, pista y horarios."
       submitting={busy}
       onClose={onClose}
       onSubmit={onSubmit}
     >
       <Field label="Sede">
-        <select name="branchId" defaultValue={danceClass.branchId} required>
+        <select name="branchId" value={editBranchId} onChange={(event) => { onBranchChange(event.target.value); onSpaceChange(""); }} required>
           {branches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}</option>)}
         </select>
+      </Field>
+      <Field label="Pista">
+        <select name="defaultSpaceId" value={editSpaceId} onChange={(event) => onSpaceChange(event.target.value)}>
+          <option value="">Sin pista asignada</option>
+          {selectableSpaces.map((space) => (
+            <option key={space._id} value={space._id}>{space.name}{space.status === "ACTIVE" ? "" : " (inactiva)"}</option>
+          ))}
+        </select>
+        <small>Se aplicará a todos los horarios futuros de esta clase.</small>
       </Field>
       <Field label="Nombre"><input name="name" defaultValue={danceClass.name} required /></Field>
       <Field label="Cupo"><input name="capacity" type="number" min={1} defaultValue={danceClass.capacity} required /></Field>

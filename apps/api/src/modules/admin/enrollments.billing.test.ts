@@ -113,6 +113,31 @@ afterAll(async () => {
   await mongod.stop();
 });
 
+describe("GET /admin/enrollments: class history", () => {
+  it("keeps ended students visible in history without counting them as active seats", async () => {
+    const danceClass = await createClass("PER_CLASS");
+    const [activeStudent, endedStudent] = await Promise.all([createStudent(), createStudent()]);
+    await Promise.all([
+      enrollRaw(danceClass._id, activeStudent._id, { status: "ACTIVE", periods: [{ startDate: "2026-10-26" }] }),
+      enrollRaw(danceClass._id, endedStudent._id, {
+        status: "INACTIVE", periods: [{ startDate: "2026-10-26", endDate: "2026-11-02" }],
+        endedAt: new Date("2026-11-02T12:52:00Z")
+      })
+    ]);
+    const regular = await auth(request(app).get(`/api/admin/enrollments?classId=${danceClass._id}`));
+    expect(regular.status).toBe(200);
+    expect(regular.body.items).toHaveLength(1);
+    expect(regular.body.history).toBeUndefined();
+    const withHistory = await auth(request(app).get(`/api/admin/enrollments?classId=${danceClass._id}&includeHistory=true`));
+    expect(withHistory.status).toBe(200);
+    expect(withHistory.body.items).toHaveLength(1);
+    expect(withHistory.body.history).toHaveLength(1);
+    expect(withHistory.body.history[0].studentId._id).toBe(String(endedStudent._id));
+    expect(withHistory.body.history[0].periods[0].endDate).toBe("2026-11-02");
+    expect(withHistory.body.occupied).toBe(1);
+  });
+});
+
 describe("POST /admin/enrollments/:id/move: billingPreference", () => {
   it.each([
     ["PER_CLASS", "PER_CLASS", "MONTHLY", "MONTHLY"],

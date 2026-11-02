@@ -18,11 +18,15 @@ export function useClassEdit({ id, danceClass, load, setBusy, setError }: Params
   const [editing, setEditing] = useState(false);
   const [editBillingMode, setEditBillingMode] = useState<BillingMode>("PER_CLASS");
   const [editSchedules, setEditSchedules] = useState<ScheduleDraft[]>([]);
+  const [editBranchId, setEditBranchId] = useState("");
+  const [editSpaceId, setEditSpaceId] = useState("");
 
   function openEdit() {
     if (!danceClass) return;
     setEditSchedules(danceClass.schedules.map((schedule) => ({ ...schedule })));
     setEditBillingMode(normalizedMode(danceClass));
+    setEditBranchId(danceClass.branchId);
+    setEditSpaceId(danceClass.defaultSpaceId ?? "");
     setEditing(true);
   }
 
@@ -46,7 +50,8 @@ export function useClassEdit({ id, danceClass, load, setBusy, setError }: Params
       await apiFetch("/admin/classes/" + id, {
         method: "PATCH",
         body: JSON.stringify({
-          branchId: form.get("branchId"),
+          branchId: editBranchId,
+          ...(editSpaceId !== (danceClass?.defaultSpaceId ?? "") ? { defaultSpaceId: editSpaceId || null } : {}),
           name: form.get("name"),
           professorIds: form.getAll("professorIds"),
           disciplineIds: form.getAll("disciplineIds"),
@@ -77,9 +82,13 @@ export function useClassEdit({ id, danceClass, load, setBusy, setError }: Params
     editing,
     editBillingMode,
     editSchedules,
+    editBranchId,
+    editSpaceId,
     setEditing,
     setEditBillingMode,
     setEditSchedules,
+    setEditBranchId,
+    setEditSpaceId,
     openEdit,
     updateSchedule,
     saveClass

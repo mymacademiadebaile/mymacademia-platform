@@ -12,12 +12,12 @@ import type {
   Branch,
   CatalogItem,
   DanceClass,
-  Paginated,
   Professor,
   Student
 } from "./live-types";
 import { ErrorBlock, fetchAllPaginated, LoadingBlock, WebSwitch } from "./live-common";
 import { GroupSchedulesPanel } from "../scheduling/group-schedules-panel";
+import type { DanceSpace } from "../scheduling/scheduling-types";
 import type { EnrollmentResponse, TrialBooking, TrialResponse } from "./class-detail-types";
 import { defaultMonthlyPlan, preferenceForClass } from "./class-detail-helpers";
 import { useClassActions } from "./class-detail-actions";
@@ -42,6 +42,7 @@ export function ClassDetailLive({ id }: { id: string }) {
   const [trialStudentId, setTrialStudentId] = useState("");
   const [trialDate, setTrialDate] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [spaces, setSpaces] = useState<DanceSpace[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
   const [studentId, setStudentId] = useState("");
@@ -58,20 +59,22 @@ export function ClassDetailLive({ id }: { id: string }) {
     setError("");
 
     try {
-      const [classData, enrollmentData, trialData, studentData, branchList, professorList, catalogList] = await Promise.all([
+      const [classData, enrollmentData, trialData, studentData, branchList, spaceList, professorList, catalogList] = await Promise.all([
         apiFetch<DanceClass>("/admin/classes/" + id),
-        apiFetch<EnrollmentResponse>("/admin/enrollments?classId=" + id),
+        apiFetch<EnrollmentResponse>("/admin/enrollments?classId=" + id + "&includeHistory=true"),
         apiFetch<TrialResponse>("/admin/trials?classId=" + id),
-        apiFetch<Paginated<Student>>("/admin/students?limit=100&isActive=true"),
+        fetchAllPaginated<Student>("/admin/students?isActive=true"),
         apiFetch<Branch[]>("/admin/branches"),
+        apiFetch<{ items: DanceSpace[] }>("/admin/spaces"),
         fetchAllPaginated<Professor>("/admin/professors"),
         apiFetch<CatalogItem[]>("/admin/catalogs")
       ]);
       setDanceClass(classData);
       setEnrollments(enrollmentData);
       setTrials(trialData.items);
-      setStudents(studentData.items);
+      setStudents(studentData);
       setBranches(branchList.filter((item) => item.isActive));
+      setSpaces(spaceList.items);
       setProfessors(professorList);
       setCatalogs(catalogList);
       setBillingPreference(preferenceForClass(classData) ?? "PER_CLASS");
@@ -209,11 +212,22 @@ export function ClassDetailLive({ id }: { id: string }) {
         <ClassStudentsCard
           danceClass={danceClass}
           enrollments={enrollments.items}
+          history={enrollments.history ?? []}
           busy={busy}
           onChangeBilling={(enrollment, next) => void actions.changeBilling(enrollment, next)}
           onChangeMonthlyPlan={(enrollment, next) => void actions.changeMonthlyPlan(enrollment, next)}
           onCharge={charge.openCharge}
           onRemove={(enrollment) => void actions.remove(enrollment)}
+          onReenroll={(enrollment) => {
+            const currentSeries = new Set(danceClass.scheduleOccupancy?.map((slot) => slot.seriesId) ?? []);
+            setStudentId(enrollment.studentId._id);
+            setBillingPreference(enrollment.billingPreference ?? preferenceForClass(danceClass) ?? "PER_CLASS");
+            setMonthlyPlan(enrollment.monthlyPlan ?? defaultMonthlyPlan(danceClass));
+            setStartDate(todayInArgentina());
+            setJoinPolicy("");
+            setSelectedSeries((enrollment.seriesIds ?? []).filter((seriesId) => currentSeries.has(seriesId)));
+            document.getElementById("class-enroll-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
         />
       </div>
 
@@ -243,11 +257,16 @@ export function ClassDetailLive({ id }: { id: string }) {
         open={edit.editing}
         danceClass={danceClass}
         branches={branches}
+        spaces={spaces}
         professors={professors}
         catalogs={catalogs}
         busy={busy}
         editBillingMode={edit.editBillingMode}
         editSchedules={edit.editSchedules}
+        editBranchId={edit.editBranchId}
+        editSpaceId={edit.editSpaceId}
+        onBranchChange={edit.setEditBranchId}
+        onSpaceChange={edit.setEditSpaceId}
         onBillingModeChange={edit.setEditBillingMode}
         onSchedulesChange={edit.setEditSchedules}
         onUpdateSchedule={edit.updateSchedule}

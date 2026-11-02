@@ -89,6 +89,7 @@ async function firstMonthStatus(organizationId: string, enrollment: any, danceCl
 adminEnrollmentsRouter.get("/", async (request, response, next) => {
   try {
     const classId = objectIdSchema.parse(request.query.classId);
+    const { includeHistory } = z.object({ includeHistory: z.enum(["true", "false"]).optional() }).parse(request.query);
     const organizationId = request.auth!.organizationId;
 
     const danceClass = await DanceClassModel.findOne({ _id: classId, organizationId });
@@ -96,14 +97,19 @@ adminEnrollmentsRouter.get("/", async (request, response, next) => {
       throw new AppError(404, "Clase no encontrada", "CLASS_NOT_FOUND");
     }
 
-    const items = await EnrollmentModel.find({ organizationId, classId, status: "ACTIVE" })
+    const enrollments = await EnrollmentModel.find({ organizationId, classId, ...(includeHistory === "true" ? {} : { status: "ACTIVE" }) })
       .populate("studentId", "firstName lastName email phone isActive branchId")
       .sort({ enrolledAt: 1 });
+    const items = enrollments.filter((item) => item.status === "ACTIVE");
+    const history = includeHistory === "true"
+      ? enrollments.filter((item) => item.status === "INACTIVE").sort((a, b) => (b.endedAt?.getTime() ?? 0) - (a.endedAt?.getTime() ?? 0))
+      : undefined;
 
     // Inactive students keep their enrollment row until it is closed, but never take a seat.
     const occupied = items.filter((item: any) => item.studentId?.isActive !== false).length;
     response.json({
       items,
+      ...(history ? { history } : {}),
       capacity: danceClass.capacity,
       occupied,
       available: Math.max(0, danceClass.capacity - occupied)

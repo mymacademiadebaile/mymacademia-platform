@@ -314,7 +314,8 @@ function classSnapshot(item: HydratedDocument<DanceClass>) {
     freeTrialEnabled: item.freeTrialEnabled ?? false,
     schedules: item.schedules,
     status: item.status,
-    publishOnWeb: item.publishOnWeb ?? true
+    publishOnWeb: item.publishOnWeb ?? true,
+    defaultSpaceId: item.defaultSpaceId?.toString() ?? null
   };
 }
 
@@ -715,7 +716,7 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
     const updated = await withTransaction(async (dbSession) => {
       // A standalone MongoDB cannot provide the all-or-nothing contract required for a multi-slot
       // edit. Refuse it before any write instead of falling back to a partially persistent flow.
-      if (input.schedules !== undefined && !dbSession) {
+      if ((input.schedules !== undefined || input.defaultSpaceId !== undefined) && !dbSession) {
         throw new AppError(503, "La edición de horarios requiere MongoDB con transacciones habilitadas", "TRANSACTIONS_REQUIRED");
       }
       // The lock is acquired before reading the mutable class/rules. Concurrent changes retry
@@ -730,10 +731,12 @@ adminClassesRouter.patch("/:id", async (request, response, next) => {
 
       // Rules, their future materialized sessions, the read cache and their schedule audit
       // events all participate in this same transaction.
-      if (input.schedules !== undefined) {
-        await applyWeeklySchedules(actorOf(request), transactionalItem.id, input.schedules, {
+      if (input.schedules !== undefined || input.defaultSpaceId !== undefined) {
+        const weeklySchedules = input.schedules ?? transactionalItem.schedules.map(({ day, startTime, endTime }) => ({ day, startTime, endTime }));
+        await applyWeeklySchedules(actorOf(request), transactionalItem.id, weeklySchedules, {
           session: dbSession,
-          lockHeld: true
+          lockHeld: true,
+          spaceId: input.defaultSpaceId
         });
       }
 

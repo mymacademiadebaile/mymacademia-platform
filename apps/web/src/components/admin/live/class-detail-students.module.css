@@ -111,6 +111,47 @@
   cursor: not-allowed;
 }
 
+.history {
+  margin-top: 12px;
+  border-top: 1px solid #e9e2ed;
+  color: #51475b;
+  font-size: 11px;
+}
+
+.history summary {
+  padding: 12px 4px 4px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.historyList { display: grid; }
+
+.historyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px;
+  border-top: 1px solid #f0ebf3;
+}
+
+.historyRow a { display: grid; gap: 3px; color: inherit; }
+.historyRow a span { color: #817787; font-size: 10px; }
+.historyRow button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid #ddd6fe;
+  border-radius: 9px;
+  background: #f5f3ff;
+  color: #5b21b6;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.historyRow button:disabled { opacity: .55; cursor: not-allowed; }
+
 @media (max-width: 900px) {
   .studentsCard {
     grid-column: auto;

@@ -105,9 +105,9 @@ administración elija una; no se escoge por orden accidental de la base de datos
 - La promoción se ofrece a **nuevas inscripciones en ese grupo**. Al activar la
   pareja se comprueba que son dos alumnos distintos de la organización, que ambas
   incorporaciones califican dentro de la ventana de inscripción y que pertenecen
-  al grupo. Se guardan sus inscripciones, identidades, roles y fechas. «Nuevo» se
-  interpreta por ahora como nuevo en el grupo; queda por confirmar si una
-  reinscripción debe contar.
+  al grupo. Se guardan sus inscripciones, identidades, roles y fechas. Una persona
+  con inscripción anterior ya cerrada puede volver a inscribirse y acceder a la
+  promoción; solo una inscripción actualmente activa impide el alta duplicada.
 - El 2x1 es una condición comercial concedida a esas dos personas **hasta el fin
   de la promoción**. La baja, ausencia o cambio posterior de uno de ellos no
   acorta la vigencia ni quita el
@@ -281,8 +281,8 @@ cobro; recibo y reportes de caja.
    ventana para nuevas inscripciones y la duración del beneficio que recibe cada
    pareja. Por ejemplo, se puede admitir el alta durante una semana de noviembre
    y conceder el 2x1 para todo diciembre.
-4. **Definido para esta entrega:** «nuevo» significa que nunca estuvo inscripto
-   en esa clase. Las reinscripciones previas quedan fuera del 2x1 automático.
+4. **Definido:** «nuevo» significa que se incorpora ahora al grupo. Una baja
+   anterior no bloquea otra inscripción ni el 2x1; el historial permanece.
 5. **Definido para esta entrega:** si el beneficio cubre solo parte de una
    mensualidad, el descuento es proporcional a las clases programadas incluidas.
 
@@ -314,8 +314,8 @@ Los cargos ya emitidos conservan el descuento y su ajuste contable.
 Para una mensualidad cubierta parcialmente, el descuento se prorratea por el
 número de clases programadas incluidas sobre el total programado del mes para
 esa inscripción. La primera cuota anterior a la vigencia del beneficio se cobra
-normalmente. Se considera «nuevo» a quien nunca estuvo inscripto en esa clase;
-una reinscripción anterior no califica automáticamente.
+normalmente. Una inscripción anterior cerrada no impide volver a inscribirse ni
+acceder a un 2x1 vigente para nuevas altas.
 
 Las campañas generales aplican sus descuentos a cargos nuevos y a cargos ya
 emitidos sin otra promoción y con saldo pendiente suficiente. Si el descuento supera el saldo

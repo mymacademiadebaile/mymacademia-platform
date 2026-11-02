@@ -13,6 +13,7 @@ import { OrganizationModel } from "../core/organization.model";
 import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { ProfessorModel } from "../professors/professor.model";
 import { ClassScheduleModel } from "../scheduling/class-schedule.model";
+import { DanceSpaceModel } from "../scheduling/dance-space.model";
 import { generateSessions } from "../scheduling/session-generator";
 import { ClassSessionModel, slotKeyOf } from "../sessions/class-session.model";
 import { StudentModel } from "../students/student.model";
@@ -129,6 +130,44 @@ afterAll(async () => {
 });
 
 describe("PATCH /admin/classes/:id schedule atomicity", () => {
+  it("moves every recurring slot and future session to the selected space without changing past sessions", async () => {
+    const ctx = await context();
+    const firstSpace = await DanceSpaceModel.create({ organizationId: ctx.organizationId, branchId: ctx.branchId, name: "Pista 1" });
+    const secondSpace = await DanceSpaceModel.create({ organizationId: ctx.organizationId, branchId: ctx.branchId, name: "Pista 2" });
+    const slots: Slot[] = [
+      { day: "MONDAY", startTime: "18:00", endTime: "19:00" },
+      { day: "WEDNESDAY", startTime: "19:00", endTime: "20:00" }
+    ];
+    const target = await danceClass(ctx, slots);
+    await DanceClassModel.updateOne({ _id: target._id }, { $set: { defaultSpaceId: firstSpace._id } });
+    await ClassScheduleModel.updateMany({ classId: target._id }, { $set: { spaceId: firstSpace._id } });
+    await generateSessions(String(ctx.organizationId), { from: "2026-10-01", to: "2026-10-21", classIds: [target._id] });
+    const past = await ClassSessionModel.findOne({ classId: target._id, sessionDate: "2026-10-05" }).lean();
+    const future = await ClassSessionModel.findOne({ classId: target._id, sessionDate: "2026-10-12" }).lean();
+    expect(past).toBeTruthy();
+    expect(future).toBeTruthy();
+
+    const response = await admin(ctx.token, request(app).patch(`/api/admin/classes/${target._id}`).send({
+      defaultSpaceId: String(secondSpace._id),
+      schedules: slots
+    }));
+
+    expect(response.status).toBe(200);
+    expect(String(response.body.defaultSpaceId)).toBe(String(secondSpace._id));
+    expect((await ClassSessionModel.findById(past!._id).lean())?.spaceId?.toString()).toBe(String(firstSpace._id));
+    expect((await ClassSessionModel.findById(future!._id).lean())?.spaceId?.toString()).toBe(String(secondSpace._id));
+    const currentRules = await ClassScheduleModel.find({ classId: target._id, validTo: { $exists: false } }).lean();
+    expect(currentRules).toHaveLength(2);
+    expect(currentRules.every((rule) => String(rule.spaceId) === String(secondSpace._id))).toBe(true);
+    expect(response.body.schedules).toEqual(slots);
+
+    const retry = await admin(ctx.token, request(app).patch(`/api/admin/classes/${target._id}`).send({
+      defaultSpaceId: String(secondSpace._id)
+    }));
+    expect(retry.status, JSON.stringify(retry.body)).toBe(200);
+    expect(await ClassScheduleModel.countDocuments({ classId: target._id })).toBe(4);
+  });
+
   it("prevalidates every change and persists nothing when the second requested slot conflicts", async () => {
     const ctx = await context();
     const target = await danceClass(ctx, [

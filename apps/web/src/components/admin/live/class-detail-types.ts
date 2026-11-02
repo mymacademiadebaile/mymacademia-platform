@@ -6,6 +6,10 @@ export type Enrollment = {
   _id: string;
   studentId: Student;
   enrolledAt: string;
+  endedAt?: string;
+  status?: "ACTIVE" | "INACTIVE";
+  periods?: Array<{ startDate: string; endDate?: string; endReason?: string }>;
+  seriesIds?: string[];
   billingPreference?: BillingPreference;
   monthlyPlan?: 4 | 8;
 };
@@ -21,6 +25,7 @@ export type TrialBooking = {
 export type TrialResponse = { items: TrialBooking[] };
 export type EnrollmentResponse = {
   items: Enrollment[];
+  history?: Enrollment[];
   capacity: number;
   occupied: number;
   available: number;
