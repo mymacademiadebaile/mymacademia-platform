@@ -59,6 +59,7 @@ export type SessionParticipant = {
 
 export type SessionDetail = {
   id: string;
+  seriesId: string | null;
   sessionDate: string;
   startTime: string;
   endTime: string;

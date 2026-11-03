@@ -543,6 +543,8 @@
   cursor: pointer;
 }
 .searchResults button:hover { border-color: #6d28d9; background: #f6f1fb; }
+.searchResults button:disabled { opacity: .6; cursor: not-allowed; }
+.searchResults button:disabled:hover { border-color: #ede6f1; background: white; }
 .searchResults button:focus-visible { outline: 3px solid #6d28d9; outline-offset: 2px; }
 .searchResults small { display: block; margin-top: 3px; color: #685e70; font-size: 12px; overflow-wrap: anywhere; }
 .searchResults p { margin: 4px 0; color: #685e70; font-size: 13px; }

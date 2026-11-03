@@ -207,6 +207,7 @@ adminSessionsRouter.get("/:id", async (request, response, next) => {
 
     response.json({
       id: String(session._id),
+      seriesId: session.seriesId ? String(session.seriesId) : null,
       sessionDate: session.sessionDate,
       startTime: session.startTime,
       endTime: session.endTime,

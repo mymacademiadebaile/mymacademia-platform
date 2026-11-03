@@ -38,6 +38,7 @@ const navigation = [
   { href: "/admin/reception", label: "Recepción", icon: CheckCircle2 },
   { href: "/admin/payments", label: "Pagos", icon: CreditCard },
   { href: "/admin/communications", label: "Comunicaciones", icon: MessageCircleMore },
+  { href: "/admin/reminders", label: "Recordatorios", icon: Mail },
   { href: "/admin/reports", label: "Reportes", icon: BarChart3 },
   { href: "/admin/audit", label: "Auditoría", icon: ClipboardList },
   { href: "/admin/settings", label: "Configuración", icon: Settings },

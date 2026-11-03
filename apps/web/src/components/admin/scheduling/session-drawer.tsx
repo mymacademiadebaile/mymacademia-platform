@@ -17,10 +17,24 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import type { MidMonthPolicy } from "@mym/shared";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { formatDateOnly, todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import { Field, LiveModal } from "../live/live-common";
+import {
+  availableMonthlyPlans,
+  dayLabels,
+  defaultMonthlyPlan,
+  monthlyPlansAvailable,
+  monthlyPlansLabel,
+  monthlyPriceFor,
+  normalizedMode,
+  preferenceForClass,
+  preferenceLabel
+} from "../live/class-detail-helpers";
+import type { BillingPreference, DanceClass } from "../live/live-types";
+import enrollStyles from "../live/class-detail-enroll.module.css";
 import liveStyles from "../live/live.module.css";
 import styles from "./calendar.module.css";
 import {
@@ -43,6 +57,7 @@ type Modal =
   | { kind: "edit" }
   | { kind: "reopen" }
   | { kind: "participant" }
+  | { kind: "enrollment" }
   | { kind: "notice" }
   | { kind: "collect"; participant: SessionParticipant; key: string }
   | null;
@@ -79,6 +94,15 @@ export function SessionDrawer({
   const [studentLookup, setStudentLookup] = useState<{ query: string; items: StudentOption[]; error?: string } | null>(null);
   const [searchRevision, setSearchRevision] = useState(0);
   const [selectedStudent, setSelectedStudent] = useState<StudentOption | null>(null);
+  const [enrollmentClass, setEnrollmentClass] = useState<DanceClass | null>(null);
+  const [enrollmentError, setEnrollmentError] = useState("");
+  const [enrolledStudentIds, setEnrolledStudentIds] = useState<string[]>([]);
+  const [billingPreference, setBillingPreference] = useState<BillingPreference>("PER_CLASS");
+  const [monthlyPlan, setMonthlyPlan] = useState<4 | 8>(4);
+  const [startDate, setStartDate] = useState(todayInArgentina());
+  const [joinPolicy, setJoinPolicy] = useState<"" | MidMonthPolicy>("");
+  const [joinCustomAmount, setJoinCustomAmount] = useState("");
+  const [selectedSeries, setSelectedSeries] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,12 +129,29 @@ export function SessionDrawer({
   }, [modal, onClose]);
 
   useEffect(() => {
+    if (modal?.kind !== "enrollment" || !data) return;
+    const controller = new AbortController();
+    void Promise.all([
+      apiFetch<DanceClass>("/admin/classes/" + data.class.id, { signal: controller.signal }),
+      apiFetch<{ items: Array<{ studentId: { _id: string } }> }>("/admin/enrollments?classId=" + data.class.id, { signal: controller.signal })
+    ]).then(([danceClass, enrollments]) => {
+      if (controller.signal.aborted) return;
+      setEnrollmentClass(danceClass);
+      setEnrolledStudentIds(enrollments.items.map((item) => item.studentId._id));
+      setBillingPreference(preferenceForClass(danceClass) ?? "PER_CLASS");
+      setMonthlyPlan(defaultMonthlyPlan(danceClass));
+      setSelectedSeries(data.seriesId && danceClass.scheduleOccupancy?.some((slot) => slot.seriesId === data.seriesId) ? [data.seriesId] : []);
+    }).catch((error) => { if (!controller.signal.aborted) setEnrollmentError(apiMessage(error)); });
+    return () => controller.abort();
+  }, [modal?.kind, data?.class.id, data?.seriesId]);
+
+  useEffect(() => {
     const query = studentQuery.trim();
-    if (modal?.kind !== "participant" || query.length < 2) return;
+    if ((modal?.kind !== "participant" && modal?.kind !== "enrollment") || query.length < 2 || (modal.kind === "enrollment" && !enrollmentClass)) return;
     const controller = new AbortController();
     const handle = window.setTimeout(() => {
       void apiFetch<{ items: StudentOption[] }>(
-        "/admin/students?isActive=true&limit=20&q=" + encodeURIComponent(query), { signal: controller.signal }
+        "/admin/students?isActive=true&limit=20&q=" + encodeURIComponent(query) + (modal.kind === "enrollment" ? "&branchId=" + enrollmentClass!.branchId : ""), { signal: controller.signal }
       ).then((result) => {
         if (!controller.signal.aborted) setStudentLookup({ query, items: result.items });
       }).catch(() => {
@@ -118,13 +159,28 @@ export function SessionDrawer({
       });
     }, 250);
     return () => { controller.abort(); window.clearTimeout(handle); };
-  }, [modal?.kind, studentQuery, searchRevision]);
+  }, [modal?.kind, studentQuery, searchRevision, enrollmentClass]);
 
   function openParticipant() {
     setStudentQuery("");
     setStudentLookup(null);
     setSelectedStudent(null);
     setModal({ kind: "participant" });
+  }
+
+  function openEnrollment() {
+    if (!data) return;
+    setStudentQuery("");
+    setStudentLookup(null);
+    setSelectedStudent(null);
+    setEnrollmentClass(null);
+    setEnrollmentError("");
+    setEnrolledStudentIds([]);
+    setStartDate(data.sessionDate >= todayInArgentina() ? data.sessionDate : todayInArgentina());
+    setJoinPolicy("");
+    setJoinCustomAmount("");
+    setSelectedSeries([]);
+    setModal({ kind: "enrollment" });
   }
 
   async function run(action: () => Promise<unknown>, success: string) {
@@ -240,6 +296,49 @@ export function SessionDrawer({
     );
   }
 
+  async function submitEnrollment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedStudent || !enrollmentClass || !data) return;
+    const mode = normalizedMode(enrollmentClass);
+    const effectivePreference = mode === "BOTH" ? billingPreference : preferenceForClass(enrollmentClass);
+    const midMonth = effectivePreference === "MONTHLY" && startDate.slice(8, 10) !== "01";
+    if (midMonth && !joinPolicy) {
+      setEnrollmentError("Elegí cómo cobrar el primer mes.");
+      return;
+    }
+    if (midMonth && joinPolicy === "CUSTOM" && (joinCustomAmount.trim() === "" || !Number.isFinite(Number(joinCustomAmount)))) {
+      setEnrollmentError("Indicá el importe personalizado del primer mes.");
+      return;
+    }
+    setBusy(true);
+    setEnrollmentError("");
+    try {
+      const created = await apiFetch<{ firstMonth?: { needsDecision: boolean } }>("/admin/enrollments", {
+        method: "POST",
+        body: JSON.stringify({
+          classId: data.class.id,
+          studentId: selectedStudent._id,
+          billingPreference: mode === "FREE" ? undefined : effectivePreference,
+          monthlyPlan: effectivePreference === "MONTHLY" ? monthlyPlan : undefined,
+          startDate,
+          seriesIds: selectedSeries.length ? selectedSeries : undefined,
+          joinPolicy: midMonth ? joinPolicy : undefined,
+          joinCustomAmount: midMonth && joinPolicy === "CUSTOM" ? Number(joinCustomAmount) : undefined
+        })
+      });
+      setModal(null);
+      toast(created.firstMonth?.needsDecision
+        ? { title: "Alumno inscripto", description: "Falta definir el cobro del primer mes desde su cuenta.", tone: "warning" }
+        : { title: "Alumno inscripto", description: "Modalidad: " + preferenceLabel(effectivePreference) + ".", tone: "success" });
+      await load();
+      onChanged();
+    } catch (error) {
+      setEnrollmentError(apiMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function submitNotice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -288,6 +387,31 @@ export function SessionDrawer({
           : [])
       ]
     : [];
+  const studentSearchFields = <>
+    <Field label="Buscar alumno" wide>
+      <input value={studentQuery} disabled={modal?.kind === "enrollment" && !enrollmentClass} onChange={(event) => { setStudentQuery(event.target.value); setSelectedStudent(null); setStudentLookup(null); }} placeholder="Nombre, email, teléfono o DNI" autoComplete="off" />
+    </Field>
+    <div className={`${liveStyles.fieldWide} ${styles.searchResults}`} aria-live="polite">
+      {selectedStudent ? <div className={styles.selectedStudent}>
+        <span><CheckCircle2 size={18} aria-hidden="true" /><strong>{selectedStudent.firstName} {selectedStudent.lastName}</strong> seleccionado</span>
+        <button type="button" onClick={() => setSelectedStudent(null)}>Cambiar</button>
+      </div> : studentQuery.trim().length < 2 ? <p>Escribí al menos 2 caracteres para buscar.</p>
+        : studentLookup?.query !== studentQuery.trim() ? <p role="status">Buscando alumnos…</p>
+          : studentLookup.error ? <p role="alert">{studentLookup.error} <button type="button" onClick={() => { setStudentLookup(null); setSearchRevision((value) => value + 1); }}>Reintentar</button></p>
+            : studentLookup.items.length === 0 ? <p>No encontramos alumnos activos con esos datos.</p>
+              : studentLookup.items.map((item) => {
+                const alreadyEnrolled = modal?.kind === "enrollment" && enrolledStudentIds.includes(item._id);
+                return <button type="button" key={item._id} disabled={alreadyEnrolled} onClick={() => setSelectedStudent(item)}>
+                  <strong>{item.firstName} {item.lastName}</strong>
+                  <small>{alreadyEnrolled ? "Ya inscripto en esta clase" : [item.email, item.phone, item.dni && `DNI ${item.dni}`].filter(Boolean).join(" · ")}</small>
+                </button>;
+              })}
+    </div>
+  </>;
+  const enrollmentMode = enrollmentClass ? normalizedMode(enrollmentClass) : "FREE";
+  const enrollmentPreference = enrollmentClass ? (enrollmentMode === "BOTH" ? billingPreference : preferenceForClass(enrollmentClass)) : undefined;
+  const enrollmentMidMonth = enrollmentPreference === "MONTHLY" && startDate.slice(8, 10) !== "01";
+  const enrollmentSlots = enrollmentClass?.scheduleOccupancy ?? [];
 
   return (
     <>
@@ -418,9 +542,14 @@ export function SessionDrawer({
                 <div className={styles.actionRow} style={{ justifyContent: "space-between", alignItems: "center" }}>
                   <h3>Alumnos</h3>
                   {active && (
-                    <button className={styles.actionButton} disabled={busy} onClick={openParticipant}>
-                      <UserPlus size={14} /> Agregar
-                    </button>
+                    <div className={styles.actionRow}>
+                      <button className={styles.actionButton} disabled={busy} onClick={openEnrollment}>
+                        <UserPlus size={14} /> Inscribir
+                      </button>
+                      <button className={styles.actionButton} disabled={busy} onClick={openParticipant}>
+                        <UserPlus size={14} /> Agregar solo a esta fecha
+                      </button>
+                    </div>
                   )}
                 </div>
                 {data.participants.length === 0 && <p className={styles.emptyDay}>Todavía no hay alumnos en esta clase.</p>}
@@ -615,22 +744,7 @@ export function SessionDrawer({
         }}
         onSubmit={submitParticipant}
       >
-        <Field label="Buscar alumno" wide>
-          <input value={studentQuery} onChange={(event) => { setStudentQuery(event.target.value); setSelectedStudent(null); setStudentLookup(null); }} placeholder="Nombre, email, teléfono o DNI" autoComplete="off" />
-        </Field>
-        <div className={`${liveStyles.fieldWide} ${styles.searchResults}`} aria-live="polite">
-          {selectedStudent ? <div className={styles.selectedStudent}>
-            <span><CheckCircle2 size={18} aria-hidden="true" /><strong>{selectedStudent.firstName} {selectedStudent.lastName}</strong> seleccionado</span>
-            <button type="button" onClick={() => setSelectedStudent(null)}>Cambiar</button>
-          </div> : studentQuery.trim().length < 2 ? <p>Escribí al menos 2 caracteres para buscar.</p>
-            : studentLookup?.query !== studentQuery.trim() ? <p role="status">Buscando alumnos…</p>
-              : studentLookup.error ? <p role="alert">{studentLookup.error} <button type="button" onClick={() => { setStudentLookup(null); setSearchRevision((value) => value + 1); }}>Reintentar</button></p>
-                : studentLookup.items.length === 0 ? <p>No encontramos alumnos activos con esos datos.</p>
-                  : studentLookup.items.map((item) => <button type="button" key={item._id} onClick={() => setSelectedStudent(item)}>
-                    <strong>{item.firstName} {item.lastName}</strong>
-                    <small>{[item.email, item.phone, item.dni && `DNI ${item.dni}`].filter(Boolean).join(" · ")}</small>
-                  </button>)}
-        </div>
+        {studentSearchFields}
         <Field label="Tipo">
           <select name="participantType" defaultValue="AUTHORIZED">
             <option value="AUTHORIZED">Autorizado (clase suelta, invitado)</option>
@@ -640,6 +754,62 @@ export function SessionDrawer({
         <Field label="Nota">
           <input name="note" maxLength={300} />
         </Field>
+      </LiveModal>
+
+      <LiveModal
+        open={modal?.kind === "enrollment"}
+        title="Inscribir alumno a la clase"
+        description={data ? `${data.class.name} · ${formatDateOnly(data.sessionDate)}. La inscripción aplica al grupo y a los horarios elegidos.` : ""}
+        submitting={busy}
+        submitDisabled={!selectedStudent || !enrollmentClass || !["ACTIVE", "PAUSED"].includes(enrollmentClass.status)}
+        submitLabel="Inscribir alumno"
+        error={enrollmentError}
+        onClose={() => setModal(null)}
+        onSubmit={(event) => void submitEnrollment(event)}
+      >
+        {!enrollmentClass ? !enrollmentError && <p className={liveStyles.fieldWide} role="status">Cargando opciones de inscripción…</p> : <>
+          {studentSearchFields}
+          {enrollmentMode === "BOTH" ? <Field label="Cómo paga">
+            <select value={billingPreference} onChange={(event) => setBillingPreference(event.target.value as BillingPreference)}>
+              <option value="PER_CLASS">Por clase · {formatMoney(enrollmentClass.pricePerClass ?? 0)}</option>
+              <option value="MONTHLY">Mensual · {monthlyPlansLabel(enrollmentClass)}</option>
+            </select>
+          </Field> : <p className={liveStyles.fieldWide}>Modalidad: {preferenceLabel(enrollmentPreference)}.</p>}
+          {enrollmentPreference === "MONTHLY" && monthlyPlansAvailable(enrollmentClass) && <Field label="Plan mensual">
+            <select value={monthlyPlan} onChange={(event) => setMonthlyPlan(Number(event.target.value) as 4 | 8)}>
+              {availableMonthlyPlans(enrollmentClass).map((plan) => <option key={plan} value={plan}>Plan de {plan} clases · {formatMoney(monthlyPriceFor(enrollmentClass, plan))}</option>)}
+            </select>
+          </Field>}
+          {enrollmentSlots.length > 1 && <div className={liveStyles.fieldWide}>
+            <strong>Días y horarios</strong>
+            <div className={enrollStyles.slotChips}>
+              {enrollmentSlots.map((slot) => {
+                const checked = selectedSeries.includes(slot.seriesId);
+                const full = slot.occupied >= enrollmentClass.capacity;
+                return <label key={slot.seriesId} className={enrollStyles.slotChip + (checked ? " " + enrollStyles.slotChipOn : "")}>
+                  <input type="checkbox" checked={checked} onChange={(event) => setSelectedSeries((current) => event.target.checked ? [...current, slot.seriesId] : current.filter((id) => id !== slot.seriesId))} />
+                  <strong>{dayLabels[slot.day] ?? slot.day} {slot.startTime}</strong>
+                  <small className={full ? enrollStyles.slotFull : undefined}>{slot.occupied}/{enrollmentClass.capacity} cupos{full ? " · lleno" : ""}</small>
+                </label>;
+              })}
+            </div>
+            <small>{selectedSeries.length === 0 ? "Sin selección: se inscribe en todos los horarios." : `${selectedSeries.length} de ${enrollmentSlots.length} horarios seleccionados.`}</small>
+          </div>}
+          <Field label="Fecha de inicio">
+            <input type="date" required value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+          </Field>
+          {enrollmentMidMonth && <Field label="Cobro del primer mes">
+            <select value={joinPolicy} required onChange={(event) => setJoinPolicy(event.target.value as "" | MidMonthPolicy)}>
+              <option value="">Elegí cómo cobrar el primer mes</option>
+              <option value="FULL">Cuota completa del mes</option>
+              <option value="PRORATED">Proporcional a las clases que quedan</option>
+              <option value="CUSTOM">Importe personalizado</option>
+            </select>
+          </Field>}
+          {enrollmentMidMonth && joinPolicy === "CUSTOM" && <Field label="Importe a cobrar ($)">
+            <input type="number" min="0" step="0.01" required value={joinCustomAmount} onChange={(event) => setJoinCustomAmount(event.target.value)} />
+          </Field>}
+        </>}
       </LiveModal>
 
       <LiveModal
