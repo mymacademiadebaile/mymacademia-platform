@@ -1,0 +1,90 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:04:46.43,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 6 · ALUMNOS
+Dialogue: 0,0:00:18.12,0:01:01.92,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Listado y búsqueda
+Dialogue: 0,0:01:01.92,0:01:24.09,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Evitar duplicados
+Dialogue: 0,0:01:24.09,0:02:01.89,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Registrar un alumno nuevo
+Dialogue: 0,0:02:01.89,0:02:36.99,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}La ficha del alumno
+Dialogue: 0,0:02:36.99,0:02:47.42,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Editar información
+Dialogue: 0,0:02:47.42,0:03:07.71,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}QR, historial y preferencias
+Dialogue: 0,0:03:07.71,0:03:42.51,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Inactivar y reactivar
+Dialogue: 0,0:03:42.51,0:04:34.90,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Consultar un alumno con historial
+Dialogue: 1,0:00:01.00,0:00:03.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo vamos a gestionar alumnos:
+Dialogue: 1,0:00:03.69,0:00:09.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}buscarlos, registrarlos sin duplicados\Ny consultar toda su información.
+Dialogue: 1,0:00:09.61,0:00:13.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a registrar a una alumna\Nficticia, Valentina Ríos,
+Dialogue: 1,0:00:13.51,0:00:16.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}que vamos a inscribir en el próximo capítulo.
+Dialogue: 1,0:00:18.22,0:00:21.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ingresamos a Alumnos desde el menú lateral.
+Dialogue: 1,0:00:22.13,0:00:27.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}El listado muestra a los alumnos activos\Nordenados por apellido, con su teléfono o email
+Dialogue: 1,0:00:27.24,0:00:28.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}y su estado.
+Dialogue: 1,0:00:28.89,0:00:32.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abajo se elige cuántos ver por página.
+Dialogue: 1,0:00:32.61,0:00:38.69,Sub,,0,0,0,,{\an5\pos(1110,1020)}El buscador encuentra por nombre,\Napellido, email, teléfono o DNI.
+Dialogue: 1,0:00:38.71,0:00:41.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, escribimos Camila.
+Dialogue: 1,0:00:42.43,0:00:47.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los filtros permiten elegir la sede,\Nel estado, Activos, Inactivos o Todos,
+Dialogue: 1,0:00:47.87,0:00:51.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}y ver solo a quienes tienen deuda vencida.
+Dialogue: 1,0:00:51.68,0:00:57.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con la casilla Con deuda vencida marcada,\Nvemos rápidamente a quiénes hay que cobrarles.
+Dialogue: 1,0:00:57.88,0:00:59.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}La desmarcamos.
+Dialogue: 1,0:01:02.02,0:01:07.24,Sub,,0,0,0,,{\an5\pos(1110,1020)}Antes de registrar a alguien, conviene\Nbuscarlo para no crear un duplicado.
+Dialogue: 1,0:01:07.26,0:01:10.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}Buscamos el DNI de la nueva alumna.
+Dialogue: 1,0:01:11.10,0:01:15.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}No hay resultados, así que\Npodemos crearla con tranquilidad.
+Dialogue: 1,0:01:15.79,0:01:21.94,Sub,,0,0,0,,{\an5\pos(1110,1020)}Además, el sistema rechaza un DNI o un\Nemail que ya pertenezcan a otra persona.
+Dialogue: 1,0:01:24.19,0:01:26.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Nuevo alumno.
+Dialogue: 1,0:01:27.20,0:01:29.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos la sede.
+Dialogue: 1,0:01:29.87,0:01:32.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}Completamos nombre y apellido.
+Dialogue: 1,0:01:33.37,0:01:37.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}El DNI es opcional, pero recomendamos cargarlo:
+Dialogue: 1,0:01:37.06,0:01:41.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}identifica a la persona y le permite\Nregistrar su asistencia en la tablet.
+Dialogue: 1,0:01:42.47,0:01:47.17,Sub,,0,0,0,,{\an5\pos(1110,1020)}Teléfono y email, para\Ncontactarla y enviarle recibos.
+Dialogue: 1,0:01:47.74,0:01:50.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}La fecha de nacimiento.
+Dialogue: 1,0:01:50.66,0:01:54.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los datos de un responsable se\Ncompletan en el caso de menores.
+Dialogue: 1,0:01:54.97,0:01:58.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y en Notas, cualquier observación útil.
+Dialogue: 1,0:01:59.06,0:02:01.26,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Guardar.
+Dialogue: 1,0:02:01.99,0:02:05.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}El sistema abre la ficha de la alumna.
+Dialogue: 1,0:02:05.06,0:02:11.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}Arriba está su estado, Alumno activo, y los\Naccesos para escribirle por Email o WhatsApp,
+Dialogue: 1,0:02:11.03,0:02:13.19,Sub,,0,0,0,,{\an5\pos(1110,1020)}Editar e Inactivar.
+Dialogue: 1,0:02:13.76,0:02:19.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las tarjetas muestran lo cobrado,\Nlo pendiente, lo vencido y sus clases activas.
+Dialogue: 1,0:02:19.79,0:02:22.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}Al ser nueva, todo está en cero.
+Dialogue: 1,0:02:23.53,0:02:25.51,Sub,,0,0,0,,{\an5\pos(1110,1020)}La ficha tiene tres secciones:
+Dialogue: 1,0:02:25.53,0:02:29.88,Sub,,0,0,0,,{\an5\pos(1110,1020)}Resumen, QR e historial, y Recordatorios.
+Dialogue: 1,0:02:30.45,0:02:35.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Resumen vemos la información personal,\Nsus inscripciones y sus pagos.
+Dialogue: 1,0:02:37.09,0:02:40.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para corregir un dato presionamos Editar.
+Dialogue: 1,0:02:40.96,0:02:44.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, actualizamos su teléfono.
+Dialogue: 1,0:02:45.09,0:02:46.89,Sub,,0,0,0,,{\an5\pos(1110,1020)}Guardamos.
+Dialogue: 1,0:02:47.52,0:02:52.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}En QR e historial está su credencial con\Ncódigo QR, el historial de clases a las
+Dialogue: 1,0:02:52.63,0:02:55.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}que asistió y sus preferencias de contacto.
+Dialogue: 1,0:02:56.40,0:03:00.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Contacto y preferencias definimos si\Nacepta recordatorios de pago por email
+Dialogue: 1,0:03:00.57,0:03:04.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}y si quiere recibir novedades y promociones.
+Dialogue: 1,0:03:04.61,0:03:07.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}Guardamos las preferencias.
+Dialogue: 1,0:03:08.58,0:03:12.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cuando un alumno deja la academia, se lo inactiva.
+Dialogue: 1,0:03:12.67,0:03:15.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Inactivar.
+Dialogue: 1,0:03:15.56,0:03:18.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}El sistema avisa que su historial se conserva.
+Dialogue: 1,0:03:18.92,0:03:24.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}Al inactivarlo, además,\Nse cierran sus inscripciones activas.
+Dialogue: 1,0:03:24.41,0:03:26.28,Sub,,0,0,0,,{\an5\pos(1110,1020)}Confirmamos.
+Dialogue: 1,0:03:26.84,0:03:29.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora figura como Alumno inactivo.
+Dialogue: 1,0:03:29.83,0:03:34.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para que vuelva, presionamos\NReactivar y confirmamos.
+Dialogue: 1,0:03:34.67,0:03:38.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}Tené en cuenta que reactivar no\Nrecupera las inscripciones anteriores:
+Dialogue: 1,0:03:38.89,0:03:42.05,Sub,,0,0,0,,{\an5\pos(1110,1020)}hay que volver a inscribirlo en sus clases.
+Dialogue: 1,0:03:42.66,0:03:45.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}Veamos ahora una alumna con actividad.
+Dialogue: 1,0:03:45.95,0:03:49.64,Sub,,0,0,0,,{\an5\pos(1110,1020)}Volvemos a Alumnos y buscamos a Camila Duarte.
+Dialogue: 1,0:03:50.21,0:03:54.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}Sus tarjetas muestran lo cobrado,\Nlo pendiente y lo vencido.
+Dialogue: 1,0:03:55.47,0:03:57.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Inscripciones vemos sus dos clases:
+Dialogue: 1,0:03:57.89,0:04:04.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}Salsa Inicial por clase, y Bachata Intermedio\Ncon mensualidad, cada una con sus turnos.
+Dialogue: 1,0:04:04.95,0:04:10.16,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y en Pagos, cada mensualidad o clase\Ncon su vencimiento, importe y estado:
+Dialogue: 1,0:04:10.18,0:04:13.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Pagado, Pendiente o Vencido.
+Dialogue: 1,0:04:13.16,0:04:16.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Desde cada fila se puede cobrar y ver el recibo.
+Dialogue: 1,0:04:17.33,0:04:23.27,Sub,,0,0,0,,{\an5\pos(1110,1020)}En QR e historial, el Historial de clases\Nmuestra cada asistencia registrada, con la clase,
+Dialogue: 1,0:04:23.29,0:04:25.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}el tipo y la fecha.
+Dialogue: 1,0:04:26.01,0:04:33.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Así, desde una sola ficha consultamos sus datos,\Nclases, mensualidades, pagos y asistencia.
+Dialogue: 1,0:04:35.90,0:04:39.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}Valentina ya tiene su ficha\Ncompleta en el sistema.
+Dialogue: 1,0:04:40.17,0:04:45.51,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a inscribirla\Nen distintas clases y modalidades.

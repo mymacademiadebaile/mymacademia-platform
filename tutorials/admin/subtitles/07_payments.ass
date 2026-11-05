@@ -1,0 +1,109 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:05:56.57,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 8 · COBROS
+Dialogue: 0,0:00:21.25,0:01:01.41,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Dónde consultar los pagos
+Dialogue: 0,0:01:01.41,0:01:31.93,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Cobrar una mensualidad
+Dialogue: 0,0:01:31.93,0:01:55.00,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Cobro parcial
+Dialogue: 0,0:01:55.00,0:02:12.49,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Agregar un importe
+Dialogue: 0,0:02:12.49,0:02:39.29,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Deudas y vencidos
+Dialogue: 0,0:02:39.29,0:03:09.86,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Cobrar una clase individual
+Dialogue: 0,0:03:09.86,0:03:43.49,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Cobrar un importe con promoción
+Dialogue: 0,0:03:43.49,0:04:38.52,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Historial y recibos
+Dialogue: 0,0:04:38.52,0:05:39.77,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Anular un cobro
+Dialogue: 1,0:00:01.00,0:00:04.71,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo recorremos el\Ncircuito financiero completo:
+Dialogue: 1,0:00:04.73,0:00:11.20,Sub,,0,0,0,,{\an5\pos(1110,1020)}qué hay por cobrar, cómo registrar cada tipo\Nde cobro, los recibos y cómo corregir errores.
+Dialogue: 1,0:00:11.70,0:00:15.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Todos los importes son ficticios y\Nno se usan medios de pago reales:
+Dialogue: 1,0:00:15.80,0:00:19.92,Sub,,0,0,0,,{\an5\pos(1110,1020)}el sistema solo registra los\Ncobros que la academia recibe.
+Dialogue: 1,0:00:21.35,0:00:24.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ingresamos a Pagos desde el menú lateral.
+Dialogue: 1,0:00:25.05,0:00:27.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}La pantalla Cobros tiene dos pestañas:
+Dialogue: 1,0:00:27.56,0:00:32.89,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por cobrar, con lo pendiente,\Ne Historial, con los cobros registrados.
+Dialogue: 1,0:00:32.91,0:00:38.99,Sub,,0,0,0,,{\an5\pos(1110,1020)}Al abrir el mes actual, el sistema prepara\Nautomáticamente las mensualidades vigentes.
+Dialogue: 1,0:00:39.55,0:00:41.69,Sub,,0,0,0,,{\an5\pos(1110,1020)}Arriba elegimos el mes y qué ver:
+Dialogue: 1,0:00:41.71,0:00:47.57,Sub,,0,0,0,,{\an5\pos(1110,1020)}Pendientes, que incluye lo vencido y\Nlos pagos parciales, o solo Vencidos.
+Dialogue: 1,0:00:47.59,0:00:51.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}Al lado se resume la cantidad\Ny el total pendiente.
+Dialogue: 1,0:00:52.06,0:00:57.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada fila muestra el alumno, el concepto,\Nel vencimiento, el saldo y su estado:
+Dialogue: 1,0:00:57.65,0:01:00.96,Sub,,0,0,0,,{\an5\pos(1110,1020)}Pendiente, Pago parcial o Vencido.
+Dialogue: 1,0:01:01.52,0:01:06.23,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cobramos la mensualidad proporcional\Nde Valentina Ríos en Dancehall.
+Dialogue: 1,0:01:06.25,0:01:08.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Cobrar en su fila.
+Dialogue: 1,0:01:09.49,0:01:12.46,Sub,,0,0,0,,{\an5\pos(1110,1020)}El importe se completa con el saldo.
+Dialogue: 1,0:01:12.48,0:01:15.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como medio de pago elegimos Transferencia.
+Dialogue: 1,0:01:16.38,0:01:22.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si es una transferencia, se puede\Nadjuntar el comprobante como foto o PDF.
+Dialogue: 1,0:01:22.09,0:01:23.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}Es opcional.
+Dialogue: 1,0:01:23.83,0:01:26.41,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Confirmar cobro.
+Dialogue: 1,0:01:26.96,0:01:31.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}La cuota sale de la lista de\Npendientes y se genera su recibo.
+Dialogue: 1,0:01:32.04,0:01:35.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}A veces un alumno paga una parte.
+Dialogue: 1,0:01:35.09,0:01:40.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}Florencia Ibarra entrega diez mil pesos\Na cuenta de su mensualidad de Hip Hop.
+Dialogue: 1,0:01:40.41,0:01:42.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Cobrar.
+Dialogue: 1,0:01:43.11,0:01:47.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cambiamos el importe a diez\Nmil y dejamos Efectivo.
+Dialogue: 1,0:01:47.61,0:01:49.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}Confirmamos.
+Dialogue: 1,0:01:50.02,0:01:54.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}La cuota queda como Pago parcial,\Ncon el saldo que falta.
+Dialogue: 1,0:01:55.10,0:02:01.26,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para un concepto excepcional, como una\Nremera o un recargo, usamos Agregar importe.
+Dialogue: 1,0:02:01.82,0:02:06.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos a Valentina, escribimos\Nel concepto y el importe.
+Dialogue: 1,0:02:06.44,0:02:08.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}El vencimiento es hoy.
+Dialogue: 1,0:02:09.22,0:02:12.02,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Agregar a Por cobrar.
+Dialogue: 1,0:02:12.59,0:02:15.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para consultar deudas, en Ver elegimos Vencidos:
+Dialogue: 1,0:02:15.99,0:02:20.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}aparecen solo los importes que\Npasaron su fecha de vencimiento.
+Dialogue: 1,0:02:21.00,0:02:25.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las deudas de meses anteriores se\Nconsultan cambiando el mes en Período.
+Dialogue: 1,0:02:25.79,0:02:28.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, el mes pasado.
+Dialogue: 1,0:02:29.19,0:02:33.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}También en Alumnos, la casilla Con\Ndeuda vencida lista a los deudores,
+Dialogue: 1,0:02:33.80,0:02:37.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}y en la ficha de cada alumno\Nse ve el total vencido.
+Dialogue: 1,0:02:39.40,0:02:43.12,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las clases sueltas se cobran\Ndesde la clase del día.
+Dialogue: 1,0:02:43.14,0:02:47.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos la clase de hoy de Bachata\NIntermedio en el calendario.
+Dialogue: 1,0:02:48.01,0:02:51.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Valentina tomó esta clase como autorizada.
+Dialogue: 1,0:02:51.44,0:02:54.15,Sub,,0,0,0,,{\an5\pos(1110,1020)}En su fila presionamos Cobrar.
+Dialogue: 1,0:02:54.71,0:02:59.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si dejamos el importe vacío se\Ncobra el valor completo de la clase.
+Dialogue: 1,0:02:59.51,0:03:02.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos Efectivo y presionamos Cobrar.
+Dialogue: 1,0:03:03.28,0:03:06.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}El estado de pago de su fila pasa a Pagado.
+Dialogue: 1,0:03:09.97,0:03:15.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora cobramos la clase de Salsa con la\Npromoción, desde la ficha de Valentina.
+Dialogue: 1,0:03:18.47,0:03:23.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}La fila de Salsa muestra el importe\Ncon el quince por ciento ya descontado.
+Dialogue: 1,0:03:23.51,0:03:25.64,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Cobrar.
+Dialogue: 1,0:03:26.25,0:03:29.51,Sub,,0,0,0,,{\an5\pos(1110,1020)}Desde la ficha se cobra el saldo completo.
+Dialogue: 1,0:03:29.53,0:03:32.46,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos Tarjeta y confirmamos.
+Dialogue: 1,0:03:33.07,0:03:38.99,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la tabla Pagos, cada cobro registrado muestra\Nel estado Pagado y los accesos a su recibo:
+Dialogue: 1,0:03:39.01,0:03:43.03,Sub,,0,0,0,,{\an5\pos(1110,1020)}ver, descargar, enviar por email o por WhatsApp.
+Dialogue: 1,0:03:43.59,0:03:47.21,Sub,,0,0,0,,{\an5\pos(1110,1020)}Volvemos a Pagos y abrimos la pestaña Historial.
+Dialogue: 1,0:03:47.96,0:03:51.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}El historial muestra el total cobrado\Ndel mes, la cantidad de cobros
+Dialogue: 1,0:03:51.84,0:03:54.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}y el subtotal por medio de pago.
+Dialogue: 1,0:03:54.47,0:03:58.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada cobro tiene su número de recibo correlativo.
+Dialogue: 1,0:03:58.82,0:04:02.64,Sub,,0,0,0,,{\an5\pos(1110,1020)}Podemos buscar por alumno o por número de recibo.
+Dialogue: 1,0:04:02.66,0:04:04.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escribimos Ríos.
+Dialogue: 1,0:04:05.37,0:04:08.94,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Ver recibo para abrir el comprobante.
+Dialogue: 1,0:04:11.39,0:04:17.20,Sub,,0,0,0,,{\an5\pos(1110,1020)}El recibo en PDF incluye el número, los datos\Ndel alumno, la fecha y el medio de pago,
+Dialogue: 1,0:04:17.22,0:04:19.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}el concepto y el total abonado.
+Dialogue: 1,0:04:19.88,0:04:22.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se puede imprimir o descargar.
+Dialogue: 1,0:04:23.37,0:04:25.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}También se puede enviar por email:
+Dialogue: 1,0:04:25.41,0:04:30.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}el botón Email lo manda con el PDF\Nadjunto a la dirección de la alumna.
+Dialogue: 1,0:04:31.08,0:04:34.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}El botón WhatsApp abre WhatsApp\NWeb con el número del alumno
+Dialogue: 1,0:04:34.52,0:04:38.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}y descarga el recibo para adjuntarlo en el chat.
+Dialogue: 1,0:04:38.62,0:04:42.29,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si un cobro se cargó por error, se anula.
+Dialogue: 1,0:04:42.31,0:04:46.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, supongamos que el pago\Nparcial de Florencia Ibarra se registró por
+Dialogue: 1,0:04:46.79,0:04:48.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}equivocación.
+Dialogue: 1,0:04:48.60,0:04:50.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}La buscamos.
+Dialogue: 1,0:04:51.04,0:04:53.21,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Anular.
+Dialogue: 1,0:04:53.79,0:04:57.12,Sub,,0,0,0,,{\an5\pos(1110,1020)}El aviso explica que el cobro\Ndeja de contar en el total,
+Dialogue: 1,0:04:57.14,0:05:01.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}el recibo queda marcado como anulado\Ny la cuota vuelve a Por cobrar.
+Dialogue: 1,0:05:01.86,0:05:03.32,Sub,,0,0,0,,{\an5\pos(1110,1020)}No se borra nada:
+Dialogue: 1,0:05:03.34,0:05:06.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}queda registrado quién lo anuló y por qué.
+Dialogue: 1,0:05:07.11,0:05:09.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escribimos el motivo.
+Dialogue: 1,0:05:10.57,0:05:15.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}No marcamos la casilla de eliminar la\Ndeuda, porque la cuota sí corresponde.
+Dialogue: 1,0:05:15.84,0:05:18.36,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Anular cobro.
+Dialogue: 1,0:05:18.92,0:05:24.57,Sub,,0,0,0,,{\an5\pos(1110,1020)}El cobro figura como Anulado, con su\Nmotivo, y deja de sumar en el total.
+Dialogue: 1,0:05:24.59,0:05:30.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para corregir un importe, se anula el cobro\Nequivocado y se registra nuevamente el correcto.
+Dialogue: 1,0:05:31.43,0:05:36.08,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los movimientos de caja por período y por\Nmedio de pago se analizan en Reportes,
+Dialogue: 1,0:05:36.10,0:05:38.69,Sub,,0,0,0,,{\an5\pos(1110,1020)}que vemos en el capítulo 12.
+Dialogue: 1,0:05:40.77,0:05:46.12,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ya sabés registrar cobros de mensualidades,\Nclases sueltas e importes con promoción,
+Dialogue: 1,0:05:46.14,0:05:50.05,Sub,,0,0,0,,{\an5\pos(1110,1020)}emitir recibos y anular un\Ncobro cargado por error.
+Dialogue: 1,0:05:50.55,0:05:55.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a\Ngestionar contactos y posibles alumnos.

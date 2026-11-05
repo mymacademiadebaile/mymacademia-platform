@@ -45,6 +45,8 @@ export function CommunicationsLive() {
   const { toast, confirm } = useAdminFeedback();
   const [channel, setChannel] = useState<"EMAIL" | "WHATSAPP">("EMAIL");
   const [audience, setAudience] = useState<EmailAudience>("ALL");
+  // Mass emails respect the "Aceptar novedades y promociones" preference unless turned off.
+  const [marketingOnly, setMarketingOnly] = useState(true);
   const [classId, setClassId] = useState("");
   const [studentId, setStudentId] = useState("");
   const [classes, setClasses] = useState<DanceClass[]>([]);
@@ -111,7 +113,8 @@ export function CommunicationsLive() {
         body: JSON.stringify({
           audience,
           classId: audience === "CLASS" ? classId : undefined,
-          studentId: audience === "STUDENT" ? studentId : undefined
+          studentId: audience === "STUDENT" ? studentId : undefined,
+          marketingOnly: audience === "ALL" ? marketingOnly : undefined
         })
       });
 
@@ -121,7 +124,7 @@ export function CommunicationsLive() {
       setRecipientCount(null);
       setRecipientSample([]);
     }
-  }, [audience, classId, studentId]);
+  }, [audience, classId, studentId, marketingOnly]);
 
   useEffect(() => {
     void loadBase();
@@ -176,6 +179,7 @@ export function CommunicationsLive() {
             audience,
             classId: audience === "CLASS" ? classId : undefined,
             studentId: audience === "STUDENT" ? studentId : undefined,
+            marketingOnly: audience === "ALL" ? marketingOnly : undefined,
             subject: form.get("subject"),
             message: form.get("message")
           })
@@ -303,6 +307,13 @@ export function CommunicationsLive() {
                 <option value="STUDENT">Un alumno en particular</option>
               </select>
             </label>
+
+            {audience === "ALL" && (
+              <label className={`${styles.fieldWide} ${styles.switchRow}`}>
+                <input type="checkbox" checked={marketingOnly} onChange={(event) => setMarketingOnly(event.target.checked)} />
+                <span>Solo a quienes aceptan novedades y promociones (desmarcalo para avisos institucionales)</span>
+              </label>
+            )}
 
             {audience === "CLASS" && (
               <label className={styles.field}>

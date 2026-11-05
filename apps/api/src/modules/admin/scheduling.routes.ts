@@ -270,11 +270,14 @@ adminCalendarRouter.get("/", async (request, response, next) => {
     };
     if (query.status) sessionFilter.status = query.status;
     // A reprogrammed occurrence is historical context, not an operational class to
-    // manage from the calendar. The only visible card is the currently scheduled one.
-    sessionFilter.$nor = [
-      { status: "RESCHEDULED" },
-      { status: "CANCELLED", origin: "RESCHEDULED" }
-    ];
+    // manage from the calendar. The only visible card is the currently scheduled one,
+    // unless the user explicitly filters by "Reprogramada" to review them.
+    if (query.status !== "RESCHEDULED") {
+      sessionFilter.$nor = [
+        { status: "RESCHEDULED" },
+        { status: "CANCELLED", origin: "RESCHEDULED" }
+      ];
+    }
     if (query.spaceId) sessionFilter.spaceId = new Types.ObjectId(query.spaceId);
     let sessions = await ClassSessionModel.find(sessionFilter).sort({ sessionDate: 1, startTime: 1 }).lean<any[]>();
 

@@ -1,0 +1,940 @@
+[
+ {
+  "id": "00_introduction",
+  "title": "Introducción a la plataforma",
+  "number": 1,
+  "duration": 288.933,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.1,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 66,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    23.808442735671996,
+    58.901083850860594,
+    "Pantalla de inicio de sesión"
+   ],
+   [
+    58.901083850860594,
+    129.20813217163087,
+    "Panel de inicio"
+   ],
+   [
+    129.20813217163087,
+    209.2577916622162,
+    "Menú de navegación"
+   ],
+   [
+    209.2577916622162,
+    237.28157439231873,
+    "Navegar entre módulos"
+   ],
+   [
+    237.28157439231873,
+    274.0333333333333,
+    "Notificaciones y perfil"
+   ]
+  ],
+  "segments": 39,
+  "marks": []
+ },
+ {
+  "id": "01_configuration",
+  "title": "Configuración general",
+  "number": 2,
+  "duration": 476.966667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.1,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 115,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    19.846345122655233,
+    46.383003886540735,
+    "Ingresar a Configuración"
+   ],
+   [
+    46.383003886540735,
+    60.649499352773034,
+    "Identidad de la academia"
+   ],
+   [
+    60.649499352773034,
+    85.79545920689901,
+    "Consultas e inscripciones"
+   ],
+   [
+    85.79545920689901,
+    101.85975306828817,
+    "Reglas operativas"
+   ],
+   [
+    101.85975306828817,
+    130.4749790986379,
+    "Canales públicos"
+   ],
+   [
+    130.4749790986379,
+    152.11804359753927,
+    "Landing pública"
+   ],
+   [
+    152.11804359753927,
+    172.1796099503835,
+    "Sedes"
+   ],
+   [
+    172.1796099503835,
+    248.27326219876608,
+    "Catálogos: ritmos, público y niveles"
+   ],
+   [
+    248.27326219876608,
+    293.04539006551107,
+    "Pistas de baile"
+   ],
+   [
+    293.04539006551107,
+    324.01638668378195,
+    "Feriados"
+   ],
+   [
+    324.01638668378195,
+    349.4095448811849,
+    "Reglas de cobro"
+   ],
+   [
+    349.4095448811849,
+    455.93333333333334,
+    "Usuarios y roles"
+   ]
+  ],
+  "segments": 68,
+  "marks": []
+ },
+ {
+  "id": "02_teachers",
+  "title": "Administración de profesores",
+  "number": 3,
+  "duration": 287.166667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.1,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 64,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    17.04561055501302,
+    51.8698762734731,
+    "Listado de profesores"
+   ],
+   [
+    51.8698762734731,
+    107.78878892262776,
+    "Alta de una profesora"
+   ],
+   [
+    107.78878892262776,
+    162.25892842610676,
+    "Perfil del profesor"
+   ],
+   [
+    162.25892842610676,
+    181.85922802289326,
+    "Editar datos y disciplinas"
+   ],
+   [
+    181.85922802289326,
+    199.41690910657246,
+    "Restablecer acceso"
+   ],
+   [
+    199.41690910657246,
+    238.19576609929402,
+    "Inactivar y reactivar"
+   ],
+   [
+    238.19576609929402,
+    273.06666666666666,
+    "Clases y horarios de un profesor"
+   ]
+  ],
+  "segments": 42,
+  "marks": []
+ },
+ {
+  "id": "03_classes",
+  "title": "Creación y configuración de clases",
+  "number": 4,
+  "duration": 357.466667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.3,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 87,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    18.583574215571087,
+    35.31257859865825,
+    "Dónde se crean las clases"
+   ],
+   [
+    35.31257859865825,
+    77.80787364641826,
+    "Nueva clase: datos del grupo"
+   ],
+   [
+    77.80787364641826,
+    119.32332293192546,
+    "Cupo, modalidad y precios"
+   ],
+   [
+    119.32332293192546,
+    155.63782660166422,
+    "Días y horarios"
+   ],
+   [
+    155.63782660166422,
+    202.9451369444529,
+    "Ver la clase en el calendario"
+   ],
+   [
+    202.9451369444529,
+    254.99568978945413,
+    "Gestión de la clase"
+   ],
+   [
+    254.99568978945413,
+    310.173991839091,
+    "Editar la clase"
+   ],
+   [
+    310.173991839091,
+    341.7666666666667,
+    "Inactivar o eliminar"
+   ]
+  ],
+  "segments": 47,
+  "marks": []
+ },
+ {
+  "id": "04_promotions",
+  "title": "Promociones y descuentos",
+  "number": 5,
+  "duration": 346.366667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.2,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 86,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    23.117959451675414,
+    48.91717739105225,
+    "Dónde están las promociones"
+   ],
+   [
+    48.91717739105225,
+    109.90461630821228,
+    "Crear un 2x1"
+   ],
+   [
+    109.90461630821228,
+    189.23441166877745,
+    "Inscribir una pareja con 2x1"
+   ],
+   [
+    189.23441166877745,
+    238.2768573284149,
+    "Verificar el importe y cobrar"
+   ],
+   [
+    238.2768573284149,
+    278.53787631988524,
+    "Descuento por porcentaje"
+   ],
+   [
+    278.53787631988524,
+    333.59999999999997,
+    "Cerrar una campaña"
+   ]
+  ],
+  "segments": 47,
+  "marks": []
+ },
+ {
+  "id": "05_students",
+  "title": "Gestión de alumnos",
+  "number": 6,
+  "duration": 286.433,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.2,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 66,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    18.11879343986511,
+    61.92199392318726,
+    "Listado y búsqueda"
+   ],
+   [
+    61.92199392318726,
+    84.08618445396424,
+    "Evitar duplicados"
+   ],
+   [
+    84.08618445396424,
+    121.88854761123658,
+    "Registrar un alumno nuevo"
+   ],
+   [
+    121.88854761123658,
+    156.98956246376036,
+    "La ficha del alumno"
+   ],
+   [
+    156.98956246376036,
+    167.41650338172911,
+    "Editar información"
+   ],
+   [
+    167.41650338172911,
+    187.71338839530944,
+    "QR, historial y preferencias"
+   ],
+   [
+    187.71338839530944,
+    222.51267070770263,
+    "Inactivar y reactivar"
+   ],
+   [
+    222.51267070770263,
+    274.9,
+    "Consultar un alumno con historial"
+   ]
+  ],
+  "segments": 39,
+  "marks": []
+ },
+ {
+  "id": "06_enrollments",
+  "title": "Inscripción de alumnos a clases",
+  "number": 7,
+  "duration": 360.766667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.2,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 93,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    21.148743375142416,
+    102.8122641881307,
+    "A · Inscripción con mensualidad"
+   ],
+   [
+    102.8122641881307,
+    135.0773267587026,
+    "B · Inscripción por clase"
+   ],
+   [
+    135.0773267587026,
+    184.665673716863,
+    "B · Clase suelta de un solo día"
+   ],
+   [
+    184.665673716863,
+    242.11781404813132,
+    "C · Inscripción con promoción"
+   ],
+   [
+    242.11781404813132,
+    267.80637834866843,
+    "D · Varias clases"
+   ],
+   [
+    267.80637834866843,
+    344.6666666666667,
+    "E · Modificaciones posteriores"
+   ]
+  ],
+  "segments": 44,
+  "marks": [
+   [
+    21.14875005086263,
+    "A"
+   ],
+   [
+    102.81227110226949,
+    "B"
+   ],
+   [
+    184.66567633946738,
+    "C"
+   ],
+   [
+    242.11781810124717,
+    "D"
+   ],
+   [
+    267.80638168652854,
+    "E"
+   ]
+  ]
+ },
+ {
+  "id": "07_payments",
+  "title": "Cobros y gestión de pagos",
+  "number": 8,
+  "duration": 356.566667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.1,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 84,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    21.25195058186849,
+    61.414964755376175,
+    "Dónde consultar los pagos"
+   ],
+   [
+    61.414964755376175,
+    91.9347067674001,
+    "Cobrar una mensualidad"
+   ],
+   [
+    91.9347067674001,
+    114.99876221021016,
+    "Cobro parcial"
+   ],
+   [
+    114.99876221021016,
+    132.48946436246237,
+    "Agregar un importe"
+   ],
+   [
+    132.48946436246237,
+    159.29488118489584,
+    "Deudas y vencidos"
+   ],
+   [
+    159.29488118489584,
+    189.86358412106833,
+    "Cobrar una clase individual"
+   ],
+   [
+    189.86358412106833,
+    223.48670681317648,
+    "Cobrar un importe con promoción"
+   ],
+   [
+    223.48670681317648,
+    278.52022250493366,
+    "Historial y recibos"
+   ],
+   [
+    278.52022250493366,
+    339.76666666666665,
+    "Anular un cobro"
+   ]
+  ],
+  "segments": 44,
+  "marks": []
+ },
+ {
+  "id": "08_contacts",
+  "title": "Contactos y potenciales alumnos",
+  "number": 9,
+  "duration": 272.566667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.2,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 66,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    19.949244769414268,
+    49.64023497899373,
+    "Contactos existentes"
+   ],
+   [
+    49.64023497899373,
+    72.5441887696584,
+    "Crear un contacto"
+   ],
+   [
+    72.5441887696584,
+    88.68767908414205,
+    "Ficha del contacto"
+   ],
+   [
+    88.68767908414205,
+    117.54763367970784,
+    "Interés y observaciones"
+   ],
+   [
+    117.54763367970784,
+    164.27899697621663,
+    "Reservar una clase de prueba gratuita"
+   ],
+   [
+    164.27899697621663,
+    181.2031815369924,
+    "Seguimiento: asistencia a la prueba"
+   ],
+   [
+    181.2031815369924,
+    223.1923697312673,
+    "Convertir en alumno"
+   ],
+   [
+    223.1923697312673,
+    259.90000000000003,
+    "Comprobar el resultado"
+   ]
+  ],
+  "segments": 36,
+  "marks": []
+ },
+ {
+  "id": "09_attendance",
+  "title": "Presentismo y asistencias",
+  "number": 10,
+  "duration": 314.166667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.1,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 78,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    16.74882658322652,
+    57.67415150006612,
+    "La clase del día"
+   ],
+   [
+    57.67415150006612,
+    74.90483339627583,
+    "Marcar asistencia"
+   ],
+   [
+    74.90483339627583,
+    92.20048840840657,
+    "Corregir asistencia"
+   ],
+   [
+    92.20048840840657,
+    130.6048525174459,
+    "Estados"
+   ],
+   [
+    130.6048525174459,
+    171.89725097020468,
+    "Consultar por fecha, clase y profesor"
+   ],
+   [
+    171.89725097020468,
+    205.435098250707,
+    "Tablet de asistencia"
+   ],
+   [
+    205.435098250707,
+    267.06078394254047,
+    "Tablet: activación y registro con DNI"
+   ],
+   [
+    267.06078394254047,
+    298.06666666666666,
+    "Historial de un alumno"
+   ]
+  ],
+  "segments": 41,
+  "marks": []
+ },
+ {
+  "id": "10_schedule",
+  "title": "Calendario y cambios de horario",
+  "number": 11,
+  "duration": 309.6,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.2,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 77,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    16.780843130747478,
+    61.79998599688212,
+    "Vistas y navegación"
+   ],
+   [
+    61.79998599688212,
+    71.02216612497966,
+    "Filtros"
+   ],
+   [
+    71.02216612497966,
+    121.5347593943278,
+    "Cambiar una sola clase: horario y profesor suplente"
+   ],
+   [
+    121.5347593943278,
+    145.91036092440288,
+    "Avisar a los alumnos afectados"
+   ],
+   [
+    145.91036092440288,
+    185.0123292128245,
+    "Reprogramar una fecha"
+   ],
+   [
+    185.0123292128245,
+    215.23597418467205,
+    "Cancelar una fecha"
+   ],
+   [
+    215.23597418467205,
+    233.21135579744976,
+    "Clase extra"
+   ],
+   [
+    233.21135579744976,
+    293.76666666666665,
+    "Cambiar el horario recurrente"
+   ]
+  ],
+  "segments": 40,
+  "marks": []
+ },
+ {
+  "id": "11_reports",
+  "title": "Reportes y estadísticas",
+  "number": 12,
+  "duration": 204.4,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.1,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 48,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    15.214860248565675,
+    43.56891136169433,
+    "Reportes: filtros"
+   ],
+   [
+    43.56891136169433,
+    80.62993531227112,
+    "Indicadores principales"
+   ],
+   [
+    80.62993531227112,
+    115.69088678359985,
+    "Ingresos y operación"
+   ],
+   [
+    115.69088678359985,
+    135.7239947795868,
+    "Cambiar el período"
+   ],
+   [
+    135.7239947795868,
+    151.4087956428528,
+    "Exportar a Excel"
+   ],
+   [
+    151.4087956428528,
+    189.46666666666667,
+    "Otros indicadores: inicio, notificaciones y auditoría"
+   ]
+  ],
+  "segments": 25,
+  "marks": [
+   [
+    140.0177746295929,
+    "excel:reporte-2026-11-01_a_2026-11-30.xlsx"
+   ]
+  ]
+ },
+ {
+  "id": "12_daily_workflow",
+  "title": "Operaciones administrativas frecuentes",
+  "number": 13,
+  "duration": 193.466667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.2,
+  "long_silences": [],
+  "blacks": [],
+  "cues": 45,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    21.406383514404297,
+    28.034818172454834,
+    "1 · Ingresar al sistema"
+   ],
+   [
+    28.034818172454834,
+    42.68982720375061,
+    "2 · Revisar el inicio"
+   ],
+   [
+    42.68982720375061,
+    50.53279709815979,
+    "3 · Consultar nuevas solicitudes"
+   ],
+   [
+    50.53279709815979,
+    72.84314751625061,
+    "4 · Registrar un contacto"
+   ],
+   [
+    72.84314751625061,
+    81.27187538146973,
+    "5 · Convertir en alumna"
+   ],
+   [
+    81.27187538146973,
+    87.79836583137512,
+    "6 · Inscribir en una clase"
+   ],
+   [
+    87.79836583137512,
+    119.8281044960022,
+    "7 y 8 · Promoción y cobro"
+   ],
+   [
+    119.8281044960022,
+    130.99811697006226,
+    "9 · Consultar la inscripción"
+   ],
+   [
+    130.99811697006226,
+    140.60319995880127,
+    "10 · Revisar asistencias"
+   ],
+   [
+    140.60319995880127,
+    164.28082585334778,
+    "11 · Modificar un horario"
+   ],
+   [
+    164.28082585334778,
+    177.06666666666666,
+    "12 · Reportes finales"
+   ]
+  ],
+  "segments": 27,
+  "marks": []
+ },
+ {
+  "id": "13_additional_features",
+  "title": "Funciones adicionales",
+  "number": 14,
+  "duration": 382.566667,
+  "res": "1920x1080",
+  "fps": "30/1",
+  "vcodec": "h264",
+  "acodec": "aac",
+  "achannels": 2,
+  "lufs": -16.1,
+  "long_silences": [
+   8.531542
+  ],
+  "blacks": [],
+  "cues": 89,
+  "long_lines": 0,
+  "three_lines": 0,
+  "fast_cues": 0,
+  "cue_overlaps": 0,
+  "voice_overlaps": 0,
+  "issues": [],
+  "labels": [
+   [
+    20.880172459284463,
+    87.33704969088237,
+    "Comunicaciones: email"
+   ],
+   [
+    87.33704969088237,
+    98.54370853106181,
+    "Comunicaciones: WhatsApp"
+   ],
+   [
+    98.54370853106181,
+    149.94861623446147,
+    "Recordatorios de deuda"
+   ],
+   [
+    149.94861623446147,
+    177.09855410257975,
+    "Credencial QR de asistencia"
+   ],
+   [
+    177.09855410257975,
+    199.56829234759013,
+    "Nuevas sedes"
+   ],
+   [
+    199.56829234759013,
+    231.09435006777446,
+    "Pausar una clase"
+   ],
+   [
+    231.09435006777446,
+    296.96967717806496,
+    "Eliminar una clase sin actividad"
+   ],
+   [
+    296.96967717806496,
+    318.64661881128944,
+    "Mi perfil"
+   ],
+   [
+    318.64661881128944,
+    335.88735720316566,
+    "Eliminar un usuario"
+   ],
+   [
+    335.88735720316566,
+    360.0,
+    "Recuperar la contraseña"
+   ]
+  ],
+  "segments": 48,
+  "marks": []
+ }
+]

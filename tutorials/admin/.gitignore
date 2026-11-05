@@ -1,0 +1,3 @@
+# Local tutorial production environment (DB files, venv, logs) and heavy media.
+.local/
+recordings/

@@ -141,7 +141,11 @@ export async function planMonthlyCharge(
   // taken when the student enrolled applies to the join month; a mode switch asks again.
   if (joinedOn) {
     const decidedAtEnrollment = joinedOn === periods[0].startDate ? enrollment.joinPolicy : undefined;
-    policy = options.policy ?? decidedAtEnrollment;
+    // Without an explicit decision, the academy's "Alta a mitad de mes" rule applies when it is a
+    // fixed policy (full fee or prorated). "ASK" and "CUSTOM" (needs an amount) still require a decision.
+    const academyDefault =
+      settings.midMonthPolicy === "FULL" || settings.midMonthPolicy === "PRORATED" ? settings.midMonthPolicy : undefined;
+    policy = options.policy ?? decidedAtEnrollment ?? academyDefault;
     if (!policy) return { skip: "NEEDS_DECISION" };
     if (policy === "PRORATED") {
       const share = await remainingSessionShare(organizationId, danceClass, enrollment, period, joinedOn);

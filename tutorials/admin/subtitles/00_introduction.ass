@@ -1,0 +1,87 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:04:48.93,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 1 · INTRODUCCIÓN
+Dialogue: 0,0:00:23.81,0:00:58.90,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Pantalla de inicio de sesión
+Dialogue: 0,0:00:58.90,0:02:09.21,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Panel de inicio
+Dialogue: 0,0:02:09.21,0:03:29.26,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Menú de navegación
+Dialogue: 0,0:03:29.26,0:03:57.28,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Navegar entre módulos
+Dialogue: 0,0:03:57.28,0:04:34.03,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Notificaciones y perfil
+Dialogue: 1,0:00:01.00,0:00:06.32,Sub,,0,0,0,,{\an5\pos(1110,1020)}Bienvenidos al curso de administración\Nde la plataforma de M&M Academia.
+Dialogue: 1,0:00:06.83,0:00:11.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este primer capítulo vamos a ingresar\Nal sistema, conocer el panel de inicio
+Dialogue: 1,0:00:11.45,0:00:16.32,Sub,,0,0,0,,{\an5\pos(1110,1020)}y recorrer el menú, para familiarizarnos\Ncon la interfaz antes de operar.
+Dialogue: 1,0:00:16.83,0:00:22.48,Sub,,0,0,0,,{\an5\pos(1110,1020)}Todos los datos que vas a ver son ficticios\Ny fueron creados solo para esta capacitación.
+Dialogue: 1,0:00:23.95,0:00:27.21,Sub,,0,0,0,,{\an5\pos(1110,1020)}Esta es la pantalla de inicio de sesión.
+Dialogue: 1,0:00:27.23,0:00:33.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se accede desde la dirección de la plataforma,\Nen la sección de acceso del equipo.
+Dialogue: 1,0:00:33.61,0:00:38.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el campo Email o usuario escribimos el\Ncorreo de nuestra cuenta de administrador.
+Dialogue: 1,0:00:39.52,0:00:42.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Luego completamos la contraseña.
+Dialogue: 1,0:00:42.44,0:00:44.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por seguridad se muestra oculta;
+Dialogue: 1,0:00:44.56,0:00:48.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}con el ícono del ojo podemos\Nverificarla si hace falta.
+Dialogue: 1,0:00:49.11,0:00:55.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si olvidamos la clave, el enlace Olvidé mi\Ncontraseña envía un correo para crear una nueva.
+Dialogue: 1,0:00:56.16,0:00:58.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Ingresar.
+Dialogue: 1,0:00:59.05,0:01:02.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ingresamos al panel de\Ninicio de la administración.
+Dialogue: 1,0:01:02.69,0:01:08.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}Su título es Así viene la academia hoy,\Ny reúne la información más importante del día.
+Dialogue: 1,0:01:09.37,0:01:12.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la primera fila hay cuatro indicadores.
+Dialogue: 1,0:01:12.75,0:01:17.31,Sub,,0,0,0,,{\an5\pos(1110,1020)}Alumnos activos muestra cuántos\Nalumnos están habilitados, y debajo,
+Dialogue: 1,0:01:17.33,0:01:19.98,Sub,,0,0,0,,{\an5\pos(1110,1020)}cuántas altas hubo este mes.
+Dialogue: 1,0:01:20.53,0:01:24.76,Sub,,0,0,0,,{\an5\pos(1110,1020)}Profesores activos indica el\Nequipo con acceso habilitado.
+Dialogue: 1,0:01:24.78,0:01:28.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}Clases de hoy cuenta las\Nclases programadas para el día.
+Dialogue: 1,0:01:29.30,0:01:33.19,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y Cobrado este mes suma el dinero\Nefectivamente cobrado en el mes,
+Dialogue: 1,0:01:33.21,0:01:35.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}junto con la cantidad de pagos.
+Dialogue: 1,0:01:36.55,0:01:39.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}Más abajo está la sección Clases del día:
+Dialogue: 1,0:01:39.27,0:01:44.46,Sub,,0,0,0,,{\an5\pos(1110,1020)}cada fila muestra el horario, la clase,\Nel profesor, los inscriptos sobre el cupo
+Dialogue: 1,0:01:44.48,0:01:46.41,Sub,,0,0,0,,{\an5\pos(1110,1020)}y cómo se cobra.
+Dialogue: 1,0:01:47.03,0:01:51.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con el botón Abrir entramos a la\Nclase para tomar asistencia y cobrar.
+Dialogue: 1,0:01:51.68,0:01:55.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}Lo vamos a usar en el capítulo de presentismo.
+Dialogue: 1,0:01:55.69,0:02:01.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}Al final están Finanzas, con lo pendiente\Ny lo vencido del período, y Ocupación,
+Dialogue: 1,0:02:01.02,0:02:03.41,Sub,,0,0,0,,{\an5\pos(1110,1020)}con las clases más llenas.
+Dialogue: 1,0:02:03.43,0:02:08.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada tarjeta tiene un acceso\Ndirecto a Pagos o a Reportes.
+Dialogue: 1,0:02:09.31,0:02:12.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}A la izquierda está el menú lateral.
+Dialogue: 1,0:02:12.24,0:02:15.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}Desde acá se accede a todos los módulos.
+Dialogue: 1,0:02:15.51,0:02:18.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}Veamos para qué sirve cada uno.
+Dialogue: 1,0:02:18.86,0:02:21.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}Inicio vuelve a este panel.
+Dialogue: 1,0:02:21.88,0:02:26.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}Calendario muestra todas las clases por\Nmes, semana o día, y desde ahí se crean
+Dialogue: 1,0:02:26.84,0:02:29.10,Sub,,0,0,0,,{\an5\pos(1110,1020)}y modifican clases.
+Dialogue: 1,0:02:29.46,0:02:32.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}Profesores administra el equipo docente.
+Dialogue: 1,0:02:33.09,0:02:36.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}Alumnos contiene la ficha completa de cada alumno:
+Dialogue: 1,0:02:36.24,0:02:39.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}datos, clases y pagos.
+Dialogue: 1,0:02:39.37,0:02:44.33,Sub,,0,0,0,,{\an5\pos(1110,1020)}Contactos guarda a las personas\Ninteresadas que todavía no son alumnas.
+Dialogue: 1,0:02:44.70,0:02:49.76,Sub,,0,0,0,,{\an5\pos(1110,1020)}Recepción muestra las llegadas del día\Ny habilita la tablet de asistencia.
+Dialogue: 1,0:02:50.12,0:02:55.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}Pagos reúne lo que hay por cobrar y el\Nhistorial de cobros con sus recibos.
+Dialogue: 1,0:02:55.40,0:03:00.15,Sub,,0,0,0,,{\an5\pos(1110,1020)}Comunicaciones envía emails y\Nmensajes de WhatsApp a los alumnos.
+Dialogue: 1,0:03:00.51,0:03:04.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}Recordatorios prepara avisos de deuda por email.
+Dialogue: 1,0:03:04.61,0:03:09.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}Reportes analiza actividad,\Nfacturación y caja por período.
+Dialogue: 1,0:03:09.86,0:03:14.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}Auditoría registra las acciones\Nsensibles realizadas por el equipo.
+Dialogue: 1,0:03:14.94,0:03:19.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}Configuración define los\Ndatos y reglas de la academia.
+Dialogue: 1,0:03:19.49,0:03:24.19,Sub,,0,0,0,,{\an5\pos(1110,1020)}Usuarios administra los accesos\Nde administradores y profesores.
+Dialogue: 1,0:03:24.55,0:03:29.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y Mi perfil permite actualizar\Nnuestros datos y la contraseña.
+Dialogue: 1,0:03:29.40,0:03:33.35,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para cambiar de módulo, simplemente hacemos clic.
+Dialogue: 1,0:03:33.37,0:03:36.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, entramos a Alumnos.
+Dialogue: 1,0:03:37.22,0:03:41.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada pantalla tiene un encabezado con\Nsu nombre y una breve descripción,
+Dialogue: 1,0:03:41.60,0:03:44.70,Sub,,0,0,0,,{\an5\pos(1110,1020)}y arriba a la derecha el\Nbotón principal de la sección;
+Dialogue: 1,0:03:44.72,0:03:47.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}en este caso, Nuevo alumno.
+Dialogue: 1,0:03:50.07,0:03:54.57,Sub,,0,0,0,,{\an5\pos(1110,1020)}El elemento resaltado en el menú\Nindica en qué módulo estamos.
+Dialogue: 1,0:03:54.59,0:03:56.83,Sub,,0,0,0,,{\an5\pos(1110,1020)}Volvemos al inicio.
+Dialogue: 1,0:03:57.43,0:04:01.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}Arriba a la derecha está la\Ncampana de notificaciones.
+Dialogue: 1,0:04:01.55,0:04:06.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}El número indica cuántos pagos vencidos\Ny envíos con error requieren atención.
+Dialogue: 1,0:04:07.48,0:04:10.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Desde este panel podemos ir\Ndirectamente a los pagos vencidos
+Dialogue: 1,0:04:10.86,0:04:13.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}o al centro de notificaciones completo.
+Dialogue: 1,0:04:14.45,0:04:16.26,Sub,,0,0,0,,{\an5\pos(1110,1020)}Lo cerramos.
+Dialogue: 1,0:04:16.28,0:04:21.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}Junto a la campana, el botón con\Nnuestro nombre abre Mi perfil.
+Dialogue: 1,0:04:21.59,0:04:27.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y abajo a la izquierda, el botón Cerrar\Nsesión finaliza el acceso de forma segura.
+Dialogue: 1,0:04:27.65,0:04:32.96,Sub,,0,0,0,,{\an5\pos(1110,1020)}Conviene usarlo siempre al terminar,\Nsobre todo en computadoras compartidas.
+Dialogue: 1,0:04:35.03,0:04:36.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Listo.
+Dialogue: 1,0:04:36.44,0:04:42.16,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ya sabés cómo ingresar, qué muestra el\Npanel de inicio y dónde está cada módulo.
+Dialogue: 1,0:04:42.66,0:04:48.03,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a revisar\Nla configuración general de la academia.

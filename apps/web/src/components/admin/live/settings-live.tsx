@@ -85,6 +85,9 @@ export function SettingsLive() {
   const [branchModal, setBranchModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [branchSaving, setBranchSaving] = useState(false);
+  // Errors of the branch form are shown inside its modal, not behind it.
+  const [branchError, setBranchError] = useState("");
+  useEffect(() => setBranchError(""), [branchModal]);
   const [landingImageBusy, setLandingImageBusy] = useState<AcademySpaceImageSlot | null>(null);
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("academy");
   const [error, setError] = useState("");
@@ -152,7 +155,7 @@ export function SettingsLive() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setBranchSaving(true);
-    setError("");
+    setBranchError("");
 
     try {
       const body = JSON.stringify({
@@ -178,7 +181,7 @@ export function SettingsLive() {
       setEditingBranch(null);
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      setBranchError(apiMessage(requestError));
     } finally {
       setBranchSaving(false);
     }
@@ -529,6 +532,7 @@ export function SettingsLive() {
               setEditingBranch(null);
             }}
             onSubmit={saveBranch}
+            error={branchError}
           >
             <Field label="Nombre">
               <input

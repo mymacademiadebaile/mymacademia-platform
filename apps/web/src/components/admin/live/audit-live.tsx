@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ClipboardList, Search } from "lucide-react";
+import { AUDIT_ENTITY_LABELS, auditActionLabel, auditEntityLabel } from "@mym/shared";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
+import { formatInstant } from "@/lib/dates";
 import type { Paginated } from "./live-types";
 import { ErrorBlock, LoadingBlock } from "./live-common";
 import styles from "./live.module.css";
@@ -24,31 +26,6 @@ type AuditItem = {
   };
 };
 
-const actionLabels: Record<string, string> = {
-  ADMIN_PROFILE_UPDATED: "Perfil administrador actualizado",
-  ADMIN_PASSWORD_CHANGED: "Contraseña administrador cambiada",
-  STUDENT_CREATED: "Alumno creado",
-  STUDENT_UPDATED: "Alumno actualizado",
-  PROFESSOR_CREATED: "Profesor creado",
-  PROFESSOR_UPDATED: "Profesor actualizado",
-  PROFESSOR_PASSWORD_RESET: "Contraseña profesor restablecida",
-  CLASS_CREATED: "Clase creada",
-  CLASS_UPDATED: "Clase actualizada",
-  ENROLLMENT_CREATED: "Inscripción creada",
-  ENROLLMENT_ENDED: "Inscripción finalizada",
-  PAYMENT_CREATED: "Cuota creada",
-  PAYMENT_UPDATED: "Pago actualizado",
-  PAYMENT_MARKED_PAID: "Pago registrado",
-  PAYMENT_CANCELLED: "Pago cancelado",
-  EMAIL_CAMPAIGN_SENT: "Campaña de email enviada",
-  EMAIL_RETRIED: "Email reintentado",
-  WHATSAPP_OPENED: "WhatsApp abierto",
-  BRANCH_CREATED: "Sede creada",
-  BRANCH_UPDATED: "Sede actualizada",
-  ORGANIZATION_SETTINGS_UPDATED: "Configuración de academia actualizada",
-  LANDING_IMAGE_UPDATED: "Imagen de la landing actualizada",
-  LANDING_IMAGE_RESTORED: "Imagen de la landing restaurada"
-};
 
 export function AuditLive() {
   const [items, setItems] = useState<AuditItem[]>([]);
@@ -108,15 +85,9 @@ export function AuditLive() {
         </div>
         <select value={entityType} onChange={(event) => setEntityType(event.target.value)}>
           <option value="">Todas las entidades</option>
-          <option value="User">Usuarios</option>
-          <option value="Student">Alumnos</option>
-          <option value="Professor">Profesores</option>
-          <option value="DanceClass">Clases</option>
-          <option value="Enrollment">Inscripciones</option>
-          <option value="Payment">Pagos</option>
-          <option value="NotificationLog">Comunicaciones</option>
-          <option value="Branch">Sedes</option>
-          <option value="Organization">Academia</option>
+          {Object.entries(AUDIT_ENTITY_LABELS)
+            .sort(([, left], [, right]) => left.localeCompare(right, "es"))
+            .map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </div>
 
@@ -134,15 +105,15 @@ export function AuditLive() {
                 <ClipboardList size={16} />
               </span>
               <span className={styles.rowBody}>
-                <strong>{actionLabels[item.action] ?? item.action}</strong>
+                <strong>{auditActionLabel(item.action)}</strong>
                 <small>
                   {item.actorUserId
                     ? `${item.actorUserId.firstName} ${item.actorUserId.lastName} · ${item.actorUserId.email}`
                     : "Usuario no disponible"}
                 </small>
-                <small>{new Date(item.createdAt).toLocaleString("es-AR")}</small>
+                <small>{formatInstant(item.createdAt)}</small>
               </span>
-              <span className={styles.pillOff}>{item.entityType}</span>
+              <span className={styles.pillOff}>{auditEntityLabel(item.entityType)}</span>
             </div>
           ))}
         </div>

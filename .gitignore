@@ -15,3 +15,6 @@ artifacts/
 *.tsbuildinfo
 .next-build-backup/
 apps/web/.next-reception/
+
+# Tutorial videos (too large for GitHub)
+tutorials/admin/videos/

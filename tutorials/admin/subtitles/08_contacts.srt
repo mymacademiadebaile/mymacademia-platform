@@ -1,0 +1,290 @@
+1
+00:00:01,002 --> 00:00:05,363
+En este capítulo vamos a gestionar a
+las personas interesadas en la academia,
+
+2
+00:00:05,383 --> 00:00:08,004
+que todavía no son alumnas.
+
+3
+00:00:08,506 --> 00:00:12,712
+Vamos a registrar a Julieta Paz,
+interesada en Dancehall Inicial,
+
+4
+00:00:12,732 --> 00:00:18,604
+reservarle una clase de prueba gratuita,
+hacer el seguimiento y convertirla en alumna.
+
+5
+00:00:20,100 --> 00:00:23,503
+Ingresamos a Contactos desde el menú lateral.
+
+6
+00:00:24,105 --> 00:00:30,156
+La sección Posibles alumnos lista a las
+personas interesadas, con su teléfono y DNI.
+
+7
+00:00:30,176 --> 00:00:32,596
+Cada una abre su historial.
+
+8
+00:00:33,207 --> 00:00:37,454
+El buscador encuentra por nombre, DNI o teléfono.
+
+9
+00:00:37,474 --> 00:00:41,874
+Antes de cargar a alguien,
+lo buscamos para no duplicarlo.
+
+10
+00:00:41,894 --> 00:00:44,289
+Escribimos su DNI.
+
+11
+00:00:44,889 --> 00:00:49,179
+No existe, así que lo
+creamos con Agregar contacto.
+
+12
+00:00:49,787 --> 00:00:51,777
+Se piden los datos básicos:
+
+13
+00:00:51,797 --> 00:00:55,825
+nombre, apellido, teléfono y DNI.
+
+14
+00:00:55,845 --> 00:00:58,925
+El resto se completa más adelante.
+
+15
+00:00:59,534 --> 00:01:05,300
+Si el DNI ya pertenece a otra persona, o el
+teléfono ya está cargado en otro contacto,
+
+16
+00:01:05,320 --> 00:01:08,816
+el sistema avisa para reutilizar esa ficha.
+
+17
+00:01:09,425 --> 00:01:12,083
+Presionamos Guardar contacto.
+
+18
+00:01:12,691 --> 00:01:17,634
+Se abre la ficha del contacto,
+identificada como Posible alumno.
+
+19
+00:01:17,654 --> 00:01:22,597
+Tiene sus datos, las acciones
+disponibles y su historial de clases.
+
+20
+00:01:23,198 --> 00:01:28,232
+Con Editar datos se corrigen el
+nombre, el teléfono o el DNI.
+
+21
+00:01:28,833 --> 00:01:33,987
+Para registrar su interés y
+observaciones, abrimos Más opciones.
+
+22
+00:01:34,589 --> 00:01:36,720
+Cargamos su email.
+
+23
+00:01:37,830 --> 00:01:42,438
+Y en Notas, la disciplina que
+le interesa y cómo nos conoció.
+
+24
+00:01:42,458 --> 00:01:45,982
+La plataforma no tiene estados
+de seguimiento para contactos:
+
+25
+00:01:46,002 --> 00:01:50,857
+el seguimiento se lleva con estas
+notas, las reservas y el historial.
+
+26
+00:01:51,455 --> 00:01:57,089
+También indicamos si acepta recibir
+novedades y promociones, y guardamos.
+
+27
+00:01:58,407 --> 00:02:01,559
+Ahora le reservamos su clase de prueba.
+
+28
+00:02:01,579 --> 00:02:04,714
+Presionamos Reservar clase sin cargo.
+
+29
+00:02:05,318 --> 00:02:08,225
+El tipo es Primera prueba gratuita.
+
+30
+00:02:08,245 --> 00:02:14,624
+La otra opción, Cortesía administrativa,
+se usa para invitar a alguien con un motivo.
+
+31
+00:02:15,227 --> 00:02:16,560
+Elegimos la fecha:
+
+32
+00:02:16,580 --> 00:02:17,813
+hoy.
+
+33
+00:02:18,423 --> 00:02:22,373
+En Clase y horario aparecen las clases de ese día.
+
+34
+00:02:22,393 --> 00:02:27,321
+Elegimos Dancehall Inicial, que
+tiene la prueba gratuita habilitada.
+
+35
+00:02:27,931 --> 00:02:32,149
+Agregamos una nota opcional y
+presionamos Guardar reserva.
+
+36
+00:02:32,757 --> 00:02:37,429
+La prueba aparece en el Historial
+de clases, en estado Reservada.
+
+37
+00:02:37,449 --> 00:02:40,676
+Cada persona tiene una sola
+prueba gratuita por clase,
+
+38
+00:02:40,696 --> 00:02:43,815
+y ocupa un lugar en el cupo de ese día.
+
+39
+00:02:44,426 --> 00:02:49,975
+Cuando Julieta viene a la clase, registramos
+su asistencia con Registrar presente.
+
+40
+00:02:49,995 --> 00:02:53,661
+Si avisa que no viene, se usa Cancelar.
+
+41
+00:02:54,265 --> 00:02:57,468
+La prueba queda registrada como Presente.
+
+42
+00:02:57,488 --> 00:03:00,739
+Las clases de prueba no generan cobros.
+
+43
+00:03:02,066 --> 00:03:05,089
+Le gustó la clase y quiere sumarse.
+
+44
+00:03:05,109 --> 00:03:07,845
+Presionamos Convertir en alumno.
+
+45
+00:03:08,443 --> 00:03:11,131
+Se crea su ficha académica.
+
+46
+00:03:11,151 --> 00:03:14,701
+Podemos completar email y fecha de nacimiento.
+
+47
+00:03:15,313 --> 00:03:18,140
+Presionamos Confirmar conversión.
+
+48
+00:03:18,747 --> 00:03:21,626
+El sistema abre la ficha de alumna de Julieta:
+
+49
+00:03:21,646 --> 00:03:26,085
+se copiaron su nombre, teléfono, DNI y email.
+
+50
+00:03:26,685 --> 00:03:32,248
+En QR e historial se conserva su clase
+de prueba, con el estado Presente.
+
+51
+00:03:33,566 --> 00:03:37,079
+La conversión no la inscribe en ninguna clase.
+
+52
+00:03:37,099 --> 00:03:38,393
+Lo hacemos ahora:
+
+53
+00:03:38,413 --> 00:03:42,729
+Inscribir, Dancehall Inicial, pagando por clase.
+
+54
+00:03:43,336 --> 00:03:44,978
+Comprobemos en Alumnos:
+
+55
+00:03:44,998 --> 00:03:47,218
+buscamos a Julieta.
+
+56
+00:03:48,430 --> 00:03:51,112
+Ya figura como alumna activa.
+
+57
+00:03:51,715 --> 00:03:54,660
+¿Y qué pasó con el contacto original?
+
+58
+00:03:54,680 --> 00:03:56,845
+Vamos a Contactos.
+
+59
+00:03:57,450 --> 00:04:02,548
+Julieta ya no aparece en Posibles
+alumnos, porque ahora es alumna.
+
+60
+00:04:02,568 --> 00:04:04,288
+Su contacto no se borra:
+
+61
+00:04:04,308 --> 00:04:08,701
+conserva el historial y sigue
+vinculado a la ficha académica.
+
+62
+00:04:09,306 --> 00:04:12,418
+Si una persona interesada pide no ser contactada,
+
+63
+00:04:12,438 --> 00:04:16,426
+desde su ficha se puede eliminar
+con Eliminar posible alumno, siempre
+
+64
+00:04:16,446 --> 00:04:18,829
+que todavía no sea alumna.
+
+65
+00:04:20,901 --> 00:04:26,104
+Julieta pasó de contacto a alumna,
+y su historial de prueba se conservó.
+
+66
+00:04:26,606 --> 00:04:31,664
+En el próximo capítulo vamos a trabajar
+con el presentismo y la asistencia.

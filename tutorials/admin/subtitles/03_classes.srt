@@ -1,0 +1,384 @@
+1
+00:00:01,002 --> 00:00:02,734
+Este capítulo es central:
+
+2
+00:00:02,754 --> 00:00:07,620
+vamos a crear una clase desde cero
+y configurar todos sus parámetros.
+
+3
+00:00:08,122 --> 00:00:13,024
+Vamos a crear Dancehall Inicial, dictada
+por Carla Romero en la pista Salón B,
+
+4
+00:00:13,044 --> 00:00:17,236
+con cobro por clase o mensual
+y clase de prueba gratuita.
+
+5
+00:00:18,685 --> 00:00:21,669
+Las clases se crean desde el Calendario.
+
+6
+00:00:21,689 --> 00:00:24,344
+Lo abrimos desde el menú lateral.
+
+7
+00:00:24,952 --> 00:00:31,222
+El calendario muestra, por defecto, la semana
+actual con todas las clases programadas.
+
+8
+00:00:31,242 --> 00:00:34,858
+Arriba a la derecha está el botón Nueva clase.
+
+9
+00:00:35,461 --> 00:00:37,423
+Lo presionamos.
+
+10
+00:00:37,977 --> 00:00:43,229
+El formulario define el grupo,
+la modalidad de cobro y los horarios.
+
+11
+00:00:43,249 --> 00:00:46,155
+Empezamos por la sede y la pista.
+
+12
+00:00:46,719 --> 00:00:48,969
+La sede es La Plata.
+
+13
+00:00:48,989 --> 00:00:53,698
+En Pista elegimos Salón B,
+la que creamos en la configuración.
+
+14
+00:00:54,302 --> 00:00:57,128
+Escribimos el nombre de la clase.
+
+15
+00:00:57,694 --> 00:01:01,888
+En Profesores abrimos la lista
+y marcamos a Carla Romero.
+
+16
+00:01:02,451 --> 00:01:05,350
+En Disciplinas elegimos Dancehall.
+
+17
+00:01:06,638 --> 00:01:09,465
+En Público, Adultos.
+
+18
+00:01:10,160 --> 00:01:12,796
+Y en Niveles, Inicial.
+
+19
+00:01:12,816 --> 00:01:17,355
+Todas estas opciones provienen de
+los catálogos de la configuración.
+
+20
+00:01:17,952 --> 00:01:21,890
+El cupo es la cantidad máxima
+de alumnos por horario.
+
+21
+00:01:21,910 --> 00:01:24,211
+Lo fijamos en 20.
+
+22
+00:01:24,817 --> 00:01:30,507
+La modalidad de cobro puede ser Por
+clase, Mensual, o Por clase y mensual.
+
+23
+00:01:30,527 --> 00:01:34,963
+Elegimos esta última, para
+que cada alumno pueda optar.
+
+24
+00:01:35,565 --> 00:01:37,426
+Ahora cargamos los precios:
+
+25
+00:01:37,446 --> 00:01:40,119
+el valor de cada clase suelta,
+
+26
+00:01:40,717 --> 00:01:43,735
+el plan mensual de cuatro clases,
+
+27
+00:01:44,333 --> 00:01:47,421
+y el plan mensual de ocho clases.
+
+28
+00:01:47,441 --> 00:01:51,768
+Si no ofrecemos uno de los planes, se deja vacío.
+
+29
+00:01:52,368 --> 00:01:57,181
+Activamos la clase de prueba, que permite
+una primera clase sin cargo para quien quiere
+
+30
+00:01:57,201 --> 00:01:58,867
+conocerla.
+
+31
+00:01:59,469 --> 00:02:02,208
+En Horarios definimos los días.
+
+32
+00:02:02,228 --> 00:02:03,303
+Primer horario:
+
+33
+00:02:03,323 --> 00:02:06,831
+miércoles, de 21 a 22.
+
+34
+00:02:07,439 --> 00:02:09,919
+Con Agregar horario sumamos otro día:
+
+35
+00:02:09,939 --> 00:02:12,738
+sábado, de 11 a 12.
+
+36
+00:02:13,338 --> 00:02:18,462
+La duración de la clase surge de la
+hora de inicio y de fin de cada horario.
+
+37
+00:02:18,482 --> 00:02:21,877
+Con el ícono de papelera se quita un horario.
+
+38
+00:02:22,476 --> 00:02:26,046
+Revisamos todo y presionamos Crear clase.
+
+39
+00:02:26,648 --> 00:02:30,971
+El sistema controla que la profesora y
+la pista estén libres en esos horarios,
+
+40
+00:02:30,991 --> 00:02:35,187
+y genera automáticamente las
+clases de las próximas semanas.
+
+41
+00:02:35,739 --> 00:02:39,663
+Para encontrarla rápido,
+filtramos el calendario por profesor:
+
+42
+00:02:39,683 --> 00:02:42,070
+elegimos Carla Romero.
+
+43
+00:02:42,673 --> 00:02:48,581
+Ahí están sus clases de la semana, con el
+horario, la disciplina, la profesora, la pista
+
+44
+00:02:48,601 --> 00:02:51,092
+y los inscriptos sobre el cupo.
+
+45
+00:02:51,688 --> 00:02:58,499
+Las vistas Mes, Semana, Día y Lista, y las
+flechas, permiten recorrer el calendario.
+
+46
+00:02:58,519 --> 00:03:02,314
+Lo vamos a ver en detalle
+en el capítulo de horarios.
+
+47
+00:03:02,914 --> 00:03:06,365
+Hacemos clic en una clase para abrir su panel.
+
+48
+00:03:06,968 --> 00:03:09,705
+Este panel corresponde a una fecha puntual:
+
+49
+00:03:09,725 --> 00:03:15,272
+muestra la fecha, el horario, la pista,
+los precios y los alumnos de ese día,
+
+50
+00:03:15,292 --> 00:03:17,786
+con acciones para esa clase.
+
+51
+00:03:18,388 --> 00:03:22,486
+Para configurar el grupo
+completo usamos Gestionar clase.
+
+52
+00:03:23,047 --> 00:03:25,722
+Esta es la ficha de la clase.
+
+53
+00:03:25,742 --> 00:03:30,219
+Arriba está su estado, Clase
+activa, la profesora, los precios
+
+54
+00:03:30,239 --> 00:03:32,905
+y la clase de prueba disponible.
+
+55
+00:03:33,508 --> 00:03:37,908
+Los indicadores muestran inscriptos,
+cupo total, lugares disponibles
+
+56
+00:03:37,928 --> 00:03:40,606
+y cantidad de horarios semanales.
+
+57
+00:03:41,210 --> 00:03:46,190
+En Horarios y vigencia figura cada horario
+recurrente con su fecha de inicio, la pista
+
+58
+00:03:46,210 --> 00:03:48,047
+y la profesora.
+
+59
+00:03:48,067 --> 00:03:53,636
+Desde acá se agregan horarios, se cambian
+a partir de una fecha o se finalizan.
+
+60
+00:03:54,244 --> 00:03:58,798
+El interruptor Mostrar en la web publica
+la clase en el horario público, siempre
+
+61
+00:03:58,818 --> 00:04:01,270
+que su ritmo esté publicado.
+
+62
+00:04:01,881 --> 00:04:06,848
+Más abajo están las promociones del grupo,
+el formulario para inscribir alumnos,
+
+63
+00:04:06,868 --> 00:04:10,458
+las clases de prueba y los inscriptos actuales.
+
+64
+00:04:10,478 --> 00:04:13,827
+Los vamos a usar en los próximos capítulos.
+
+65
+00:04:15,142 --> 00:04:18,905
+Para modificar valores presionamos Editar clase.
+
+66
+00:04:19,508 --> 00:04:26,086
+Acá se pueden cambiar la sede, la pista,
+el nombre, el cupo, la modalidad, los precios,
+
+67
+00:04:26,106 --> 00:04:30,134
+los profesores, las categorías y los horarios.
+
+68
+00:04:30,734 --> 00:04:35,168
+Por ejemplo, ampliamos el cupo a 22 alumnos.
+
+69
+00:04:35,770 --> 00:04:40,324
+Y actualizamos el precio por clase a 7.500 pesos.
+
+70
+00:04:40,934 --> 00:04:43,813
+En Profesores se cambia o se suma un profesor;
+
+71
+00:04:43,833 --> 00:04:49,448
+si se cambia, el nuevo profesor pasa a ver
+todas las clases del grupo en su portal.
+
+72
+00:04:50,056 --> 00:04:52,259
+Presionamos Guardar.
+
+73
+00:04:52,823 --> 00:04:53,898
+Importante:
+
+74
+00:04:53,918 --> 00:04:58,244
+los nuevos precios se aplican a los
+cobros que se generen desde ahora.
+
+75
+00:04:58,264 --> 00:05:02,178
+Los cobros ya emitidos
+conservan su importe original.
+
+76
+00:05:02,737 --> 00:05:07,562
+Tampoco se puede bajar el cupo por debajo
+de los alumnos ya inscriptos en un horario:
+
+77
+00:05:07,582 --> 00:05:09,715
+el sistema lo impide.
+
+78
+00:05:10,317 --> 00:05:14,200
+Por último, los botones Inactivar y Eliminar.
+
+79
+00:05:14,808 --> 00:05:17,558
+Inactivar retira la clase de la operación:
+
+80
+00:05:17,578 --> 00:05:21,940
+desde hoy no se generan más clases y
+se cierran sus inscripciones vigentes,
+
+81
+00:05:21,960 --> 00:05:25,914
+pero se conservan asistencias, pagos y deudas.
+
+82
+00:05:26,528 --> 00:05:32,101
+Eliminar borra la clase definitivamente,
+y solo se permite si no tuvo ninguna actividad:
+
+83
+00:05:32,121 --> 00:05:36,587
+alumnos, cobros, pruebas ni clases realizadas.
+
+84
+00:05:36,607 --> 00:05:40,683
+Lo demostramos en el capítulo
+de funciones adicionales.
+
+85
+00:05:42,768 --> 00:05:47,864
+Dancehall Inicial ya está creada, con
+sus horarios, precios y clase de prueba,
+
+86
+00:05:47,884 --> 00:05:50,371
+y aparece en el calendario.
+
+87
+00:05:50,872 --> 00:05:56,555
+En el próximo capítulo vamos a crear
+promociones e inscribir alumnos con descuento.

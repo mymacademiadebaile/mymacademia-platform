@@ -32,7 +32,7 @@ const roleLabel: Record<ManagedRole, string> = {
 };
 
 export function UsersLive() {
-  const { toast } = useAdminFeedback();
+  const { toast, confirm } = useAdminFeedback();
   const [items, setItems] = useState<ManagedUser[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [search, setSearch] = useState("");
@@ -42,6 +42,9 @@ export function UsersLive() {
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [modal, setModal] = useState<ModalState>(null);
+  // Errors of the create/edit form are shown inside the modal, not behind it.
+  const [modalError, setModalError] = useState("");
+  useEffect(() => setModalError(""), [modal]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -107,7 +110,7 @@ export function UsersLive() {
     };
 
     setSubmitting(true);
-    setError("");
+    setModalError("");
     try {
       await apiFetch<ManagedUser>(editing ? `/admin/users/${modal.id}` : "/admin/users", {
         method: editing ? "PATCH" : "POST",
@@ -117,7 +120,7 @@ export function UsersLive() {
       toast(editing ? "Usuario actualizado correctamente" : "Usuario creado correctamente");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      setModalError(apiMessage(requestError));
     } finally {
       setSubmitting(false);
     }
@@ -137,9 +140,13 @@ export function UsersLive() {
   }
 
   async function remove(user: ManagedUser) {
-    if (!window.confirm(`¿Eliminar definitivamente a ${user.firstName} ${user.lastName}? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+    const approved = await confirm({
+      title: "Eliminar usuario",
+      description: `Se eliminará definitivamente a ${user.firstName} ${user.lastName}. Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      tone: "danger"
+    });
+    if (!approved) return;
     try {
       await apiFetch<void>(`/admin/users/${user.id}`, { method: "DELETE" });
       toast("Usuario eliminado correctamente");
@@ -240,6 +247,7 @@ export function UsersLive() {
         onSubmit={submit}
         eyebrow="USUARIOS"
         submitLabel={editing ? "Guardar cambios" : "Crear usuario"}
+        error={modalError}
       >
         {!editing && <Field label="Rol"><select name="role" defaultValue="ADMIN"><option value="ADMIN">Administrador</option><option value="PROFESSOR">Profesor</option></select></Field>}
         <Field label="Nombre"><input name="firstName" defaultValue={editing?.firstName} required /></Field>

@@ -1,0 +1,108 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:05:46.37,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 5 · PROMOCIONES
+Dialogue: 0,0:00:23.12,0:00:48.92,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Dónde están las promociones
+Dialogue: 0,0:00:48.92,0:01:49.90,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Crear un 2x1
+Dialogue: 0,0:01:49.90,0:03:09.23,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Inscribir una pareja con 2x1
+Dialogue: 0,0:03:09.23,0:03:58.28,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Verificar el importe y cobrar
+Dialogue: 0,0:03:58.28,0:04:38.54,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Descuento por porcentaje
+Dialogue: 0,0:04:38.54,0:05:33.60,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Cerrar una campaña
+Dialogue: 1,0:00:01.00,0:00:04.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo vamos a\Ntrabajar con el módulo comercial:
+Dialogue: 1,0:00:04.49,0:00:06.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}las promociones.
+Dialogue: 1,0:00:07.02,0:00:12.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a crear un 2x1 para Dancehall Inicial,\Ninscribir a una pareja con ese beneficio,
+Dialogue: 1,0:00:12.92,0:00:16.64,Sub,,0,0,0,,{\an5\pos(1110,1020)}ver cómo se calcula el\Nimporte y registrar el cobro.
+Dialogue: 1,0:00:16.66,0:00:21.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}También vamos a crear un descuento\Npor porcentaje y a cerrar una campaña.
+Dialogue: 1,0:00:23.22,0:00:25.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las promociones no tienen un menú propio:
+Dialogue: 1,0:00:25.64,0:00:29.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}se crean dentro de cada clase, porque\Ncada promoción pertenece a un grupo
+Dialogue: 1,0:00:29.75,0:00:32.24,Sub,,0,0,0,,{\an5\pos(1110,1020)}y cubre todos sus horarios.
+Dialogue: 1,0:00:32.80,0:00:36.41,Sub,,0,0,0,,{\an5\pos(1110,1020)}Llegamos a Dancehall Inicial\Ndesde el perfil de su profesora:
+Dialogue: 1,0:00:36.43,0:00:41.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}Profesores, Carla Romero y,\Nen Clases asignadas, la clase.
+Dialogue: 1,0:00:42.33,0:00:45.96,Sub,,0,0,0,,{\an5\pos(1110,1020)}Bajamos hasta la sección Promociones de la clase.
+Dialogue: 1,0:00:45.98,0:00:48.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}Todavía no tiene ninguna.
+Dialogue: 1,0:00:49.02,0:00:51.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Crear promoción.
+Dialogue: 1,0:00:52.22,0:00:54.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}Le damos un nombre claro.
+Dialogue: 1,0:00:55.91,0:00:58.02,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Beneficio hay cuatro tipos:
+Dialogue: 1,0:00:58.04,0:01:02.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}Porcentaje, Descuento fijo, Precio final y 2x1.
+Dialogue: 1,0:01:02.99,0:01:04.83,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos 2x1:
+Dialogue: 1,0:01:04.85,0:01:08.96,Sub,,0,0,0,,{\an5\pos(1110,1020)}dos personas se inscriben\Njuntas y una de ellas no paga.
+Dialogue: 1,0:01:09.52,0:01:12.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}El 2x1 tiene un período de inscripción:
+Dialogue: 1,0:01:12.45,0:01:15.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}las fechas en que se pueden anotar parejas.
+Dialogue: 1,0:01:15.75,0:01:18.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}Lo dejamos abierto durante esta semana.
+Dialogue: 1,0:01:19.53,0:01:22.12,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y una vigencia del beneficio.
+Dialogue: 1,0:01:22.14,0:01:27.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con los botones rápidos elegimos un encuentro\Npuntual, una semana o un mes del grupo.
+Dialogue: 1,0:01:27.95,0:01:30.33,Sub,,0,0,0,,{\an5\pos(1110,1020)}Dejamos Un mes del grupo.
+Dialogue: 1,0:01:30.88,0:01:32.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}El alcance se toma de la clase:
+Dialogue: 1,0:01:32.92,0:01:38.70,Sub,,0,0,0,,{\an5\pos(1110,1020)}como admite pago mensual y por clase,\Nla promoción alcanza ambas modalidades.
+Dialogue: 1,0:01:39.26,0:01:41.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Crear promoción.
+Dialogue: 1,0:01:42.46,0:01:47.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}La promoción aparece activa, con su\Nvigencia, el período de inscripción
+Dialogue: 1,0:01:47.03,0:01:49.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}y la cantidad de parejas.
+Dialogue: 1,0:01:50.01,0:01:53.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para usarla presionamos Inscribir pareja.
+Dialogue: 1,0:01:53.95,0:01:58.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se eligen dos alumnos que todavía\Nno estén inscriptos en esta clase.
+Dialogue: 1,0:01:58.76,0:02:04.08,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si alguno no existe en el sistema,\Nprimero hay que cargarlo en Alumnos.
+Dialogue: 1,0:02:04.64,0:02:05.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Quién paga:
+Dialogue: 1,0:02:05.58,0:02:07.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Sofía Medina.
+Dialogue: 1,0:02:08.12,0:02:09.89,Sub,,0,0,0,,{\an5\pos(1110,1020)}Quién recibe el beneficio:
+Dialogue: 1,0:02:09.91,0:02:11.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}Tomás Aguirre.
+Dialogue: 1,0:02:12.31,0:02:16.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los dos van a pagar con mensualidad,\Nplan de cuatro clases.
+Dialogue: 1,0:02:17.37,0:02:22.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como empiezan con el mes ya iniciado,\Nelegimos cómo cobrar el primer mes:
+Dialogue: 1,0:02:22.02,0:02:24.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Proporcional a las clases que quedan.
+Dialogue: 1,0:02:25.33,0:02:27.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}La vista previa calcula los importes:
+Dialogue: 1,0:02:27.92,0:02:32.89,Sub,,0,0,0,,{\an5\pos(1110,1020)}cuánto paga Sofía, cuánto paga\NTomás, y la bonificación total.
+Dialogue: 1,0:02:33.45,0:02:38.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}Tomás, el beneficiario, tiene el cien por\Nciento de descuento sobre la parte del mes
+Dialogue: 1,0:02:38.45,0:02:40.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}cubierta por la promoción.
+Dialogue: 1,0:02:41.38,0:02:44.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Inscribir a los dos.
+Dialogue: 1,0:02:44.68,0:02:47.36,Sub,,0,0,0,,{\an5\pos(1110,1020)}La tarjeta de la promoción muestra la pareja:
+Dialogue: 1,0:02:47.38,0:02:50.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}Sofía paga y Tomás está bonificado.
+Dialogue: 1,0:02:50.56,0:02:56.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si hubo un error, Corregir pareja\Ncorta el beneficio indicando el motivo.
+Dialogue: 1,0:02:56.57,0:03:01.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}La lista de inscriptos no se actualiza\Nsola después de inscribir la pareja, así
+Dialogue: 1,0:03:01.20,0:03:03.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}que recargamos la página.
+Dialogue: 1,0:03:03.47,0:03:08.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora los dos figuran en Inscriptos\Nactuales, con la modalidad Mensual.
+Dialogue: 1,0:03:09.34,0:03:11.69,Sub,,0,0,0,,{\an5\pos(1110,1020)}Comprobemos los cobros.
+Dialogue: 1,0:03:11.71,0:03:14.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos la ficha de Tomás.
+Dialogue: 1,0:03:14.86,0:03:19.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la tarjeta Pagos, su mensualidad\Nde Dancehall figura como Bonificado,
+Dialogue: 1,0:03:19.54,0:03:21.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}con el nombre de la promoción:
+Dialogue: 1,0:03:21.40,0:03:23.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}no tiene nada para pagar.
+Dialogue: 1,0:03:24.35,0:03:28.33,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora vamos a la ficha de Sofía, desde Alumnos.
+Dialogue: 1,0:03:30.06,0:03:34.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}Su mensualidad proporcional de\Nnoviembre figura como Pendiente.
+Dialogue: 1,0:03:34.57,0:03:36.70,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Cobrar.
+Dialogue: 1,0:03:37.27,0:03:41.17,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos el medio de pago, por ejemplo Efectivo.
+Dialogue: 1,0:03:41.19,0:03:43.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}La fecha de pago es hoy.
+Dialogue: 1,0:03:44.12,0:03:46.80,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y presionamos Confirmar cobro.
+Dialogue: 1,0:03:47.36,0:03:53.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}El cobro quedó registrado, la mensualidad\Nfigura como Pagado y se generó el recibo.
+Dialogue: 1,0:03:53.65,0:03:57.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a profundizar en los\Ncobros en el capítulo de pagos.
+Dialogue: 1,0:03:58.38,0:04:02.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora creamos un descuento\Npor porcentaje en otra clase.
+Dialogue: 1,0:04:02.56,0:04:06.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a Salsa Inicial desde\Nel perfil de Lucía Benítez.
+Dialogue: 1,0:04:07.28,0:04:11.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}En su sección de promociones\Npresionamos Crear promoción.
+Dialogue: 1,0:04:11.88,0:04:14.70,Sub,,0,0,0,,{\an5\pos(1110,1020)}La llamamos Semana de la salsa.
+Dialogue: 1,0:04:15.47,0:04:20.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Beneficio elegimos Porcentaje,\Ny un descuento del quince por ciento.
+Dialogue: 1,0:04:21.28,0:04:24.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}La vigencia va desde hoy hasta el domingo.
+Dialogue: 1,0:04:25.03,0:04:27.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Crear promoción.
+Dialogue: 1,0:04:28.23,0:04:33.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}A diferencia del 2x1, este descuento se\Naplica automáticamente a todos los alumnos del
+Dialogue: 1,0:04:33.67,0:04:38.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}grupo en las clases de esas\Nfechas, al generarse cada cobro.
+Dialogue: 1,0:04:38.64,0:04:42.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por último, veamos cómo se\Ndesactiva una promoción.
+Dialogue: 1,0:04:42.79,0:04:46.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a Hip Hop Adolescentes, de Martín Ocampo.
+Dialogue: 1,0:04:48.94,0:04:53.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}Creamos una promoción de prueba\Ncon precio final para diciembre.
+Dialogue: 1,0:04:59.14,0:05:05.27,Sub,,0,0,0,,{\an5\pos(1110,1020)}Precio final de veinte mil pesos para la\Nmensualidad, del 1 al 31 de diciembre.
+Dialogue: 1,0:05:05.84,0:05:08.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}Creamos la promoción.
+Dialogue: 1,0:05:08.65,0:05:11.17,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las promociones no se editan ni se borran:
+Dialogue: 1,0:05:11.19,0:05:14.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}para terminarlas se usa Cerrar campaña.
+Dialogue: 1,0:05:14.97,0:05:16.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}La promoción pasa a Cerrada:
+Dialogue: 1,0:05:16.95,0:05:22.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}deja de aplicarse a los cobros nuevos,\Ny los descuentos ya aplicados se conservan.
+Dialogue: 1,0:05:23.10,0:05:27.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}Tené en cuenta que no puede haber dos\Npromociones activas del mismo tipo de cobro con
+Dialogue: 1,0:05:27.36,0:05:29.71,Sub,,0,0,0,,{\an5\pos(1110,1020)}fechas superpuestas en la misma clase:
+Dialogue: 1,0:05:29.73,0:05:32.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}el sistema lo advierte al crearla.
+Dialogue: 1,0:05:34.60,0:05:40.48,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las promociones se aplican solas sobre los\Ncobros del período, sin cálculos manuales.
+Dialogue: 1,0:05:40.98,0:05:45.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a\Nregistrar y gestionar alumnos.

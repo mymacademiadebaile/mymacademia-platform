@@ -1,0 +1,408 @@
+1
+00:00:01,002 --> 00:00:03,945
+Este es uno de los capítulos más importantes:
+
+2
+00:00:03,965 --> 00:00:07,068
+cómo inscribir alumnos en las clases.
+
+3
+00:00:07,570 --> 00:00:12,627
+Vamos a inscribir a Valentina Ríos con
+mensualidad, por clase, en una clase suelta
+
+4
+00:00:12,647 --> 00:00:15,116
+y con una promoción vigente.
+
+5
+00:00:15,136 --> 00:00:19,804
+Después vamos a ver cómo modificar
+o dar de baja una inscripción.
+
+6
+00:00:21,250 --> 00:00:22,364
+Escenario A:
+
+7
+00:00:22,384 --> 00:00:24,969
+inscripción con mensualidad.
+
+8
+00:00:24,989 --> 00:00:29,093
+Abrimos Dancehall Inicial desde
+el perfil de Carla Romero.
+
+9
+00:00:29,648 --> 00:00:33,947
+Bajamos hasta la tarjeta
+Inscripción, Agregar alumno.
+
+10
+00:00:33,967 --> 00:00:36,651
+Los pasos están numerados.
+
+11
+00:00:37,216 --> 00:00:38,278
+Paso uno:
+
+12
+00:00:38,298 --> 00:00:40,548
+elegimos a la alumna.
+
+13
+00:00:40,568 --> 00:00:45,805
+La lista muestra los alumnos activos de la
+sede que todavía no están en esta clase.
+
+14
+00:00:45,825 --> 00:00:48,562
+Elegimos a Valentina Ríos.
+
+15
+00:00:49,125 --> 00:00:50,136
+Paso dos:
+
+16
+00:00:50,156 --> 00:00:51,748
+cómo paga.
+
+17
+00:00:51,768 --> 00:00:56,368
+Como la clase admite ambas
+modalidades, elegimos Mensual.
+
+18
+00:00:56,924 --> 00:00:57,858
+Paso tres:
+
+19
+00:00:57,878 --> 00:00:59,831
+el plan mensual.
+
+20
+00:00:59,851 --> 00:01:02,918
+Elegimos el plan de cuatro clases.
+
+21
+00:01:03,479 --> 00:01:07,636
+En Días y horarios podemos
+elegir en qué turnos participa.
+
+22
+00:01:07,656 --> 00:01:11,777
+Si no marcamos ninguno, queda inscripta en todos.
+
+23
+00:01:12,360 --> 00:01:14,874
+La fecha de inicio es hoy.
+
+24
+00:01:15,443 --> 00:01:20,113
+Como empieza con el mes ya iniciado,
+hay que definir el cobro del primer mes:
+
+25
+00:01:20,133 --> 00:01:24,561
+cuota completa, proporcional
+o un importe personalizado.
+
+26
+00:01:24,581 --> 00:01:27,917
+Elegimos Proporcional a las clases que quedan.
+
+27
+00:01:28,482 --> 00:01:31,117
+Presionamos Inscribir alumno.
+
+28
+00:01:31,673 --> 00:01:38,111
+Valentina aparece en Inscriptos actuales,
+con modalidad Mensual y plan de cuatro clases.
+
+29
+00:01:38,131 --> 00:01:42,347
+La cuota proporcional del mes
+ya quedó generada para cobrar.
+
+30
+00:01:42,914 --> 00:01:44,002
+Escenario B:
+
+31
+00:01:44,022 --> 00:01:47,625
+inscripción por clase, sin mensualidad.
+
+32
+00:01:47,645 --> 00:01:50,602
+Esta vez lo hacemos desde la ficha de la alumna:
+
+33
+00:01:50,622 --> 00:01:53,060
+hacemos clic en su nombre.
+
+34
+00:01:53,625 --> 00:01:57,316
+En la tarjeta Inscripciones presionamos Inscribir.
+
+35
+00:01:57,871 --> 00:02:00,842
+Elegimos la clase Salsa Inicial.
+
+36
+00:02:01,394 --> 00:02:03,488
+Esta clase se cobra por clase:
+
+37
+00:02:03,508 --> 00:02:07,149
+la alumna paga solo las clases a las que asiste.
+
+38
+00:02:07,705 --> 00:02:11,275
+En Turnos habituales marcamos los dos días.
+
+39
+00:02:11,833 --> 00:02:14,611
+Y presionamos Inscribir alumno.
+
+40
+00:02:15,179 --> 00:02:19,463
+Para alguien que quiere tomar una
+única clase, sin inscribirse al grupo,
+
+41
+00:02:19,483 --> 00:02:22,325
+se lo agrega solo a esa fecha.
+
+42
+00:02:22,892 --> 00:02:28,862
+Vamos al Calendario, vista Día, y abrimos
+la clase de hoy de Bachata Intermedio.
+
+43
+00:02:29,421 --> 00:02:33,807
+En la sección Alumnos presionamos
+Agregar solo a esta fecha.
+
+44
+00:02:34,362 --> 00:02:37,381
+Buscamos a Valentina por su nombre.
+
+45
+00:02:38,986 --> 00:02:43,388
+El tipo queda en Autorizado,
+clase suelta o invitado.
+
+46
+00:02:43,408 --> 00:02:48,773
+También existe Recupera una clase,
+para quien recupera una clase perdida.
+
+47
+00:02:49,329 --> 00:02:51,532
+Presionamos Agregar.
+
+48
+00:02:52,098 --> 00:02:56,371
+La alumna figura en la lista de
+hoy con la etiqueta Autorizado.
+
+49
+00:02:56,391 --> 00:03:01,573
+El cupo se respeta, y su cobro se
+registra como una clase individual.
+
+50
+00:03:04,767 --> 00:03:05,933
+Escenario C:
+
+51
+00:03:05,953 --> 00:03:08,434
+inscripción con promoción.
+
+52
+00:03:08,454 --> 00:03:12,468
+Salsa Inicial tiene esta semana
+la promoción Semana de la salsa,
+
+53
+00:03:12,488 --> 00:03:15,298
+con quince por ciento de descuento.
+
+54
+00:03:15,858 --> 00:03:19,236
+Abrimos la clase de hoy de Salsa Inicial.
+
+55
+00:03:22,042 --> 00:03:25,851
+Valentina ya figura en la
+lista por su inscripción.
+
+56
+00:03:25,871 --> 00:03:31,660
+Al marcarla presente, se genera el cobro
+de esta clase con la promoción aplicada.
+
+57
+00:03:32,229 --> 00:03:36,154
+El estado de pago muestra
+la clase pendiente de cobro.
+
+58
+00:03:36,174 --> 00:03:38,919
+Veamos el importe en su ficha.
+
+59
+00:03:42,433 --> 00:03:45,523
+Vamos a Alumnos y abrimos su ficha.
+
+60
+00:03:51,049 --> 00:03:54,921
+En Pagos aparece la clase de Salsa
+con el nombre de la promoción:
+
+61
+00:03:54,941 --> 00:03:58,737
+el importe ya tiene descontado
+el quince por ciento.
+
+62
+00:03:58,757 --> 00:04:01,651
+No hubo que calcular nada a mano.
+
+63
+00:04:02,219 --> 00:04:03,269
+Escenario D:
+
+64
+00:04:03,289 --> 00:04:06,054
+un alumno en varias clases.
+
+65
+00:04:06,074 --> 00:04:07,716
+En la tarjeta Inscripciones vemos
+
+66
+00:04:07,736 --> 00:04:13,039
+que Valentina participa de Dancehall Inicial
+con mensualidad y de Salsa Inicial por clase,
+
+67
+00:04:13,059 --> 00:04:15,438
+cada una con sus turnos.
+
+68
+00:04:15,997 --> 00:04:18,825
+Para sumar otra disciplina se repite Inscribir:
+
+69
+00:04:18,845 --> 00:04:23,453
+la lista solo ofrece las clases en
+las que todavía no está inscripta.
+
+70
+00:04:23,473 --> 00:04:27,344
+Y la tarjeta Clases activas resume cuántas tiene.
+
+71
+00:04:27,908 --> 00:04:28,996
+Escenario E:
+
+72
+00:04:29,016 --> 00:04:31,111
+modificaciones.
+
+73
+00:04:31,131 --> 00:04:35,350
+Los cambios de plan y de
+modalidad se hacen desde la clase.
+
+74
+00:04:35,370 --> 00:04:38,006
+Volvemos a Dancehall Inicial.
+
+75
+00:04:38,567 --> 00:04:44,850
+En la fila de Valentina, el selector Plan
+mensual permite pasar al plan de ocho clases.
+
+76
+00:04:45,412 --> 00:04:49,052
+El sistema aclara que las cuotas ya
+generadas no cambian de importe y
+
+77
+00:04:49,072 --> 00:04:52,069
+que las próximas usarán el nuevo precio.
+
+78
+00:04:52,089 --> 00:04:54,718
+Confirmamos con Cambiar plan.
+
+79
+00:04:55,325 --> 00:05:00,614
+De la misma forma, el selector de modalidad
+pasa a un alumno de mensual a por clase,
+
+80
+00:05:00,634 --> 00:05:04,703
+o al revés, sin modificar sus pagos históricos.
+
+81
+00:05:05,258 --> 00:05:07,650
+Ahora veamos una baja.
+
+82
+00:05:07,670 --> 00:05:11,613
+Abrimos Bachata Intermedio, de Lucía Benítez.
+
+83
+00:05:12,214 --> 00:05:15,855
+Micaela Ferreyra deja de venir a esta clase.
+
+84
+00:05:15,875 --> 00:05:20,392
+En su fila presionamos el
+ícono de papelera, Dar de baja.
+
+85
+00:05:20,958 --> 00:05:22,795
+Confirmamos.
+
+86
+00:05:22,815 --> 00:05:25,224
+El historial se conserva.
+
+87
+00:05:25,827 --> 00:05:31,375
+Micaela pasa a Inscripciones anteriores,
+con su fecha de alta y de baja.
+
+88
+00:05:31,395 --> 00:05:35,829
+Si vuelve, el botón Inscribir
+la reincorpora en un paso.
+
+89
+00:05:36,434 --> 00:05:40,795
+Y para corregir datos personales de
+un alumno se usa Editar en su ficha,
+
+90
+00:05:40,815 --> 00:05:43,580
+como vimos en el capítulo anterior.
+
+91
+00:05:45,668 --> 00:05:50,030
+Valentina Ríos ya participa de varias
+clases con distintas modalidades,
+
+92
+00:05:50,050 --> 00:05:53,919
+y vimos cómo modificar y
+dar de baja inscripciones.
+
+93
+00:05:54,420 --> 00:05:59,863
+En el próximo capítulo vamos a cobrar
+todo lo que generaron estas inscripciones.

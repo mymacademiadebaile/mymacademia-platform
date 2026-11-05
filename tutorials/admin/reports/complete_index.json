@@ -1,0 +1,104 @@
+{
+ "intro": 26.328,
+ "chapters": [
+  {
+   "id": "00_introduction",
+   "title": "Introducción a la plataforma",
+   "number": 1,
+   "duration": 288.933,
+   "start": 26.328
+  },
+  {
+   "id": "01_configuration",
+   "title": "Configuración general",
+   "number": 2,
+   "duration": 476.966667,
+   "start": 315.26099999999997
+  },
+  {
+   "id": "02_teachers",
+   "title": "Administración de profesores",
+   "number": 3,
+   "duration": 287.166667,
+   "start": 792.2276669999999
+  },
+  {
+   "id": "03_classes",
+   "title": "Creación y configuración de clases",
+   "number": 4,
+   "duration": 357.466667,
+   "start": 1079.3943339999998
+  },
+  {
+   "id": "04_promotions",
+   "title": "Promociones y descuentos",
+   "number": 5,
+   "duration": 346.366667,
+   "start": 1436.8610009999998
+  },
+  {
+   "id": "05_students",
+   "title": "Gestión de alumnos",
+   "number": 6,
+   "duration": 286.433,
+   "start": 1783.2276679999998
+  },
+  {
+   "id": "06_enrollments",
+   "title": "Inscripción de alumnos a clases",
+   "number": 7,
+   "duration": 360.766667,
+   "start": 2069.6606679999995
+  },
+  {
+   "id": "07_payments",
+   "title": "Cobros y gestión de pagos",
+   "number": 8,
+   "duration": 356.566667,
+   "start": 2430.4273349999994
+  },
+  {
+   "id": "08_contacts",
+   "title": "Contactos y potenciales alumnos",
+   "number": 9,
+   "duration": 272.566667,
+   "start": 2786.9940019999995
+  },
+  {
+   "id": "09_attendance",
+   "title": "Presentismo y asistencias",
+   "number": 10,
+   "duration": 314.166667,
+   "start": 3059.5606689999995
+  },
+  {
+   "id": "10_schedule",
+   "title": "Calendario y cambios de horario",
+   "number": 11,
+   "duration": 309.6,
+   "start": 3373.7273359999995
+  },
+  {
+   "id": "11_reports",
+   "title": "Reportes y estadísticas",
+   "number": 12,
+   "duration": 204.4,
+   "start": 3683.3273359999994
+  },
+  {
+   "id": "12_daily_workflow",
+   "title": "Operaciones administrativas frecuentes",
+   "number": 13,
+   "duration": 193.466667,
+   "start": 3887.7273359999995
+  },
+  {
+   "id": "13_additional_features",
+   "title": "Funciones adicionales",
+   "number": 14,
+   "duration": 382.566667,
+   "start": 4081.1940029999996
+  }
+ ],
+ "total": 4463.76067
+}

@@ -1,0 +1,198 @@
+1
+00:00:01,002 --> 00:00:04,538
+En este capítulo vamos a recorrer
+un día típico de trabajo,
+
+2
+00:00:04,558 --> 00:00:07,908
+conectando todos los módulos que aprendimos.
+
+3
+00:00:08,410 --> 00:00:11,547
+Llega una nueva interesada, Martina Sosa:
+
+4
+00:00:11,567 --> 00:00:17,616
+la registramos, la convertimos en alumna,
+la inscribimos, cobramos su clase con promoción
+
+5
+00:00:17,636 --> 00:00:20,092
+y revisamos el resultado.
+
+6
+00:00:21,508 --> 00:00:25,870
+Empezamos el día ingresando con
+nuestro usuario y contraseña.
+
+7
+00:00:28,181 --> 00:00:29,939
+Revisamos el inicio:
+
+8
+00:00:29,959 --> 00:00:34,367
+alumnos activos, clases de
+hoy y lo cobrado en el mes.
+
+9
+00:00:34,974 --> 00:00:38,613
+Las clases del día nos dicen qué
+grupos hay hoy, y la campana,
+
+10
+00:00:38,633 --> 00:00:41,520
+si hay pagos vencidos para gestionar.
+
+11
+00:00:42,836 --> 00:00:45,896
+Revisamos los contactos pendientes en Contactos:
+
+12
+00:00:45,916 --> 00:00:50,078
+son las personas interesadas
+que todavía no se inscribieron.
+
+13
+00:00:50,681 --> 00:00:54,748
+Escribe Martina Sosa, interesada en salsa.
+
+14
+00:00:54,768 --> 00:00:58,692
+Primero la buscamos por
+teléfono para no duplicarla.
+
+15
+00:00:59,296 --> 00:01:01,288
+No está cargada.
+
+16
+00:01:01,308 --> 00:01:03,971
+Presionamos Agregar contacto.
+
+17
+00:01:04,575 --> 00:01:07,257
+Completamos nombre y apellido,
+
+18
+00:01:08,136 --> 00:01:11,515
+teléfono y DNI, y guardamos.
+
+19
+00:01:12,988 --> 00:01:15,895
+Decide inscribirse directamente.
+
+20
+00:01:15,915 --> 00:01:20,807
+Presionamos Convertir en alumno,
+cargamos su email y confirmamos.
+
+21
+00:01:21,417 --> 00:01:23,304
+Desde su ficha, Inscribir:
+
+22
+00:01:23,324 --> 00:01:26,835
+elegimos Salsa Inicial y sus dos turnos.
+
+23
+00:01:27,900 --> 00:01:31,670
+Hoy toma su primera clase y la paga en el momento.
+
+24
+00:01:31,690 --> 00:01:34,614
+Vamos a la ficha de Salsa Inicial.
+
+25
+00:01:35,217 --> 00:01:38,058
+La promoción Semana de la salsa está activa:
+
+26
+00:01:38,078 --> 00:01:41,956
+quince por ciento de descuento
+en las clases de esta semana.
+
+27
+00:01:42,567 --> 00:01:48,298
+En Inscriptos actuales, en la fila de
+Martina, presionamos Registrar cobro.
+
+28
+00:01:48,913 --> 00:01:51,420
+La fecha de la clase es hoy.
+
+29
+00:01:51,440 --> 00:01:56,729
+Dejamos vacío el dinero recibido para
+cobrar el saldo calculado, elegimos Efectivo
+
+30
+00:01:56,749 --> 00:01:59,371
+y presionamos Registrar cobro.
+
+31
+00:01:59,971 --> 00:02:02,821
+Abrimos su ficha para verificar.
+
+32
+00:02:03,433 --> 00:02:08,142
+Tiene Salsa Inicial activa, y en Pagos
+la clase de hoy figura como Pagado,
+
+33
+00:02:08,162 --> 00:02:10,531
+con la promoción aplicada.
+
+34
+00:02:11,099 --> 00:02:14,478
+Revisamos las llegadas del día en Recepción.
+
+35
+00:02:15,081 --> 00:02:20,139
+Vemos quién ya registró su asistencia,
+en qué clase y con qué método.
+
+36
+00:02:20,749 --> 00:02:25,538
+La profesora de Salsa avisa que el
+lunes empieza media hora más tarde.
+
+37
+00:02:25,558 --> 00:02:29,576
+Vamos al Calendario y pasamos
+a la semana siguiente.
+
+38
+00:02:30,176 --> 00:02:35,667
+Abrimos la clase de Salsa Inicial del
+lunes 9 y elegimos Solo esta clase.
+
+39
+00:02:36,270 --> 00:02:41,497
+Nuevo horario, de 19:30 a 20:30, y guardamos.
+
+40
+00:02:44,432 --> 00:02:48,434
+Para cerrar el día, miramos los Reportes del mes.
+
+41
+00:02:49,045 --> 00:02:51,358
+La caja ya incluye los cobros de hoy,
+
+42
+00:02:51,378 --> 00:02:56,000
+y la deuda del período nos indica
+a quién recordarle sus pagos.
+
+43
+00:02:58,068 --> 00:03:00,432
+Ese es el circuito diario completo:
+
+44
+00:03:00,452 --> 00:03:07,135
+consulta, alta, inscripción, cobro,
+asistencia, ajustes y control.
+
+45
+00:03:07,636 --> 00:03:12,551
+En el último capítulo vamos a ver
+funciones adicionales de la plataforma.

@@ -1,0 +1,102 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:05:14.17,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 10 · PRESENTISMO
+Dialogue: 0,0:00:16.75,0:00:57.67,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}La clase del día
+Dialogue: 0,0:00:57.67,0:01:14.90,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Marcar asistencia
+Dialogue: 0,0:01:14.90,0:01:32.20,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Corregir asistencia
+Dialogue: 0,0:01:32.20,0:02:10.60,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Estados
+Dialogue: 0,0:02:10.60,0:02:51.90,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Consultar por fecha, clase y profesor
+Dialogue: 0,0:02:51.90,0:03:25.44,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Tablet de asistencia
+Dialogue: 0,0:03:25.44,0:04:27.06,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Tablet: activación y registro con DNI
+Dialogue: 0,0:04:27.06,0:04:58.07,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Historial de un alumno
+Dialogue: 1,0:00:01.00,0:00:05.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo vamos a registrar\Ny consultar la asistencia.
+Dialogue: 1,0:00:05.94,0:00:11.48,Sub,,0,0,0,,{\an5\pos(1110,1020)}Veremos la clase del día, cómo marcar\Npresentes y ausentes, la vista de recepción,
+Dialogue: 1,0:00:11.50,0:00:15.41,Sub,,0,0,0,,{\an5\pos(1110,1020)}la tablet de autoregistro y\Nel historial de cada alumno.
+Dialogue: 1,0:00:16.85,0:00:20.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}La asistencia se toma en la clase del día.
+Dialogue: 1,0:00:20.15,0:00:25.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}Desde Inicio, en Clases del día,\Ncada clase tiene su acceso.
+Dialogue: 1,0:00:25.99,0:00:28.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos Dancehall Inicial.
+Dialogue: 1,0:00:29.04,0:00:33.37,Sub,,0,0,0,,{\an5\pos(1110,1020)}Esta pantalla corresponde a\Nuna fecha y horario concretos.
+Dialogue: 1,0:00:33.39,0:00:37.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}Arriba se ve el estado de la clase y la profesora.
+Dialogue: 1,0:00:37.90,0:00:44.23,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los indicadores cuentan los alumnos esperados,\Npresentes, ausentes y el importe a cobrar.
+Dialogue: 1,0:00:44.79,0:00:50.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}La tabla lista a cada alumno con su asistencia,\Nsu modalidad y el estado de pago.
+Dialogue: 1,0:00:50.54,0:00:54.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}Incluye a los inscriptos en\Nese turno, las clases de prueba
+Dialogue: 1,0:00:54.20,0:00:57.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}y los agregados solo para ese día.
+Dialogue: 1,0:00:57.78,0:00:59.51,Sub,,0,0,0,,{\an5\pos(1110,1020)}Sofía Medina llegó:
+Dialogue: 1,0:00:59.53,0:01:02.26,Sub,,0,0,0,,{\an5\pos(1110,1020)}presionamos Presente en su fila.
+Dialogue: 1,0:01:02.82,0:01:06.08,Sub,,0,0,0,,{\an5\pos(1110,1020)}Valentina Ríos también está presente.
+Dialogue: 1,0:01:06.65,0:01:08.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}Tomás Aguirre no vino:
+Dialogue: 1,0:01:08.36,0:01:10.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}presionamos Ausente.
+Dialogue: 1,0:01:11.11,0:01:14.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los indicadores se actualizan al instante.
+Dialogue: 1,0:01:15.01,0:01:20.02,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si Tomás llega tarde, corregimos\Nsu estado marcándolo Presente.
+Dialogue: 1,0:01:20.58,0:01:25.02,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para pasar a alguien de Presente a\NAusente, en cambio, el sistema exige
+Dialogue: 1,0:01:25.04,0:01:27.76,Sub,,0,0,0,,{\an5\pos(1110,1020)}que lo haga un administrador e indique un motivo,
+Dialogue: 1,0:01:27.78,0:01:31.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}porque la asistencia de un\Nalumno por clase genera su cobro.
+Dialogue: 1,0:01:32.30,0:01:33.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los estados son tres:
+Dialogue: 1,0:01:33.76,0:01:36.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}Esperado, cuando todavía no se registró nada;
+Dialogue: 1,0:01:36.83,0:01:37.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presente;
+Dialogue: 1,0:01:37.62,0:01:39.35,Sub,,0,0,0,,{\an5\pos(1110,1020)}y Ausente.
+Dialogue: 1,0:01:39.37,0:01:43.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}Una clase sin registros no\Nse interpreta como ausencia.
+Dialogue: 1,0:01:44.09,0:01:47.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}En cada fila también se puede\Ncobrar, y para los inscriptos,
+Dialogue: 1,0:01:47.88,0:01:51.59,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cambiar turno a otro horario del\Nmismo día o Cancelar su turno,
+Dialogue: 1,0:01:51.61,0:01:54.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}respetando la anticipación configurada.
+Dialogue: 1,0:01:55.28,0:02:01.36,Sub,,0,0,0,,{\an5\pos(1110,1020)}Al terminar, Finalizar clase marca la\Nclase como realizada y deja fija su lista.
+Dialogue: 1,0:02:01.38,0:02:03.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}Confirmamos.
+Dialogue: 1,0:02:03.81,0:02:06.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si después hace falta corregirla,
+Dialogue: 1,0:02:06.08,0:02:10.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}desde el calendario se la puede\Nreabrir indicando un motivo.
+Dialogue: 1,0:02:10.71,0:02:15.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para consultar el presentismo por\Nfecha o por clase vamos a Recepción.
+Dialogue: 1,0:02:16.17,0:02:21.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}La pestaña Llegadas del día muestra quién\Nasistió y la ocupación de cada grupo.
+Dialogue: 1,0:02:21.98,0:02:25.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con el filtro Clase vemos un grupo puntual.
+Dialogue: 1,0:02:25.89,0:02:30.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los indicadores muestran asistencias,\Ncupo, inscriptos y lugares libres,
+Dialogue: 1,0:02:30.80,0:02:35.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}y la tabla lista a cada persona con\Nla hora y el método de registro.
+Dialogue: 1,0:02:35.96,0:02:38.76,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con el campo Fecha consultamos un día anterior;
+Dialogue: 1,0:02:38.78,0:02:41.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}por ejemplo, el lunes pasado.
+Dialogue: 1,0:02:42.40,0:02:46.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para ver la asistencia de un profesor,\Nen el Calendario se filtra por profesor
+Dialogue: 1,0:02:46.67,0:02:48.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}y se abre cada clase:
+Dialogue: 1,0:02:48.24,0:02:51.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}su lista muestra presentes y ausentes.
+Dialogue: 1,0:02:52.00,0:02:56.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los alumnos también pueden registrarse\Nsolos en una tablet de recepción.
+Dialogue: 1,0:02:56.97,0:03:01.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para habilitarla, abrimos\Nla pestaña Acceso de tablet.
+Dialogue: 1,0:03:01.97,0:03:05.79,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se genera un código de un solo uso para la sede.
+Dialogue: 1,0:03:05.81,0:03:06.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Atención:
+Dialogue: 1,0:03:06.86,0:03:11.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}generar uno nuevo deja sin acceso a\Nlas tablets anteriores de esa sede.
+Dialogue: 1,0:03:12.35,0:03:14.98,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Generar código.
+Dialogue: 1,0:03:15.56,0:03:19.31,Sub,,0,0,0,,{\an5\pos(1110,1020)}Este código se ingresa una sola vez en la tablet.
+Dialogue: 1,0:03:19.33,0:03:23.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}No hace falta compartir\Nninguna cuenta administrativa.
+Dialogue: 1,0:03:25.54,0:03:30.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}Esta es la pantalla de la tablet,\Nen la dirección barra asistencia.
+Dialogue: 1,0:03:30.56,0:03:33.76,Sub,,0,0,0,,{\an5\pos(1110,1020)}La primera vez pide el código de acceso.
+Dialogue: 1,0:03:34.32,0:03:37.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}Lo ingresamos y presionamos Activar registro.
+Dialogue: 1,0:03:38.95,0:03:40.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ya está lista.
+Dialogue: 1,0:03:40.80,0:03:46.03,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada alumno elige escanear el QR\Nde su credencial o usar su DNI.
+Dialogue: 1,0:03:46.59,0:03:49.15,Sub,,0,0,0,,{\an5\pos(1110,1020)}Simulamos la llegada de Camila Duarte:
+Dialogue: 1,0:03:49.17,0:03:51.57,Sub,,0,0,0,,{\an5\pos(1110,1020)}presiona Usar DNI.
+Dialogue: 1,0:03:52.14,0:03:56.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escribe su DNI y presiona Registrar asistencia.
+Dialogue: 1,0:03:56.93,0:04:01.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como hoy tiene dos clases,\Nla tablet le pregunta a cuál viene.
+Dialogue: 1,0:04:02.17,0:04:06.79,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elige Salsa Inicial, y la\Ntablet confirma su asistencia.
+Dialogue: 1,0:04:06.81,0:04:10.23,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si tiene un pago pendiente, le avisa.
+Dialogue: 1,0:04:11.13,0:04:16.48,Sub,,0,0,0,,{\an5\pos(1110,1020)}Volvemos a Recepción, a Llegadas\Ndel día, y presionamos Actualizar.
+Dialogue: 1,0:04:17.05,0:04:20.79,Sub,,0,0,0,,{\an5\pos(1110,1020)}La llegada de Camila figura con el método DNI.
+Dialogue: 1,0:04:20.81,0:04:22.94,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los registros hechos por la administración
+Dialogue: 1,0:04:22.96,0:04:26.59,Sub,,0,0,0,,{\an5\pos(1110,1020)}o por el profesor se\Nidentifican de la misma forma.
+Dialogue: 1,0:04:27.16,0:04:32.41,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por último, el historial de asistencia\Nde un alumno está en su ficha.
+Dialogue: 1,0:04:32.43,0:04:35.36,Sub,,0,0,0,,{\an5\pos(1110,1020)}Hacemos clic en el nombre de Camila.
+Dialogue: 1,0:04:35.97,0:04:41.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Desde Recepción se abre su historial de contacto,\Ncon cada clase a la que asistió, su tipo,
+Dialogue: 1,0:04:41.58,0:04:43.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}la fecha y el estado.
+Dialogue: 1,0:04:44.33,0:04:47.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los profesores, desde su\Npropio portal, ven sus clases
+Dialogue: 1,0:04:47.87,0:04:50.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}y marcan la asistencia de sus alumnos,
+Dialogue: 1,0:04:50.13,0:04:53.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}pero no registran cobros ni\Npueden quitar un presente:
+Dialogue: 1,0:04:53.20,0:04:56.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}esas correcciones quedan en\Nmanos de la administración.
+Dialogue: 1,0:04:59.07,0:05:03.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ya sabés tomar asistencia desde\Nla clase, controlarla en Recepción
+Dialogue: 1,0:05:03.06,0:05:07.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}y habilitar la tablet para que\Nlos alumnos se registren solos.
+Dialogue: 1,0:05:07.89,0:05:13.24,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a trabajar\Ncon el calendario y los cambios de horario.

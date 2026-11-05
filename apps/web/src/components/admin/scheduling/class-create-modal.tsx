@@ -10,6 +10,9 @@ import styles from "./calendar.module.css";
 import { DAY_LABELS, DEFAULT_SCHEDULE, hourAfter, type CalendarOptions, type ScheduleDraft } from "./calendar-helpers";
 import { MultiSelect } from "./multi-select";
 
+
+/** Select value for "Sin pista asignada": assigning a studio is optional. */
+const NO_SPACE = "none";
 export function ClassCreateModal({
   open,
   options,
@@ -44,7 +47,8 @@ export function ClassCreateModal({
   }, [classBranchId, options.branches]);
 
   useEffect(() => {
-    if (!classSpaces.some((item) => item._id === classSpaceId)) setClassSpaceId(classSpaces[0]?._id ?? "");
+    // Default to the first studio of the branch; NO_SPACE ("Sin pista asignada") is a valid explicit choice.
+    if (classSpaceId !== NO_SPACE && !classSpaces.some((item) => item._id === classSpaceId)) setClassSpaceId(classSpaces[0]?._id ?? NO_SPACE);
   }, [classSpaceId, classSpaces]);
 
   function updateSchedule(index: number, patch: Partial<ScheduleDraft>) {
@@ -93,7 +97,7 @@ export function ClassCreateModal({
           monthlyPrice8: Number(form.get("monthlyPrice8") || 0) || undefined,
           freeTrialEnabled,
           schedules,
-          defaultSpaceId: classSpaceId || undefined
+          defaultSpaceId: classSpaceId && classSpaceId !== NO_SPACE ? classSpaceId : undefined
         })
       });
       onClose();
@@ -130,7 +134,8 @@ export function ClassCreateModal({
         </select>
       </Field>
       <Field label="Pista">
-        <select name="defaultSpaceId" required value={classSpaceId} onChange={(event) => setClassSpaceId(event.target.value)}>
+        <select name="defaultSpaceId" value={classSpaceId} onChange={(event) => setClassSpaceId(event.target.value)}>
+          <option value={NO_SPACE}>Sin pista asignada</option>
           {classSpaces.map((item) => <option value={item._id} key={item._id}>{item.name}</option>)}
         </select>
       </Field>

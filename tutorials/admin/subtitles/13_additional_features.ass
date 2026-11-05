@@ -1,0 +1,115 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:06:22.57,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 14 · FUNCIONES ADICIONALES
+Dialogue: 0,0:00:20.88,0:01:27.34,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Comunicaciones: email
+Dialogue: 0,0:01:27.34,0:01:38.54,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Comunicaciones: WhatsApp
+Dialogue: 0,0:01:38.54,0:02:29.95,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Recordatorios de deuda
+Dialogue: 0,0:02:29.95,0:02:57.10,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Credencial QR de asistencia
+Dialogue: 0,0:02:57.10,0:03:19.57,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Nuevas sedes
+Dialogue: 0,0:03:19.57,0:03:51.09,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Pausar una clase
+Dialogue: 0,0:03:51.09,0:04:56.97,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Eliminar una clase sin actividad
+Dialogue: 0,0:04:56.97,0:05:18.65,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Mi perfil
+Dialogue: 0,0:05:18.65,0:05:35.89,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Eliminar un usuario
+Dialogue: 0,0:05:35.89,0:06:00.00,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Recuperar la contraseña
+Dialogue: 1,0:00:01.00,0:00:04.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este último capítulo vamos a\Nrecorrer funciones adicionales
+Dialogue: 1,0:00:04.64,0:00:07.19,Sub,,0,0,0,,{\an5\pos(1110,1020)}que completan la administración.
+Dialogue: 1,0:00:07.69,0:00:13.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Comunicaciones, recordatorios de\Ndeuda, credenciales QR, sedes, pausa
+Dialogue: 1,0:00:13.44,0:00:19.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}y eliminación de clases, el perfil, los\Nusuarios y la recuperación de contraseña.
+Dialogue: 1,0:00:20.98,0:00:25.08,Sub,,0,0,0,,{\an5\pos(1110,1020)}Empezamos por Comunicaciones,\Ndesde el menú lateral.
+Dialogue: 1,0:00:25.64,0:00:26.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}Hay dos canales:
+Dialogue: 1,0:00:26.88,0:00:32.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}Email, para envíos segmentados con\Nseguimiento por destinatario, y WhatsApp,
+Dialogue: 1,0:00:32.02,0:00:35.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}que abre la conversación\Ncon un mensaje precargado.
+Dialogue: 1,0:00:36.32,0:00:40.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Destinatarios se elige a todos los\Nalumnos con email, a los de una clase
+Dialogue: 1,0:00:40.67,0:00:43.15,Sub,,0,0,0,,{\an5\pos(1110,1020)}o a un alumno en particular.
+Dialogue: 1,0:00:43.17,0:00:46.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos un alumno en particular.
+Dialogue: 1,0:00:46.79,0:00:49.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Seleccionamos a Valentina Ríos.
+Dialogue: 1,0:00:50.35,0:00:53.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escribimos el asunto y el mensaje.
+Dialogue: 1,0:00:53.40,0:00:58.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}La etiqueta nombre entre llaves se\Nreemplaza por el nombre de cada alumno.
+Dialogue: 1,0:00:58.83,0:01:02.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Enviar email y confirmamos.
+Dialogue: 1,0:01:02.69,0:01:07.10,Sub,,0,0,0,,{\an5\pos(1110,1020)}El historial de comunicaciones\Nregistra cada envío con su estado.
+Dialogue: 1,0:01:07.12,0:01:11.23,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si un email falla, se puede reintentar desde ahí.
+Dialogue: 1,0:01:11.84,0:01:17.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este entorno de capacitación los correos\Nse capturan localmente y no llegan a nadie.
+Dialogue: 1,0:01:17.49,0:01:22.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la academia real, el envío a Todos los\Nalumnos con email llega efectivamente a todos,
+Dialogue: 1,0:01:22.75,0:01:26.88,Sub,,0,0,0,,{\an5\pos(1110,1020)}así que conviene revisar bien\Nel mensaje antes de confirmar.
+Dialogue: 1,0:01:28.20,0:01:31.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}En WhatsApp se elige el alumno,\Nse escribe el mensaje
+Dialogue: 1,0:01:31.64,0:01:35.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}y Abrir WhatsApp abre la\Nconversación en una pestaña nueva,
+Dialogue: 1,0:01:35.20,0:01:38.08,Sub,,0,0,0,,{\an5\pos(1110,1020)}registrando la acción en el historial.
+Dialogue: 1,0:01:38.69,0:01:42.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora Recordatorios, para avisar deudas por email.
+Dialogue: 1,0:01:43.55,0:01:46.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Primero se habilitan para toda la academia.
+Dialogue: 1,0:01:46.86,0:01:50.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}Marcamos Habilitar recordatorios por email.
+Dialogue: 1,0:01:50.94,0:01:55.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se definen los días mínimos entre\Nrecordatorios y, opcionalmente,
+Dialogue: 1,0:01:55.09,0:01:57.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}un envío programado automático.
+Dialogue: 1,0:01:57.83,0:02:00.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}Lo dejamos apagado y guardamos.
+Dialogue: 1,0:02:01.45,0:02:04.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para preparar un recordatorio buscamos al alumno:
+Dialogue: 1,0:02:04.44,0:02:06.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}Micaela Ferreyra.
+Dialogue: 1,0:02:07.14,0:02:12.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}La vista previa muestra su saldo pendiente\Ny vencido, el destinatario, el asunto
+Dialogue: 1,0:02:12.42,0:02:17.29,Sub,,0,0,0,,{\an5\pos(1110,1020)}y el texto del mensaje, que es\Ncordial y detalla los conceptos.
+Dialogue: 1,0:02:17.89,0:02:21.75,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Enviar recordatorio y confirmamos.
+Dialogue: 1,0:02:22.35,0:02:24.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}El historial de la persona registra el envío,
+Dialogue: 1,0:02:24.99,0:02:29.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}y el sistema respeta la frecuencia\Nmínima para no insistir de más.
+Dialogue: 1,0:02:30.10,0:02:35.32,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las credenciales QR permiten registrar\Nla asistencia escaneando en la tablet.
+Dialogue: 1,0:02:35.34,0:02:38.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos la ficha de Valentina Ríos.
+Dialogue: 1,0:02:39.07,0:02:41.88,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Generar credencial.
+Dialogue: 1,0:02:42.48,0:02:47.31,Sub,,0,0,0,,{\an5\pos(1110,1020)}La credencial se muestra una\Núnica vez, con el QR personal.
+Dialogue: 1,0:02:47.33,0:02:51.59,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se descarga como imagen o se\Nimprime en tamaño tarjeta.
+Dialogue: 1,0:02:51.61,0:02:56.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si se pierde, se renueva y el\NQR anterior deja de funcionar.
+Dialogue: 1,0:02:57.25,0:03:03.46,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si la academia abre otra ubicación,\Nse carga en Configuración, pestaña Sedes.
+Dialogue: 1,0:03:03.48,0:03:05.88,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Nueva sede.
+Dialogue: 1,0:03:06.49,0:03:09.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}Nombre y dirección, y guardamos.
+Dialogue: 1,0:03:12.68,0:03:15.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como es una prueba, la desactivamos:
+Dialogue: 1,0:03:15.44,0:03:19.10,Sub,,0,0,0,,{\an5\pos(1110,1020)}deja de estar disponible para nuevas operaciones.
+Dialogue: 1,0:03:19.72,0:03:24.31,Sub,,0,0,0,,{\an5\pos(1110,1020)}Una clase puede pausarse,\Npor ejemplo durante vacaciones.
+Dialogue: 1,0:03:24.33,0:03:27.20,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos Hip Hop Adolescentes.
+Dialogue: 1,0:03:27.80,0:03:31.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Horarios y vigencia presionamos Pausar.
+Dialogue: 1,0:03:31.73,0:03:36.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}Indicamos desde cuándo,\Nopcionalmente hasta cuándo, y el motivo.
+Dialogue: 1,0:03:37.47,0:03:43.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}Durante la pausa no se generan clases regulares\Ny las ya programadas quedan suspendidas.
+Dialogue: 1,0:03:43.42,0:03:46.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las inscripciones y el historial se conservan.
+Dialogue: 1,0:03:47.57,0:03:50.64,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para retomarla presionamos Reanudar.
+Dialogue: 1,0:03:51.24,0:03:54.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora veamos cómo se elimina una clase.
+Dialogue: 1,0:03:54.55,0:03:59.27,Sub,,0,0,0,,{\an5\pos(1110,1020)}Creamos una clase de prueba desde\Nel Calendario, con Nueva clase.
+Dialogue: 1,0:03:59.89,0:04:01.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}Completamos lo mínimo:
+Dialogue: 1,0:04:01.42,0:04:03.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}la pista y el nombre.
+Dialogue: 1,0:04:04.20,0:04:06.17,Sub,,0,0,0,,{\an5\pos(1110,1020)}El profesor y las categorías:
+Dialogue: 1,0:04:06.19,0:04:09.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}disciplina, público y nivel.
+Dialogue: 1,0:04:16.61,0:04:18.80,Sub,,0,0,0,,{\an5\pos(1110,1020)}El precio por clase y un horario:
+Dialogue: 1,0:04:18.82,0:04:21.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}domingo, de 10 a 11.
+Dialogue: 1,0:04:23.47,0:04:26.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y presionamos Crear clase.
+Dialogue: 1,0:04:26.66,0:04:30.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}La abrimos desde el calendario\Ny entramos a Gestionar clase.
+Dialogue: 1,0:04:31.53,0:04:35.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como no tuvo ninguna actividad, se puede eliminar.
+Dialogue: 1,0:04:35.54,0:04:37.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Eliminar.
+Dialogue: 1,0:04:38.42,0:04:45.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}El aviso aclara que solo se borra si no tiene\Nalumnos, cobros, pruebas ni clases realizadas.
+Dialogue: 1,0:04:45.27,0:04:48.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}Confirmamos con Eliminar definitivamente.
+Dialogue: 1,0:04:49.34,0:04:53.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si la clase tuviera historial, el sistema\Nlo impediría y sugeriría Inactivar,
+Dialogue: 1,0:04:53.95,0:04:56.51,Sub,,0,0,0,,{\an5\pos(1110,1020)}para conservar la información.
+Dialogue: 1,0:04:57.11,0:05:00.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Mi perfil actualizamos\Nnuestros datos personales.
+Dialogue: 1,0:05:00.93,0:05:04.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cambiamos el teléfono y presionamos Guardar datos.
+Dialogue: 1,0:05:05.40,0:05:11.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}La tarjeta Acceso y alcance muestra el rol,\Nla academia y las sedes habilitadas.
+Dialogue: 1,0:05:11.36,0:05:13.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Seguridad se cambia la contraseña:
+Dialogue: 1,0:05:13.86,0:05:18.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}al guardarla, la sesión se\Ncierra para volver a ingresar.
+Dialogue: 1,0:05:18.79,0:05:24.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Usuarios, el acceso de prueba que creamos\Nse puede eliminar con el ícono de papelera.
+Dialogue: 1,0:05:25.23,0:05:29.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}El navegador pide confirmar,\Nporque es una acción definitiva.
+Dialogue: 1,0:05:29.80,0:05:35.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}No se puede eliminar la propia cuenta,\Nni a un profesor con clases vinculadas.
+Dialogue: 1,0:05:36.04,0:05:39.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por último, si alguien olvida su contraseña:
+Dialogue: 1,0:05:39.06,0:05:41.05,Sub,,0,0,0,,{\an5\pos(1110,1020)}cerramos sesión.
+Dialogue: 1,0:05:41.66,0:05:45.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la pantalla de ingreso\Npresionamos Olvidé mi contraseña.
+Dialogue: 1,0:05:46.51,0:05:50.75,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escribimos el email de la cuenta\Ny presionamos Enviar enlace.
+Dialogue: 1,0:05:51.35,0:05:56.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}El sistema envía un enlace de un\Nsolo uso, válido por treinta minutos,
+Dialogue: 1,0:05:56.03,0:05:58.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}para definir una nueva contraseña.
+Dialogue: 1,0:06:01.00,0:06:05.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con esto completamos el recorrido por\Ntodas las funciones de la administración.
+Dialogue: 1,0:06:06.35,0:06:12.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ya podés configurar la academia, organizar\Nprofesores y clases, gestionar alumnos,
+Dialogue: 1,0:06:12.08,0:06:17.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}promociones, inscripciones y cobros,\Natender contactos, controlar la asistencia
+Dialogue: 1,0:06:17.51,0:06:19.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}y analizar los reportes.
+Dialogue: 1,0:06:19.93,0:06:21.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}¡Éxitos!

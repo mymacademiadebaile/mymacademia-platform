@@ -1,0 +1,72 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:03:13.47,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 13 · DÍA TÍPICO
+Dialogue: 0,0:00:21.41,0:00:28.03,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}1 · Ingresar al sistema
+Dialogue: 0,0:00:28.03,0:00:42.69,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}2 · Revisar el inicio
+Dialogue: 0,0:00:42.69,0:00:50.53,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}3 · Consultar nuevas solicitudes
+Dialogue: 0,0:00:50.53,0:01:12.84,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}4 · Registrar un contacto
+Dialogue: 0,0:01:12.84,0:01:21.27,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}5 · Convertir en alumna
+Dialogue: 0,0:01:21.27,0:01:27.80,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}6 · Inscribir en una clase
+Dialogue: 0,0:01:27.80,0:01:59.83,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}7 y 8 · Promoción y cobro
+Dialogue: 0,0:01:59.83,0:02:11.00,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}9 · Consultar la inscripción
+Dialogue: 0,0:02:11.00,0:02:20.60,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}10 · Revisar asistencias
+Dialogue: 0,0:02:20.60,0:02:44.28,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}11 · Modificar un horario
+Dialogue: 0,0:02:44.28,0:02:57.07,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}12 · Reportes finales
+Dialogue: 1,0:00:01.00,0:00:04.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo vamos a recorrer\Nun día típico de trabajo,
+Dialogue: 1,0:00:04.56,0:00:07.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}conectando todos los módulos que aprendimos.
+Dialogue: 1,0:00:08.41,0:00:11.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}Llega una nueva interesada, Martina Sosa:
+Dialogue: 1,0:00:11.57,0:00:17.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}la registramos, la convertimos en alumna,\Nla inscribimos, cobramos su clase con promoción
+Dialogue: 1,0:00:17.64,0:00:20.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}y revisamos el resultado.
+Dialogue: 1,0:00:21.51,0:00:25.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}Empezamos el día ingresando con\Nnuestro usuario y contraseña.
+Dialogue: 1,0:00:28.18,0:00:29.94,Sub,,0,0,0,,{\an5\pos(1110,1020)}Revisamos el inicio:
+Dialogue: 1,0:00:29.96,0:00:34.37,Sub,,0,0,0,,{\an5\pos(1110,1020)}alumnos activos, clases de\Nhoy y lo cobrado en el mes.
+Dialogue: 1,0:00:34.97,0:00:38.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las clases del día nos dicen qué\Ngrupos hay hoy, y la campana,
+Dialogue: 1,0:00:38.63,0:00:41.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}si hay pagos vencidos para gestionar.
+Dialogue: 1,0:00:42.84,0:00:45.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}Revisamos los contactos pendientes en Contactos:
+Dialogue: 1,0:00:45.92,0:00:50.08,Sub,,0,0,0,,{\an5\pos(1110,1020)}son las personas interesadas\Nque todavía no se inscribieron.
+Dialogue: 1,0:00:50.68,0:00:54.75,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escribe Martina Sosa, interesada en salsa.
+Dialogue: 1,0:00:54.77,0:00:58.69,Sub,,0,0,0,,{\an5\pos(1110,1020)}Primero la buscamos por\Nteléfono para no duplicarla.
+Dialogue: 1,0:00:59.30,0:01:01.29,Sub,,0,0,0,,{\an5\pos(1110,1020)}No está cargada.
+Dialogue: 1,0:01:01.31,0:01:03.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Agregar contacto.
+Dialogue: 1,0:01:04.57,0:01:07.26,Sub,,0,0,0,,{\an5\pos(1110,1020)}Completamos nombre y apellido,
+Dialogue: 1,0:01:08.14,0:01:11.51,Sub,,0,0,0,,{\an5\pos(1110,1020)}teléfono y DNI, y guardamos.
+Dialogue: 1,0:01:12.99,0:01:15.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}Decide inscribirse directamente.
+Dialogue: 1,0:01:15.92,0:01:20.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Convertir en alumno,\Ncargamos su email y confirmamos.
+Dialogue: 1,0:01:21.42,0:01:23.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}Desde su ficha, Inscribir:
+Dialogue: 1,0:01:23.32,0:01:26.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}elegimos Salsa Inicial y sus dos turnos.
+Dialogue: 1,0:01:27.90,0:01:31.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}Hoy toma su primera clase y la paga en el momento.
+Dialogue: 1,0:01:31.69,0:01:34.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a la ficha de Salsa Inicial.
+Dialogue: 1,0:01:35.22,0:01:38.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}La promoción Semana de la salsa está activa:
+Dialogue: 1,0:01:38.08,0:01:41.96,Sub,,0,0,0,,{\an5\pos(1110,1020)}quince por ciento de descuento\Nen las clases de esta semana.
+Dialogue: 1,0:01:42.57,0:01:48.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Inscriptos actuales, en la fila de\NMartina, presionamos Registrar cobro.
+Dialogue: 1,0:01:48.91,0:01:51.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}La fecha de la clase es hoy.
+Dialogue: 1,0:01:51.44,0:01:56.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}Dejamos vacío el dinero recibido para\Ncobrar el saldo calculado, elegimos Efectivo
+Dialogue: 1,0:01:56.75,0:01:59.37,Sub,,0,0,0,,{\an5\pos(1110,1020)}y presionamos Registrar cobro.
+Dialogue: 1,0:01:59.97,0:02:02.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos su ficha para verificar.
+Dialogue: 1,0:02:03.43,0:02:08.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Tiene Salsa Inicial activa, y en Pagos\Nla clase de hoy figura como Pagado,
+Dialogue: 1,0:02:08.16,0:02:10.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}con la promoción aplicada.
+Dialogue: 1,0:02:11.10,0:02:14.48,Sub,,0,0,0,,{\an5\pos(1110,1020)}Revisamos las llegadas del día en Recepción.
+Dialogue: 1,0:02:15.08,0:02:20.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vemos quién ya registró su asistencia,\Nen qué clase y con qué método.
+Dialogue: 1,0:02:20.75,0:02:25.54,Sub,,0,0,0,,{\an5\pos(1110,1020)}La profesora de Salsa avisa que el\Nlunes empieza media hora más tarde.
+Dialogue: 1,0:02:25.56,0:02:29.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos al Calendario y pasamos\Na la semana siguiente.
+Dialogue: 1,0:02:30.18,0:02:35.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos la clase de Salsa Inicial del\Nlunes 9 y elegimos Solo esta clase.
+Dialogue: 1,0:02:36.27,0:02:41.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}Nuevo horario, de 19:30 a 20:30, y guardamos.
+Dialogue: 1,0:02:44.43,0:02:48.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para cerrar el día, miramos los Reportes del mes.
+Dialogue: 1,0:02:49.05,0:02:51.36,Sub,,0,0,0,,{\an5\pos(1110,1020)}La caja ya incluye los cobros de hoy,
+Dialogue: 1,0:02:51.38,0:02:56.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}y la deuda del período nos indica\Na quién recordarle sus pagos.
+Dialogue: 1,0:02:58.07,0:03:00.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ese es el circuito diario completo:
+Dialogue: 1,0:03:00.45,0:03:07.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}consulta, alta, inscripción, cobro,\Nasistencia, ajustes y control.
+Dialogue: 1,0:03:07.64,0:03:12.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el último capítulo vamos a ver\Nfunciones adicionales de la plataforma.

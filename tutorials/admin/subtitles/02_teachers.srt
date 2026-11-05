@@ -1,0 +1,289 @@
+1
+00:00:01,002 --> 00:00:05,364
+En este capítulo vamos a
+administrar al equipo de profesores.
+
+2
+00:00:05,866 --> 00:00:12,303
+Vamos a dar de alta a una profesora ficticia,
+Carla Romero, que va a dictar Dancehall.
+
+3
+00:00:12,323 --> 00:00:15,724
+La vamos a usar en los próximos capítulos.
+
+4
+00:00:17,147 --> 00:00:20,526
+Ingresamos a Profesores desde el menú lateral.
+
+5
+00:00:21,126 --> 00:00:23,464
+Vemos el equipo actual en tarjetas:
+
+6
+00:00:23,484 --> 00:00:28,944
+foto o iniciales, estado, contacto
+y disciplinas de cada profesor.
+
+7
+00:00:29,555 --> 00:00:36,006
+Arriba tenemos un buscador por nombre o email,
+y filtros por sede, disciplina y estado.
+
+8
+00:00:36,569 --> 00:00:39,564
+Por ejemplo, buscamos Lucía.
+
+9
+00:00:40,167 --> 00:00:43,344
+La lista se filtra mientras escribimos.
+
+10
+00:00:43,364 --> 00:00:45,609
+Borramos la búsqueda.
+
+11
+00:00:46,213 --> 00:00:51,415
+Con estos dos botones alternamos entre
+la vista en tarjetas y la vista en lista.
+
+12
+00:00:51,971 --> 00:00:56,070
+Para dar de alta a un profesor
+presionamos Nuevo profesor.
+
+13
+00:00:56,675 --> 00:01:01,900
+En un solo paso se crea su perfil,
+su acceso al portal de profesores, sus sedes
+
+14
+00:01:01,920 --> 00:01:03,845
+y disciplinas.
+
+15
+00:01:04,444 --> 00:01:07,127
+Completamos nombre y apellido.
+
+16
+00:01:09,124 --> 00:01:13,655
+El nombre visible es el que se
+muestra en el calendario y en la web.
+
+17
+00:01:14,255 --> 00:01:18,258
+Cargamos su teléfono y el
+email con el que va a ingresar.
+
+18
+00:01:19,154 --> 00:01:22,949
+Definimos una contraseña inicial
+de al menos diez caracteres,
+
+19
+00:01:22,969 --> 00:01:26,181
+que luego le compartimos por un canal seguro.
+
+20
+00:01:26,795 --> 00:01:28,902
+Elegimos su sede.
+
+21
+00:01:29,466 --> 00:01:31,600
+Y sus disciplinas.
+
+22
+00:01:31,620 --> 00:01:34,397
+La lista sale del catálogo que configuramos:
+
+23
+00:01:34,417 --> 00:01:37,021
+elegimos Dancehall y Reggaetón.
+
+24
+00:01:37,630 --> 00:01:43,913
+Opcionalmente, su Instagram, una descripción
+corta para la web y una biografía.
+
+25
+00:01:44,477 --> 00:01:46,679
+Presionamos Guardar.
+
+26
+00:01:47,933 --> 00:01:51,871
+El sistema abre directamente
+el perfil de la profesora.
+
+27
+00:01:51,891 --> 00:01:58,391
+Arriba vemos su estado, Profesor activo,
+y los botones Email, Editar, Acceso, Inactivar
+
+28
+00:01:58,411 --> 00:02:00,047
+y Eliminar.
+
+29
+00:02:00,648 --> 00:02:06,970
+Los indicadores muestran sus clases activas,
+alumnos actuales, disciplinas y sedes.
+
+30
+00:02:06,990 --> 00:02:10,171
+Por ahora no tiene clases asignadas.
+
+31
+00:02:10,769 --> 00:02:16,835
+Más abajo están sus datos de perfil y acceso,
+y las sedes y disciplinas asignadas.
+
+32
+00:02:17,436 --> 00:02:22,390
+La tarjeta Publicación en la web indica qué
+falta para mostrarla en la página pública:
+
+33
+00:02:22,410 --> 00:02:26,430
+estar activa, tener foto y descripción corta.
+
+34
+00:02:27,032 --> 00:02:32,666
+Y en Material comercial se cargan su foto
+de perfil y un video corto de presentación.
+
+35
+00:02:33,269 --> 00:02:37,671
+Al final, Clases asignadas
+lista sus clases y horarios.
+
+36
+00:02:37,691 --> 00:02:41,087
+Se completará cuando le asignemos su clase.
+
+37
+00:02:42,406 --> 00:02:45,856
+Para modificar sus datos presionamos Editar.
+
+38
+00:02:46,467 --> 00:02:49,116
+Podemos corregir cualquier dato.
+
+39
+00:02:49,136 --> 00:02:54,502
+Por ejemplo, además de sus disciplinas
+actuales le asignamos Urbano.
+
+40
+00:02:55,104 --> 00:02:57,307
+Presionamos Guardar.
+
+41
+00:02:58,053 --> 00:03:01,407
+El perfil ya muestra las tres disciplinas.
+
+42
+00:03:02,007 --> 00:03:08,170
+Si la profesora olvida su contraseña,
+el botón Acceso permite definirle una nueva.
+
+43
+00:03:08,778 --> 00:03:12,780
+Se escribe dos veces la
+nueva contraseña y se guarda.
+
+44
+00:03:12,800 --> 00:03:17,509
+En este caso no la cambiamos,
+así que presionamos Cancelar.
+
+45
+00:03:19,518 --> 00:03:23,791
+Cuando un profesor deja de
+dar clases, se lo inactiva.
+
+46
+00:03:23,811 --> 00:03:26,161
+Presionamos Inactivar.
+
+47
+00:03:26,774 --> 00:03:31,961
+El sistema pide confirmación y aclara
+que sus datos e historial se conservan.
+
+48
+00:03:31,981 --> 00:03:33,848
+Confirmamos.
+
+49
+00:03:34,458 --> 00:03:36,900
+El estado cambió a Profesor inactivo:
+
+50
+00:03:36,920 --> 00:03:40,645
+ya no está disponible para nuevas asignaciones.
+
+51
+00:03:41,247 --> 00:03:45,585
+Como la vamos a necesitar,
+la reactivamos con Reactivar.
+
+52
+00:03:46,197 --> 00:03:49,631
+El botón Eliminar borra al
+profesor definitivamente,
+
+53
+00:03:49,651 --> 00:03:53,434
+pero solo se permite si no
+tiene clases vinculadas.
+
+54
+00:03:53,454 --> 00:03:57,736
+Si ya dictó clases, lo correcto es inactivarlo.
+
+55
+00:03:58,343 --> 00:04:03,066
+Para ver las clases y horarios de
+un profesor, volvemos al listado.
+
+56
+00:04:03,681 --> 00:04:08,379
+Y abrimos el perfil de Lucía
+Benítez, que ya tiene clases.
+
+57
+00:04:08,984 --> 00:04:13,562
+Sus indicadores muestran clases
+activas y alumnos actuales.
+
+58
+00:04:14,174 --> 00:04:18,885
+Y en Clases asignadas aparecen sus
+clases con los horarios y el cupo.
+
+59
+00:04:18,905 --> 00:04:22,401
+Cada una es un enlace a la gestión de la clase.
+
+60
+00:04:23,005 --> 00:04:25,240
+Así se relacionan los módulos:
+
+61
+00:04:25,260 --> 00:04:27,779
+cada clase tiene uno o más profesores,
+
+62
+00:04:27,799 --> 00:04:31,999
+y desde el perfil del profesor
+llegamos a sus clases y alumnos.
+
+63
+00:04:34,068 --> 00:04:40,351
+Carla Romero ya forma parte del equipo,
+con su acceso, sus disciplinas y su sede.
+
+64
+00:04:40,852 --> 00:04:46,247
+En el próximo capítulo vamos a crear su
+clase y configurar horarios y precios.

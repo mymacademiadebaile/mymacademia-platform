@@ -1,0 +1,115 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:06:00.77,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 7 · INSCRIPCIONES
+Dialogue: 0,0:00:21.15,0:01:42.81,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}A · Inscripción con mensualidad
+Dialogue: 0,0:01:42.81,0:02:15.08,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}B · Inscripción por clase
+Dialogue: 0,0:02:15.08,0:03:04.67,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}B · Clase suelta de un solo día
+Dialogue: 0,0:03:04.67,0:04:02.12,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}C · Inscripción con promoción
+Dialogue: 0,0:04:02.12,0:04:27.81,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}D · Varias clases
+Dialogue: 0,0:04:27.81,0:05:44.67,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}E · Modificaciones posteriores
+Dialogue: 1,0:00:01.00,0:00:03.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Este es uno de los capítulos más importantes:
+Dialogue: 1,0:00:03.97,0:00:07.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}cómo inscribir alumnos en las clases.
+Dialogue: 1,0:00:07.57,0:00:12.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a inscribir a Valentina Ríos con\Nmensualidad, por clase, en una clase suelta
+Dialogue: 1,0:00:12.65,0:00:15.12,Sub,,0,0,0,,{\an5\pos(1110,1020)}y con una promoción vigente.
+Dialogue: 1,0:00:15.14,0:00:19.80,Sub,,0,0,0,,{\an5\pos(1110,1020)}Después vamos a ver cómo modificar\No dar de baja una inscripción.
+Dialogue: 1,0:00:21.25,0:00:22.36,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escenario A:
+Dialogue: 1,0:00:22.38,0:00:24.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}inscripción con mensualidad.
+Dialogue: 1,0:00:24.99,0:00:29.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos Dancehall Inicial desde\Nel perfil de Carla Romero.
+Dialogue: 1,0:00:29.65,0:00:33.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Bajamos hasta la tarjeta\NInscripción, Agregar alumno.
+Dialogue: 1,0:00:33.97,0:00:36.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los pasos están numerados.
+Dialogue: 1,0:00:37.22,0:00:38.28,Sub,,0,0,0,,{\an5\pos(1110,1020)}Paso uno:
+Dialogue: 1,0:00:38.30,0:00:40.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}elegimos a la alumna.
+Dialogue: 1,0:00:40.57,0:00:45.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}La lista muestra los alumnos activos de la\Nsede que todavía no están en esta clase.
+Dialogue: 1,0:00:45.83,0:00:48.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos a Valentina Ríos.
+Dialogue: 1,0:00:49.13,0:00:50.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Paso dos:
+Dialogue: 1,0:00:50.16,0:00:51.75,Sub,,0,0,0,,{\an5\pos(1110,1020)}cómo paga.
+Dialogue: 1,0:00:51.77,0:00:56.37,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como la clase admite ambas\Nmodalidades, elegimos Mensual.
+Dialogue: 1,0:00:56.92,0:00:57.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}Paso tres:
+Dialogue: 1,0:00:57.88,0:00:59.83,Sub,,0,0,0,,{\an5\pos(1110,1020)}el plan mensual.
+Dialogue: 1,0:00:59.85,0:01:02.92,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos el plan de cuatro clases.
+Dialogue: 1,0:01:03.48,0:01:07.64,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Días y horarios podemos\Nelegir en qué turnos participa.
+Dialogue: 1,0:01:07.66,0:01:11.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si no marcamos ninguno, queda inscripta en todos.
+Dialogue: 1,0:01:12.36,0:01:14.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}La fecha de inicio es hoy.
+Dialogue: 1,0:01:15.44,0:01:20.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como empieza con el mes ya iniciado,\Nhay que definir el cobro del primer mes:
+Dialogue: 1,0:01:20.13,0:01:24.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}cuota completa, proporcional\No un importe personalizado.
+Dialogue: 1,0:01:24.58,0:01:27.92,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos Proporcional a las clases que quedan.
+Dialogue: 1,0:01:28.48,0:01:31.12,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Inscribir alumno.
+Dialogue: 1,0:01:31.67,0:01:38.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}Valentina aparece en Inscriptos actuales,\Ncon modalidad Mensual y plan de cuatro clases.
+Dialogue: 1,0:01:38.13,0:01:42.35,Sub,,0,0,0,,{\an5\pos(1110,1020)}La cuota proporcional del mes\Nya quedó generada para cobrar.
+Dialogue: 1,0:01:42.91,0:01:44.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escenario B:
+Dialogue: 1,0:01:44.02,0:01:47.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}inscripción por clase, sin mensualidad.
+Dialogue: 1,0:01:47.64,0:01:50.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}Esta vez lo hacemos desde la ficha de la alumna:
+Dialogue: 1,0:01:50.62,0:01:53.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}hacemos clic en su nombre.
+Dialogue: 1,0:01:53.63,0:01:57.32,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la tarjeta Inscripciones presionamos Inscribir.
+Dialogue: 1,0:01:57.87,0:02:00.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos la clase Salsa Inicial.
+Dialogue: 1,0:02:01.39,0:02:03.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}Esta clase se cobra por clase:
+Dialogue: 1,0:02:03.51,0:02:07.15,Sub,,0,0,0,,{\an5\pos(1110,1020)}la alumna paga solo las clases a las que asiste.
+Dialogue: 1,0:02:07.70,0:02:11.28,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Turnos habituales marcamos los dos días.
+Dialogue: 1,0:02:11.83,0:02:14.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y presionamos Inscribir alumno.
+Dialogue: 1,0:02:15.18,0:02:19.46,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para alguien que quiere tomar una\Núnica clase, sin inscribirse al grupo,
+Dialogue: 1,0:02:19.48,0:02:22.33,Sub,,0,0,0,,{\an5\pos(1110,1020)}se lo agrega solo a esa fecha.
+Dialogue: 1,0:02:22.89,0:02:28.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos al Calendario, vista Día, y abrimos\Nla clase de hoy de Bachata Intermedio.
+Dialogue: 1,0:02:29.42,0:02:33.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la sección Alumnos presionamos\NAgregar solo a esta fecha.
+Dialogue: 1,0:02:34.36,0:02:37.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}Buscamos a Valentina por su nombre.
+Dialogue: 1,0:02:38.99,0:02:43.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}El tipo queda en Autorizado,\Nclase suelta o invitado.
+Dialogue: 1,0:02:43.41,0:02:48.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}También existe Recupera una clase,\Npara quien recupera una clase perdida.
+Dialogue: 1,0:02:49.33,0:02:51.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Agregar.
+Dialogue: 1,0:02:52.10,0:02:56.37,Sub,,0,0,0,,{\an5\pos(1110,1020)}La alumna figura en la lista de\Nhoy con la etiqueta Autorizado.
+Dialogue: 1,0:02:56.39,0:03:01.57,Sub,,0,0,0,,{\an5\pos(1110,1020)}El cupo se respeta, y su cobro se\Nregistra como una clase individual.
+Dialogue: 1,0:03:04.77,0:03:05.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escenario C:
+Dialogue: 1,0:03:05.95,0:03:08.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}inscripción con promoción.
+Dialogue: 1,0:03:08.45,0:03:12.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}Salsa Inicial tiene esta semana\Nla promoción Semana de la salsa,
+Dialogue: 1,0:03:12.49,0:03:15.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}con quince por ciento de descuento.
+Dialogue: 1,0:03:15.86,0:03:19.24,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos la clase de hoy de Salsa Inicial.
+Dialogue: 1,0:03:22.04,0:03:25.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}Valentina ya figura en la\Nlista por su inscripción.
+Dialogue: 1,0:03:25.87,0:03:31.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}Al marcarla presente, se genera el cobro\Nde esta clase con la promoción aplicada.
+Dialogue: 1,0:03:32.23,0:03:36.15,Sub,,0,0,0,,{\an5\pos(1110,1020)}El estado de pago muestra\Nla clase pendiente de cobro.
+Dialogue: 1,0:03:36.17,0:03:38.92,Sub,,0,0,0,,{\an5\pos(1110,1020)}Veamos el importe en su ficha.
+Dialogue: 1,0:03:42.43,0:03:45.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a Alumnos y abrimos su ficha.
+Dialogue: 1,0:03:51.05,0:03:54.92,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Pagos aparece la clase de Salsa\Ncon el nombre de la promoción:
+Dialogue: 1,0:03:54.94,0:03:58.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}el importe ya tiene descontado\Nel quince por ciento.
+Dialogue: 1,0:03:58.76,0:04:01.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}No hubo que calcular nada a mano.
+Dialogue: 1,0:04:02.22,0:04:03.27,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escenario D:
+Dialogue: 1,0:04:03.29,0:04:06.05,Sub,,0,0,0,,{\an5\pos(1110,1020)}un alumno en varias clases.
+Dialogue: 1,0:04:06.07,0:04:07.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la tarjeta Inscripciones vemos
+Dialogue: 1,0:04:07.74,0:04:13.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}que Valentina participa de Dancehall Inicial\Ncon mensualidad y de Salsa Inicial por clase,
+Dialogue: 1,0:04:13.06,0:04:15.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}cada una con sus turnos.
+Dialogue: 1,0:04:16.00,0:04:18.83,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para sumar otra disciplina se repite Inscribir:
+Dialogue: 1,0:04:18.85,0:04:23.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}la lista solo ofrece las clases en\Nlas que todavía no está inscripta.
+Dialogue: 1,0:04:23.47,0:04:27.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y la tarjeta Clases activas resume cuántas tiene.
+Dialogue: 1,0:04:27.91,0:04:29.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escenario E:
+Dialogue: 1,0:04:29.02,0:04:31.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}modificaciones.
+Dialogue: 1,0:04:31.13,0:04:35.35,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los cambios de plan y de\Nmodalidad se hacen desde la clase.
+Dialogue: 1,0:04:35.37,0:04:38.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}Volvemos a Dancehall Inicial.
+Dialogue: 1,0:04:38.57,0:04:44.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la fila de Valentina, el selector Plan\Nmensual permite pasar al plan de ocho clases.
+Dialogue: 1,0:04:45.41,0:04:49.05,Sub,,0,0,0,,{\an5\pos(1110,1020)}El sistema aclara que las cuotas ya\Ngeneradas no cambian de importe y
+Dialogue: 1,0:04:49.07,0:04:52.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}que las próximas usarán el nuevo precio.
+Dialogue: 1,0:04:52.09,0:04:54.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}Confirmamos con Cambiar plan.
+Dialogue: 1,0:04:55.32,0:05:00.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}De la misma forma, el selector de modalidad\Npasa a un alumno de mensual a por clase,
+Dialogue: 1,0:05:00.63,0:05:04.70,Sub,,0,0,0,,{\an5\pos(1110,1020)}o al revés, sin modificar sus pagos históricos.
+Dialogue: 1,0:05:05.26,0:05:07.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora veamos una baja.
+Dialogue: 1,0:05:07.67,0:05:11.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}Abrimos Bachata Intermedio, de Lucía Benítez.
+Dialogue: 1,0:05:12.21,0:05:15.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}Micaela Ferreyra deja de venir a esta clase.
+Dialogue: 1,0:05:15.87,0:05:20.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}En su fila presionamos el\Nícono de papelera, Dar de baja.
+Dialogue: 1,0:05:20.96,0:05:22.79,Sub,,0,0,0,,{\an5\pos(1110,1020)}Confirmamos.
+Dialogue: 1,0:05:22.81,0:05:25.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}El historial se conserva.
+Dialogue: 1,0:05:25.83,0:05:31.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}Micaela pasa a Inscripciones anteriores,\Ncon su fecha de alta y de baja.
+Dialogue: 1,0:05:31.40,0:05:35.83,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si vuelve, el botón Inscribir\Nla reincorpora en un paso.
+Dialogue: 1,0:05:36.43,0:05:40.79,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y para corregir datos personales de\Nun alumno se usa Editar en su ficha,
+Dialogue: 1,0:05:40.81,0:05:43.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}como vimos en el capítulo anterior.
+Dialogue: 1,0:05:45.67,0:05:50.03,Sub,,0,0,0,,{\an5\pos(1110,1020)}Valentina Ríos ya participa de varias\Nclases con distintas modalidades,
+Dialogue: 1,0:05:50.05,0:05:53.92,Sub,,0,0,0,,{\an5\pos(1110,1020)}y vimos cómo modificar y\Ndar de baja inscripciones.
+Dialogue: 1,0:05:54.42,0:05:59.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a cobrar\Ntodo lo que generaron estas inscripciones.

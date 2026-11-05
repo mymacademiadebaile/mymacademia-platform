@@ -2,7 +2,7 @@ import { Router } from "express";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { AppError } from "../../common/http/app-error";
-import { containsText } from "../../common/regex";
+import { containsText, samePhoneDigits } from "../../common/regex";
 import { withRequiredTransaction } from "../../common/required-transaction";
 import { AuditLogModel } from "../audit/audit-log.model";
 import { ContactModel } from "../contacts/contact.model";
@@ -81,8 +81,8 @@ adminContactsRouter.post("/", async (request, response, next) => {
       await assertDniAvailable(organizationId, input.dni, undefined, dbSession);
       // Reception chooses among matches. Shared email/phone and names are never authentication or an automatic merge.
       if (email || phone) {
-        const matches = await ContactModel.find({ organizationId, $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])] }).session(dbSession);
-        const legacy = await StudentModel.find({ organizationId, $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])] }).session(dbSession);
+        const matches = await ContactModel.find({ organizationId, $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone: samePhoneDigits(phone) }] : [])] }).session(dbSession);
+        const legacy = await StudentModel.find({ organizationId, $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone: samePhoneDigits(phone) }] : [])] }).session(dbSession);
         if (matches.length || legacy.length) throw new AppError(409, "Ya hay una persona con esos datos. Buscala y reutilizá su contacto", "CONTACT_MATCH_REQUIRES_REVIEW");
       }
       const [created] = await ContactModel.create([{ ...input, email, phone, organizationId }], { session: dbSession });

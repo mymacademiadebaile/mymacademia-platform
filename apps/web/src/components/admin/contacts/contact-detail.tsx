@@ -6,6 +6,7 @@ import type { ContactDetailResponse } from "@mym/shared";
 import { PageHeader } from "../admin-ui";
 import { apiFetch, apiMessage } from "@/lib/api";
 import { todayInArgentina } from "@/lib/dates";
+import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import styles from "./contacts.module.css";
 import { QrCard } from "./qr-card";
 import { contactClassHistory } from "./contact-history";
@@ -14,6 +15,7 @@ type SessionOption = { id: string; startTime: string; endTime: string; status: s
 
 export function ContactDetail({ id }: { id: string }) {
   const router = useRouter();
+  const { confirm } = useAdminFeedback();
   const [data, setData] = useState<ContactDetailResponse | null>(null);
   const [sessions, setSessions] = useState<SessionOption[]>([]);
   const [date, setDate] = useState(todayInArgentina), [kind, setKind] = useState("TRIAL");
@@ -65,7 +67,14 @@ export function ContactDetail({ id }: { id: string }) {
     } catch (cause) { setError(apiMessage(cause)); setBusy(false); }
   }
   async function remove() {
-    if (!data || !window.confirm(`¿Eliminar definitivamente a ${data.contact.firstName} ${data.contact.lastName}? También se eliminarán sus reservas y seguimientos. Esta acción no se puede deshacer.`)) return;
+    if (!data) return;
+    const approved = await confirm({
+      title: "Eliminar posible alumno",
+      description: `Se eliminará definitivamente a ${data.contact.firstName} ${data.contact.lastName}, junto con sus reservas y seguimientos. Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      tone: "danger"
+    });
+    if (!approved) return;
     setBusy(true); setError(""); setMessage("");
     try {
       await apiFetch(`/admin/contacts/${id}`, { method: "DELETE" });

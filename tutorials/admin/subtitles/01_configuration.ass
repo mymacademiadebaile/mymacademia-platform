@@ -1,0 +1,143 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:07:56.97,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 2 · CONFIGURACIÓN
+Dialogue: 0,0:00:19.85,0:00:46.38,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Ingresar a Configuración
+Dialogue: 0,0:00:46.38,0:01:00.65,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Identidad de la academia
+Dialogue: 0,0:01:00.65,0:01:25.80,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Consultas e inscripciones
+Dialogue: 0,0:01:25.80,0:01:41.86,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Reglas operativas
+Dialogue: 0,0:01:41.86,0:02:10.47,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Canales públicos
+Dialogue: 0,0:02:10.47,0:02:32.12,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Landing pública
+Dialogue: 0,0:02:32.12,0:02:52.18,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Sedes
+Dialogue: 0,0:02:52.18,0:04:08.27,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Catálogos: ritmos, público y niveles
+Dialogue: 0,0:04:08.27,0:04:53.05,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Pistas de baile
+Dialogue: 0,0:04:53.05,0:05:24.02,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Feriados
+Dialogue: 0,0:05:24.02,0:05:49.41,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Reglas de cobro
+Dialogue: 0,0:05:49.41,0:07:35.93,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Usuarios y roles
+Dialogue: 1,0:00:01.00,0:00:06.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo vamos a revisar la\Nconfiguración general de la academia.
+Dialogue: 1,0:00:06.61,0:00:10.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}Son los datos y reglas que conviene\Ncompletar antes de empezar a operar:
+Dialogue: 1,0:00:10.57,0:00:18.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}identidad, reglas de cancelación, catálogos de\Nritmos, pistas, feriados, cobros y usuarios.
+Dialogue: 1,0:00:19.95,0:00:23.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ingresamos a Configuración desde el menú lateral.
+Dialogue: 1,0:00:24.21,0:00:26.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}La pantalla está organizada en pestañas:
+Dialogue: 1,0:00:26.86,0:00:34.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}Academia, Consultas, Operación, Canales,\NLanding, Sedes, Catálogos y Pistas, feriados
+Dialogue: 1,0:00:34.46,0:00:36.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}y cobros.
+Dialogue: 1,0:00:36.71,0:00:41.80,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las primeras cuatro pestañas comparten un\Nmismo botón Guardar cambios, ubicado al pie,
+Dialogue: 1,0:00:41.82,0:00:45.92,Sub,,0,0,0,,{\an5\pos(1110,1020)}así que podemos editar varias\Ny confirmar todo junto.
+Dialogue: 1,0:00:46.53,0:00:51.77,Sub,,0,0,0,,{\an5\pos(1110,1020)}En la pestaña Academia están el nombre,\Nel email institucional y el teléfono.
+Dialogue: 1,0:00:51.79,0:00:56.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}Estos datos se usan dentro del\Nsistema y en las comunicaciones.
+Dialogue: 1,0:00:56.91,0:01:00.19,Sub,,0,0,0,,{\an5\pos(1110,1020)}Actualizamos el teléfono de la academia.
+Dialogue: 1,0:01:00.80,0:01:05.59,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Consultas definimos un único responsable\Npara atender a las personas interesadas,
+Dialogue: 1,0:01:05.61,0:01:07.35,Sub,,0,0,0,,{\an5\pos(1110,1020)}y su WhatsApp.
+Dialogue: 1,0:01:07.91,0:01:11.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escribimos Administración como responsable.
+Dialogue: 1,0:01:11.99,0:01:15.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y el número de WhatsApp de\Nconsultas e inscripción.
+Dialogue: 1,0:01:16.46,0:01:21.68,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como indica la nota, los profesores no\Nreciben contactos públicos de forma directa:
+Dialogue: 1,0:01:21.70,0:01:25.33,Sub,,0,0,0,,{\an5\pos(1110,1020)}todas las consultas se\Ncentralizan en la administración.
+Dialogue: 1,0:01:25.90,0:01:28.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Operación se define la\Nzona horaria de la academia
+Dialogue: 1,0:01:28.80,0:01:32.37,Sub,,0,0,0,,{\an5\pos(1110,1020)}y la anticipación mínima para cancelar un turno.
+Dialogue: 1,0:01:32.98,0:01:38.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, con seis horas, un alumno no\Npuede cancelar su lugar en una clase si faltan
+Dialogue: 1,0:01:38.40,0:01:41.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}menos de seis horas para que empiece.
+Dialogue: 1,0:01:41.96,0:01:47.12,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Canales se cargan las redes sociales\Nque se muestran en el pie de la página web.
+Dialogue: 1,0:01:47.67,0:01:52.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}Completamos, por ejemplo, el enlace de Instagram.
+Dialogue: 1,0:01:52.66,0:01:56.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}El envío de correos por Gmail\Nfigura como Administrado:
+Dialogue: 1,0:01:56.02,0:02:00.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}sus credenciales están protegidas\Ny no se editan desde esta pantalla.
+Dialogue: 1,0:02:01.33,0:02:04.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Guardar cambios.
+Dialogue: 1,0:02:04.64,0:02:10.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}El aviso verde confirma que la configuración\Ngeneral se guardó correctamente.
+Dialogue: 1,0:02:10.62,0:02:15.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}La pestaña Landing permite reemplazar las tres\Nfotos del collage de la página web pública:
+Dialogue: 1,0:02:15.67,0:02:19.59,Sub,,0,0,0,,{\an5\pos(1110,1020)}una vertical, una horizontal y una de detalle.
+Dialogue: 1,0:02:20.15,0:02:23.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se usa el botón Cargar imagen de cada tarjeta.
+Dialogue: 1,0:02:23.93,0:02:28.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este entorno de capacitación el\Nalmacenamiento de imágenes no está conectado,
+Dialogue: 1,0:02:28.75,0:02:31.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}por eso no vamos a subir archivos.
+Dialogue: 1,0:02:32.26,0:02:36.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Sedes se administran las\Nubicaciones de la academia.
+Dialogue: 1,0:02:36.20,0:02:39.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}Hoy tenemos la sede La Plata, activa.
+Dialogue: 1,0:02:40.24,0:02:42.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con Editar se cambian el nombre y la dirección;
+Dialogue: 1,0:02:42.97,0:02:48.20,Sub,,0,0,0,,{\an5\pos(1110,1020)}con Desactivar, la sede deja de estar\Ndisponible para nuevas operaciones.
+Dialogue: 1,0:02:48.22,0:02:51.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}El botón Nueva sede agrega otra ubicación.
+Dialogue: 1,0:02:52.33,0:02:54.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}La pestaña Catálogos es muy importante:
+Dialogue: 1,0:02:54.89,0:02:58.26,Sub,,0,0,0,,{\an5\pos(1110,1020)}contiene los ritmos o disciplinas,\Nel público y los niveles
+Dialogue: 1,0:02:58.28,0:03:01.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}que después se eligen al\Ncrear clases y profesores.
+Dialogue: 1,0:03:02.57,0:03:07.88,Sub,,0,0,0,,{\an5\pos(1110,1020)}Así, nadie escribe categorías a mano\Ny la información queda ordenada.
+Dialogue: 1,0:03:07.90,0:03:13.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada opción muestra en cuántas clases\Ny profesores se usa, y si está activa.
+Dialogue: 1,0:03:13.90,0:03:15.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a agregar un ritmo nuevo:
+Dialogue: 1,0:03:15.92,0:03:17.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}Dancehall.
+Dialogue: 1,0:03:17.49,0:03:21.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}Lo escribimos en el campo\NAgregar de la columna Ritmos.
+Dialogue: 1,0:03:22.11,0:03:25.46,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y presionamos el botón con el signo más.
+Dialogue: 1,0:03:26.03,0:03:30.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}Dancehall ya aparece en la\Nlista, al final y activo.
+Dialogue: 1,0:03:30.27,0:03:34.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con las flechas podemos cambiar\Nel orden en que se muestra.
+Dialogue: 1,0:03:34.70,0:03:37.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}El lápiz cambia el nombre en todas las pantallas,
+Dialogue: 1,0:03:37.60,0:03:43.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}y el botón de pausa desactiva la opción para\Nnuevas selecciones, sin perder el historial.
+Dialogue: 1,0:03:44.18,0:03:47.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los ritmos también tienen una\Nficha web, con la descripción
+Dialogue: 1,0:03:47.58,0:03:50.37,Sub,,0,0,0,,{\an5\pos(1110,1020)}que se muestra en la página pública.
+Dialogue: 1,0:03:50.97,0:03:53.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Completamos la descripción corta.
+Dialogue: 1,0:03:54.75,0:03:58.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para publicarlo en la web también\Nhace falta una imagen de portada;
+Dialogue: 1,0:03:58.62,0:04:03.24,Sub,,0,0,0,,{\an5\pos(1110,1020)}mientras tanto, el ritmo queda\Ndisponible dentro del sistema.
+Dialogue: 1,0:04:03.26,0:04:05.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}Guardamos.
+Dialogue: 1,0:04:05.61,0:04:07.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Guardar.
+Dialogue: 1,0:04:08.42,0:04:12.06,Sub,,0,0,0,,{\an5\pos(1110,1020)}Pasamos a Pistas, feriados y cobros.
+Dialogue: 1,0:04:12.66,0:04:16.51,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las pistas son los salones\Ndonde se dictan las clases.
+Dialogue: 1,0:04:16.53,0:04:21.15,Sub,,0,0,0,,{\an5\pos(1110,1020)}El sistema impide superponer dos clases en\Nla misma pista, y al crear una clase hay
+Dialogue: 1,0:04:21.17,0:04:22.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}que elegir una.
+Dialogue: 1,0:04:23.46,0:04:26.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}Creamos una nueva con el botón Nueva pista.
+Dialogue: 1,0:04:27.43,0:04:29.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}La llamamos Salón B.
+Dialogue: 1,0:04:30.21,0:04:33.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}Indicamos su capacidad en personas.
+Dialogue: 1,0:04:34.00,0:04:38.98,Sub,,0,0,0,,{\an5\pos(1110,1020)}El estado queda en Disponible,\Ny anotamos su disponibilidad horaria.
+Dialogue: 1,0:04:39.55,0:04:41.75,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Guardar.
+Dialogue: 1,0:04:42.31,0:04:47.68,Sub,,0,0,0,,{\an5\pos(1110,1020)}Salón B ya figura en la lista, con\Nsu capacidad y el estado Disponible.
+Dialogue: 1,0:04:47.70,0:04:52.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}Haciendo clic sobre una pista se\Npuede editar o pasar a mantenimiento.
+Dialogue: 1,0:04:53.15,0:04:56.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Feriados se cargan los días sin actividad.
+Dialogue: 1,0:04:56.58,0:04:59.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Cargar feriado.
+Dialogue: 1,0:04:59.70,0:05:01.83,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos la fecha.
+Dialogue: 1,0:05:02.98,0:05:05.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Le ponemos un nombre.
+Dialogue: 1,0:05:05.16,0:05:08.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}La sede queda en Todas las sedes.
+Dialogue: 1,0:05:08.66,0:05:10.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y presionamos Cargar.
+Dialogue: 1,0:05:11.51,0:05:12.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}Importante:
+Dialogue: 1,0:05:12.54,0:05:17.28,Sub,,0,0,0,,{\an5\pos(1110,1020)}las clases regulares de ese día\Nquedan suspendidas automáticamente.
+Dialogue: 1,0:05:17.30,0:05:20.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}Después se pueden reprogramar desde el calendario,
+Dialogue: 1,0:05:20.13,0:05:23.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}o quitar el feriado con el ícono de la papelera.
+Dialogue: 1,0:05:24.12,0:05:29.58,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por último, en Cobros se define el día\Ndel mes en que vence la mensualidad.
+Dialogue: 1,0:05:30.20,0:05:32.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}Lo fijamos en el día 10.
+Dialogue: 1,0:05:33.41,0:05:37.80,Sub,,0,0,0,,{\an5\pos(1110,1020)}La opción Alta a mitad de mes indica cómo\Nse calcula la primera cuota de un alumno
+Dialogue: 1,0:05:37.82,0:05:40.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}que empieza con el mes ya iniciado.
+Dialogue: 1,0:05:40.55,0:05:45.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}Dejamos Preguntar en cada alta,\Npara decidirlo en cada inscripción.
+Dialogue: 1,0:05:46.27,0:05:48.96,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Guardar reglas.
+Dialogue: 1,0:05:49.51,0:05:52.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora veamos los usuarios del sistema.
+Dialogue: 1,0:05:52.63,0:05:54.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Entramos a Usuarios.
+Dialogue: 1,0:05:55.51,0:05:58.88,Sub,,0,0,0,,{\an5\pos(1110,1020)}Acá se crean y administran los accesos.
+Dialogue: 1,0:05:58.90,0:06:00.10,Sub,,0,0,0,,{\an5\pos(1110,1020)}Hay dos roles:
+Dialogue: 1,0:06:00.12,0:06:04.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Administrador, con acceso completo\Na esta administración, y Profesor,
+Dialogue: 1,0:06:04.97,0:06:10.10,Sub,,0,0,0,,{\an5\pos(1110,1020)}que solo ingresa a su portal para ver\Nsus clases y alumnos y tomar asistencia.
+Dialogue: 1,0:06:10.71,0:06:15.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}Arriba podemos buscar por nombre o\Nemail y filtrar por rol y por estado.
+Dialogue: 1,0:06:16.51,0:06:20.28,Sub,,0,0,0,,{\an5\pos(1110,1020)}Creamos un acceso para una persona de recepción.
+Dialogue: 1,0:06:20.30,0:06:22.79,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Nuevo usuario.
+Dialogue: 1,0:06:23.40,0:06:26.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}El rol queda en Administrador.
+Dialogue: 1,0:06:26.79,0:06:29.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}Completamos nombre y apellido.
+Dialogue: 1,0:06:30.32,0:06:33.05,Sub,,0,0,0,,{\an5\pos(1110,1020)}El email con el que va a ingresar.
+Dialogue: 1,0:06:33.65,0:06:37.92,Sub,,0,0,0,,{\an5\pos(1110,1020)}Opcionalmente, un nombre de usuario y un teléfono.
+Dialogue: 1,0:06:38.53,0:06:43.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}Una contraseña inicial de al menos\Ndiez caracteres, con letras y números,
+Dialogue: 1,0:06:43.32,0:06:46.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}que después le compartimos por un canal seguro.
+Dialogue: 1,0:06:47.26,0:06:49.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y la sede en la que trabaja.
+Dialogue: 1,0:06:50.33,0:06:52.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Crear usuario.
+Dialogue: 1,0:06:53.44,0:06:58.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}La nueva usuaria aparece en la lista,\Ncon su rol y el estado Activo.
+Dialogue: 1,0:06:58.99,0:07:03.48,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si una persona deja de trabajar\Nen la academia, usamos Desactivar:
+Dialogue: 1,0:07:03.50,0:07:06.83,Sub,,0,0,0,,{\an5\pos(1110,1020)}pierde el acceso pero se conserva el historial.
+Dialogue: 1,0:07:07.43,0:07:12.57,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como el filtro muestra solo usuarios\Nactivos, ya no aparece en la lista.
+Dialogue: 1,0:07:12.59,0:07:16.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cambiamos el filtro a Todos para volver a verla.
+Dialogue: 1,0:07:17.88,0:07:20.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y la reactivamos con Activar.
+Dialogue: 1,0:07:21.09,0:07:25.27,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con Editar se actualizan sus datos\No se define una nueva contraseña,
+Dialogue: 1,0:07:25.29,0:07:29.94,Sub,,0,0,0,,{\an5\pos(1110,1020)}y con el ícono de papelera se elimina\Nel acceso de forma definitiva.
+Dialogue: 1,0:07:29.96,0:07:34.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para conservar el historial, conviene\Ndesactivar en lugar de eliminar.
+Dialogue: 1,0:07:36.93,0:07:41.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con la configuración completa,\Nla academia está lista para operar.
+Dialogue: 1,0:07:42.28,0:07:47.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}Antes de empezar, conviene revisar los\Ndatos de la academia, cargar los ritmos
+Dialogue: 1,0:07:47.06,0:07:51.23,Sub,,0,0,0,,{\an5\pos(1110,1020)}y las pistas, y definir el\Nvencimiento de la mensualidad.
+Dialogue: 1,0:07:51.73,0:07:56.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos\Na dar de alta a una profesora.

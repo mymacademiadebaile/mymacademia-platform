@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { auditActionsMatching, auditEntitiesMatching } from "@mym/shared";
 import { containsText } from "../../common/regex";
 import { z } from "zod";
 import { AuditLogModel } from "../audit/audit-log.model";
@@ -26,9 +27,12 @@ adminAuditRouter.get("/", async (request, response, next) => {
     }
 
     if (query.q) {
+      // Matches the technical code or the Spanish label shown in the UI ("alumno", "cobro anulado"...).
       filter.$or = [
         { action: containsText(query.q) },
-        { entityType: containsText(query.q) }
+        { entityType: containsText(query.q) },
+        { action: { $in: auditActionsMatching(query.q) } },
+        { entityType: { $in: auditEntitiesMatching(query.q) } }
       ];
     }
 

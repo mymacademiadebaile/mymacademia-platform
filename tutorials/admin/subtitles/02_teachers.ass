@@ -1,0 +1,87 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:04:47.17,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 3 · PROFESORES
+Dialogue: 0,0:00:17.05,0:00:51.87,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Listado de profesores
+Dialogue: 0,0:00:51.87,0:01:47.79,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Alta de una profesora
+Dialogue: 0,0:01:47.79,0:02:42.26,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Perfil del profesor
+Dialogue: 0,0:02:42.26,0:03:01.86,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Editar datos y disciplinas
+Dialogue: 0,0:03:01.86,0:03:19.42,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Restablecer acceso
+Dialogue: 0,0:03:19.42,0:03:58.20,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Inactivar y reactivar
+Dialogue: 0,0:03:58.20,0:04:33.07,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Clases y horarios de un profesor
+Dialogue: 1,0:00:01.00,0:00:05.36,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo vamos a\Nadministrar al equipo de profesores.
+Dialogue: 1,0:00:05.87,0:00:12.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a dar de alta a una profesora ficticia,\NCarla Romero, que va a dictar Dancehall.
+Dialogue: 1,0:00:12.32,0:00:15.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}La vamos a usar en los próximos capítulos.
+Dialogue: 1,0:00:17.15,0:00:20.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ingresamos a Profesores desde el menú lateral.
+Dialogue: 1,0:00:21.13,0:00:23.46,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vemos el equipo actual en tarjetas:
+Dialogue: 1,0:00:23.48,0:00:28.94,Sub,,0,0,0,,{\an5\pos(1110,1020)}foto o iniciales, estado, contacto\Ny disciplinas de cada profesor.
+Dialogue: 1,0:00:29.56,0:00:36.01,Sub,,0,0,0,,{\an5\pos(1110,1020)}Arriba tenemos un buscador por nombre o email,\Ny filtros por sede, disciplina y estado.
+Dialogue: 1,0:00:36.57,0:00:39.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, buscamos Lucía.
+Dialogue: 1,0:00:40.17,0:00:43.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}La lista se filtra mientras escribimos.
+Dialogue: 1,0:00:43.36,0:00:45.61,Sub,,0,0,0,,{\an5\pos(1110,1020)}Borramos la búsqueda.
+Dialogue: 1,0:00:46.21,0:00:51.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con estos dos botones alternamos entre\Nla vista en tarjetas y la vista en lista.
+Dialogue: 1,0:00:51.97,0:00:56.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para dar de alta a un profesor\Npresionamos Nuevo profesor.
+Dialogue: 1,0:00:56.68,0:01:01.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}En un solo paso se crea su perfil,\Nsu acceso al portal de profesores, sus sedes
+Dialogue: 1,0:01:01.92,0:01:03.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}y disciplinas.
+Dialogue: 1,0:01:04.44,0:01:07.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}Completamos nombre y apellido.
+Dialogue: 1,0:01:09.12,0:01:13.65,Sub,,0,0,0,,{\an5\pos(1110,1020)}El nombre visible es el que se\Nmuestra en el calendario y en la web.
+Dialogue: 1,0:01:14.26,0:01:18.26,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cargamos su teléfono y el\Nemail con el que va a ingresar.
+Dialogue: 1,0:01:19.15,0:01:22.95,Sub,,0,0,0,,{\an5\pos(1110,1020)}Definimos una contraseña inicial\Nde al menos diez caracteres,
+Dialogue: 1,0:01:22.97,0:01:26.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}que luego le compartimos por un canal seguro.
+Dialogue: 1,0:01:26.80,0:01:28.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos su sede.
+Dialogue: 1,0:01:29.47,0:01:31.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y sus disciplinas.
+Dialogue: 1,0:01:31.62,0:01:34.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}La lista sale del catálogo que configuramos:
+Dialogue: 1,0:01:34.42,0:01:37.02,Sub,,0,0,0,,{\an5\pos(1110,1020)}elegimos Dancehall y Reggaetón.
+Dialogue: 1,0:01:37.63,0:01:43.91,Sub,,0,0,0,,{\an5\pos(1110,1020)}Opcionalmente, su Instagram, una descripción\Ncorta para la web y una biografía.
+Dialogue: 1,0:01:44.48,0:01:46.68,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Guardar.
+Dialogue: 1,0:01:47.93,0:01:51.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}El sistema abre directamente\Nel perfil de la profesora.
+Dialogue: 1,0:01:51.89,0:01:58.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}Arriba vemos su estado, Profesor activo,\Ny los botones Email, Editar, Acceso, Inactivar
+Dialogue: 1,0:01:58.41,0:02:00.05,Sub,,0,0,0,,{\an5\pos(1110,1020)}y Eliminar.
+Dialogue: 1,0:02:00.65,0:02:06.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}Los indicadores muestran sus clases activas,\Nalumnos actuales, disciplinas y sedes.
+Dialogue: 1,0:02:06.99,0:02:10.17,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ahora no tiene clases asignadas.
+Dialogue: 1,0:02:10.77,0:02:16.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Más abajo están sus datos de perfil y acceso,\Ny las sedes y disciplinas asignadas.
+Dialogue: 1,0:02:17.44,0:02:22.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}La tarjeta Publicación en la web indica qué\Nfalta para mostrarla en la página pública:
+Dialogue: 1,0:02:22.41,0:02:26.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}estar activa, tener foto y descripción corta.
+Dialogue: 1,0:02:27.03,0:02:32.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y en Material comercial se cargan su foto\Nde perfil y un video corto de presentación.
+Dialogue: 1,0:02:33.27,0:02:37.67,Sub,,0,0,0,,{\an5\pos(1110,1020)}Al final, Clases asignadas\Nlista sus clases y horarios.
+Dialogue: 1,0:02:37.69,0:02:41.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se completará cuando le asignemos su clase.
+Dialogue: 1,0:02:42.41,0:02:45.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para modificar sus datos presionamos Editar.
+Dialogue: 1,0:02:46.47,0:02:49.12,Sub,,0,0,0,,{\an5\pos(1110,1020)}Podemos corregir cualquier dato.
+Dialogue: 1,0:02:49.14,0:02:54.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, además de sus disciplinas\Nactuales le asignamos Urbano.
+Dialogue: 1,0:02:55.10,0:02:57.31,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Guardar.
+Dialogue: 1,0:02:58.05,0:03:01.41,Sub,,0,0,0,,{\an5\pos(1110,1020)}El perfil ya muestra las tres disciplinas.
+Dialogue: 1,0:03:02.01,0:03:08.17,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si la profesora olvida su contraseña,\Nel botón Acceso permite definirle una nueva.
+Dialogue: 1,0:03:08.78,0:03:12.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se escribe dos veces la\Nnueva contraseña y se guarda.
+Dialogue: 1,0:03:12.80,0:03:17.51,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este caso no la cambiamos,\Nasí que presionamos Cancelar.
+Dialogue: 1,0:03:19.52,0:03:23.79,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cuando un profesor deja de\Ndar clases, se lo inactiva.
+Dialogue: 1,0:03:23.81,0:03:26.16,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Inactivar.
+Dialogue: 1,0:03:26.77,0:03:31.96,Sub,,0,0,0,,{\an5\pos(1110,1020)}El sistema pide confirmación y aclara\Nque sus datos e historial se conservan.
+Dialogue: 1,0:03:31.98,0:03:33.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}Confirmamos.
+Dialogue: 1,0:03:34.46,0:03:36.90,Sub,,0,0,0,,{\an5\pos(1110,1020)}El estado cambió a Profesor inactivo:
+Dialogue: 1,0:03:36.92,0:03:40.64,Sub,,0,0,0,,{\an5\pos(1110,1020)}ya no está disponible para nuevas asignaciones.
+Dialogue: 1,0:03:41.25,0:03:45.59,Sub,,0,0,0,,{\an5\pos(1110,1020)}Como la vamos a necesitar,\Nla reactivamos con Reactivar.
+Dialogue: 1,0:03:46.20,0:03:49.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}El botón Eliminar borra al\Nprofesor definitivamente,
+Dialogue: 1,0:03:49.65,0:03:53.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}pero solo se permite si no\Ntiene clases vinculadas.
+Dialogue: 1,0:03:53.45,0:03:57.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si ya dictó clases, lo correcto es inactivarlo.
+Dialogue: 1,0:03:58.34,0:04:03.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para ver las clases y horarios de\Nun profesor, volvemos al listado.
+Dialogue: 1,0:04:03.68,0:04:08.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y abrimos el perfil de Lucía\NBenítez, que ya tiene clases.
+Dialogue: 1,0:04:08.98,0:04:13.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Sus indicadores muestran clases\Nactivas y alumnos actuales.
+Dialogue: 1,0:04:14.17,0:04:18.89,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y en Clases asignadas aparecen sus\Nclases con los horarios y el cupo.
+Dialogue: 1,0:04:18.91,0:04:22.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada una es un enlace a la gestión de la clase.
+Dialogue: 1,0:04:23.00,0:04:25.24,Sub,,0,0,0,,{\an5\pos(1110,1020)}Así se relacionan los módulos:
+Dialogue: 1,0:04:25.26,0:04:27.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}cada clase tiene uno o más profesores,
+Dialogue: 1,0:04:27.80,0:04:32.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}y desde el perfil del profesor\Nllegamos a sus clases y alumnos.
+Dialogue: 1,0:04:34.07,0:04:40.35,Sub,,0,0,0,,{\an5\pos(1110,1020)}Carla Romero ya forma parte del equipo,\Ncon su acceso, sus disciplinas y su sede.
+Dialogue: 1,0:04:40.85,0:04:46.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a crear su\Nclase y configurar horarios y precios.

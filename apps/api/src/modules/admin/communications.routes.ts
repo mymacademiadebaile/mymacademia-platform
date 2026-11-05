@@ -10,12 +10,18 @@ import { EnrollmentModel } from "../enrollments/enrollment.model";
 import { NotificationLogModel } from "../notifications/notification-log.model";
 import { studentIdsWithOverdueDebt } from "../billing/balance-service";
 import { StudentModel } from "../students/student.model";
+import { ContactModel } from "../contacts/contact.model";
 import { objectIdSchema, pageQuerySchema } from "./admin.schemas";
 
 const audienceSchema = z.object({
   audience: z.enum(["ALL", "DEBT", "CLASS", "STUDENT"]),
   classId: objectIdSchema.optional(),
-  studentId: objectIdSchema.optional()
+  studentId: objectIdSchema.optional(),
+  /**
+   * Mass emails to every student only reach people who accepted "novedades y promociones".
+   * Defaults to true for audience ALL; can be turned off for institutional notices.
+   */
+  marketingOnly: z.boolean().optional()
 }).superRefine((value, context) => {
   if (value.audience === "CLASS" && !value.classId) {
     context.addIssue({
@@ -55,7 +61,8 @@ async function resolveAudienceStudents(
   organizationId: string,
   audience: "ALL" | "DEBT" | "CLASS" | "STUDENT",
   classId?: string,
-  studentId?: string
+  studentId?: string,
+  marketingOnly?: boolean
 ) {
   let studentIds: string[] | undefined;
 
@@ -85,6 +92,12 @@ async function resolveAudienceStudents(
     filter._id = { $in: studentIds };
   }
 
+  if (audience === "ALL" && marketingOnly !== false) {
+    // Contact and student share the same _id: keep only people who accepted promotions.
+    const optedIn = await ContactModel.distinct("_id", { organizationId, "preferences.marketing": true });
+    filter._id = { $in: optedIn };
+  }
+
   return StudentModel.find(filter)
     .select("firstName lastName email phone")
     .sort({ lastName: 1, firstName: 1 });
@@ -107,7 +120,8 @@ adminCommunicationsRouter.post("/preview", async (request, response, next) => {
       request.auth!.organizationId,
       input.audience,
       input.classId,
-      input.studentId
+      input.studentId,
+      input.marketingOnly
     );
 
     response.json({
@@ -171,7 +185,8 @@ adminCommunicationsRouter.post("/email", async (request, response, next) => {
       organizationId,
       input.audience,
       input.classId,
-      input.studentId
+      input.studentId,
+      input.marketingOnly
     );
 
     let sent = 0;

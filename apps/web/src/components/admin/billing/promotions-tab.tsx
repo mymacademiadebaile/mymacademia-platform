@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiFetch, apiMessage } from "@/lib/api";
-import { todayInArgentina } from "@/lib/dates";
+import { formatDateOnly, todayInArgentina } from "@/lib/dates";
 import { useAdminFeedback } from "@/components/ui/admin-feedback";
 import { Field, LiveModal, LoadingBlock } from "../live/live-common";
 import type { DanceClass } from "../live/live-types";
@@ -47,7 +47,11 @@ function datesForPreset(from: string, preset: "day" | "week" | "month") {
   return { from, to: end.toISOString().slice(0, 10) };
 }
 
-export function PromotionsTab({ danceClass }: { danceClass: DanceClass }) {
+export function PromotionsTab({ danceClass, onEnrollmentsChanged }: {
+  danceClass: DanceClass;
+  /** Called after a 2x1 pair is enrolled so the class page refreshes its enrolled students. */
+  onEnrollmentsChanged?: () => void | Promise<void>;
+}) {
   const { toast } = useAdminFeedback();
   const [items, setItems] = useState<Promotion[] | null>(null);
   const [error, setError] = useState("");
@@ -173,7 +177,7 @@ export function PromotionsTab({ danceClass }: { danceClass: DanceClass }) {
       }) });
       setEnrolling(null);
       toast({ title: "Pareja inscripta con 2x1", tone: "success" });
-      await load();
+      await Promise.all([load(), onEnrollmentsChanged?.()]);
     } catch (requestError) { toast({ title: "No se pudo inscribir la pareja", description: apiMessage(requestError), tone: "error" }); }
     finally { setBusy(false); }
   }
@@ -218,8 +222,8 @@ export function PromotionsTab({ danceClass }: { danceClass: DanceClass }) {
             <h3>{item.name}</h3><p>{danceClass.name}</p></div>
           <span className={item.status === "ACTIVE" ? styles.active : styles.inactive}>{item.status === "ACTIVE" ? "Activa" : "Cerrada"}</span>
         </div>
-        <p>Beneficio: {item.session ? `clase del ${item.session.sessionDate}, ${item.session.startTime}–${item.session.endTime}` : `${item.benefitFrom} al ${item.benefitTo}`}</p>
-        {item.kind === "TWO_FOR_ONE" ? <p>Inscripciones: {item.registrationFrom} al {item.registrationTo} · {item.pairs.filter((pair) => !pair.voidedAt).length} pareja{item.pairs.filter((pair) => !pair.voidedAt).length === 1 ? "" : "s"}</p>
+        <p>Beneficio: {item.session ? `clase del ${formatDateOnly(item.session.sessionDate)}, ${item.session.startTime}–${item.session.endTime}` : `${formatDateOnly(item.benefitFrom)} al ${formatDateOnly(item.benefitTo)}`}</p>
+        {item.kind === "TWO_FOR_ONE" ? <p>Inscripciones: {formatDateOnly(item.registrationFrom)} al {formatDateOnly(item.registrationTo)} · {item.pairs.filter((pair) => !pair.voidedAt).length} pareja{item.pairs.filter((pair) => !pair.voidedAt).length === 1 ? "" : "s"}</p>
           : <p>{item.kind === "PERCENT" ? `${(item.percentBasisPoints ?? 0) / 100} % de descuento` : item.kind === "AMOUNT_OFF" ? `${formatMoney((item.valueCents ?? 0) / 100)} menos` : `Precio final ${formatMoney((item.valueCents ?? 0) / 100)}`}</p>}
         {item.pairs.length > 0 && <div className={styles.pairs}>
           {item.pairs.map((pair) => <div key={pair._id} className={styles.pair}>
@@ -269,7 +273,7 @@ export function PromotionsTab({ danceClass }: { danceClass: DanceClass }) {
       {pairPreview && <div className={styles.preview}><strong>Vista previa · {pairPreview.kind === "MONTHLY_FEE" ? `primera cuota (${pairPreview.period})` : "por clase comprendida"}</strong><span>Quien paga: {formatMoney(pairPreview.payer)} · Beneficiario: {formatMoney(pairPreview.beneficiary)}</span>{pairPreview.discount ? <small>Bonificación: {formatMoney(pairPreview.discount)}</small> : null}</div>}
       {pairPreviewError && <p className={styles.error} role="alert">{pairPreviewError}</p>}
       {enrolling && startDate.slice(0, 7) < enrolling.benefitFrom.slice(0, 7) && <p className={styles.note}>La primera cuota anterior al beneficio conserva su precio habitual.</p>}
-      <p className={styles.note}>El 2x1 estará vigente del {enrolling?.benefitFrom} al {enrolling?.benefitTo}, aunque luego uno se dé de baja.</p>
+      <p className={styles.note}>El 2x1 estará vigente del {formatDateOnly(enrolling?.benefitFrom)} al {formatDateOnly(enrolling?.benefitTo)}, aunque luego uno se dé de baja.</p>
     </LiveModal>
     <LiveModal open={Boolean(voiding)} title="Corregir pareja" description="Esta acción corta beneficios futuros por una corrección administrativa. Las bajas de alumnos no hacen esto automáticamente y los cargos emitidos conservan su historial." submitting={busy} submitLabel="Cerrar pareja" onClose={() => setVoiding(null)} onSubmit={voidPair}>
       <Field label="Motivo" wide><input name="reason" required minLength={3} maxLength={500} /></Field>

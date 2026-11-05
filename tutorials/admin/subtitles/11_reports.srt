@@ -1,0 +1,215 @@
+1
+00:00:01,002 --> 00:00:06,036
+En este capítulo vamos a consultar e
+interpretar los reportes de la academia.
+
+2
+00:00:06,538 --> 00:00:10,783
+Veremos qué representa cada indicador,
+cómo filtrar por período y sede,
+
+3
+00:00:10,803 --> 00:00:13,876
+y cómo exportar la información a Excel.
+
+4
+00:00:15,316 --> 00:00:18,623
+Ingresamos a Reportes desde el menú lateral.
+
+5
+00:00:19,234 --> 00:00:22,140
+Por defecto se analiza el mes actual.
+
+6
+00:00:22,160 --> 00:00:27,347
+Arriba están los filtros Desde, Hasta
+y Sede, y los botones Este mes, Aplicar
+
+7
+00:00:27,367 --> 00:00:29,452
+y Exportar Excel.
+
+8
+00:00:30,012 --> 00:00:34,967
+La franja Período analizado resume el
+rango, los días, las altas de alumnos
+
+9
+00:00:34,987 --> 00:00:37,378
+y los alumnos activos hoy.
+
+10
+00:00:37,398 --> 00:00:39,801
+La nota aclara un criterio importante:
+
+11
+00:00:39,821 --> 00:00:43,111
+la facturación y la caja no se mezclan.
+
+12
+00:00:43,670 --> 00:00:50,145
+Cobrado en caja es el dinero efectivamente
+recibido en estas fechas, según el día del cobro.
+
+13
+00:00:50,756 --> 00:00:55,272
+Facturado vigente es lo emitido para
+el período, según la fecha de la clase
+
+14
+00:00:55,292 --> 00:00:59,103
+o el mes de la mensualidad, sin contar lo anulado.
+
+15
+00:00:59,667 --> 00:01:03,178
+Por cobrar suma lo pendiente
+y lo vencido de esos cargos:
+
+16
+00:01:03,198 --> 00:01:05,470
+es la deuda del período.
+
+17
+00:01:06,030 --> 00:01:12,072
+Y Turnos del período cuenta las clases del
+rango, con las completadas y las canceladas.
+
+18
+00:01:12,640 --> 00:01:17,260
+Por ejemplo, una mensualidad de octubre pagada
+en noviembre cuenta en la facturación de
+
+19
+00:01:17,280 --> 00:01:20,171
+octubre y en la caja de noviembre.
+
+20
+00:01:20,732 --> 00:01:25,286
+Ingresos separa la facturación,
+la caja y lo vencido por modalidad:
+
+21
+00:01:25,306 --> 00:01:27,466
+por clase y mensual.
+
+22
+00:01:27,486 --> 00:01:30,133
+Debajo, la caja por medio de pago:
+
+23
+00:01:30,153 --> 00:01:33,446
+efectivo, transferencia y tarjeta.
+
+24
+00:01:34,051 --> 00:01:38,864
+Operación muestra las clases completadas
+y programadas, y las asistencias presentes
+
+25
+00:01:38,884 --> 00:01:41,246
+y ausentes registradas.
+
+26
+00:01:41,808 --> 00:01:44,017
+El detalle por clase cruza todo:
+
+27
+00:01:44,037 --> 00:01:50,720
+actividad, asistencia, lo facturado y cobrado,
+y la ocupación actual de cada grupo.
+
+28
+00:01:50,740 --> 00:01:54,522
+Sirve para comparar disciplinas y profesores.
+
+29
+00:01:55,792 --> 00:01:59,395
+Para analizar otro período cambiamos las fechas.
+
+30
+00:01:59,415 --> 00:02:03,131
+Elegimos desde el primero
+del mes pasado hasta hoy.
+
+31
+00:02:03,685 --> 00:02:05,289
+Y presionamos Aplicar:
+
+32
+00:02:05,309 --> 00:02:07,759
+los números se recalculan.
+
+33
+00:02:08,316 --> 00:02:12,344
+El filtro Sede limita el análisis a una ubicación.
+
+34
+00:02:12,364 --> 00:02:15,270
+Y Este mes vuelve al mes en curso.
+
+35
+00:02:15,826 --> 00:02:20,956
+Para trabajar los datos en una
+planilla, presionamos Exportar Excel.
+
+36
+00:02:21,515 --> 00:02:24,446
+Se descarga un archivo de Excel con tres hojas:
+
+37
+00:02:24,466 --> 00:02:30,942
+Resumen, Facturación y caja, y Actividad
+por clase, con los filtros aplicados.
+
+38
+00:02:31,510 --> 00:02:37,019
+Recordemos que el Inicio también resume
+alumnos activos y nuevas altas, clases del día,
+
+39
+00:02:37,039 --> 00:02:41,105
+finanzas del período y las
+clases con mayor ocupación.
+
+40
+00:02:41,668 --> 00:02:47,022
+El centro de Notificaciones, que se abre
+desde la campana, muestra pagos vencidos,
+
+41
+00:02:47,042 --> 00:02:50,999
+envíos con error y la
+actividad reciente de mensajes.
+
+42
+00:02:51,563 --> 00:02:54,984
+Y Auditoría registra las
+acciones sensibles del equipo:
+
+43
+00:02:55,004 --> 00:02:57,702
+quién hizo cada cambio y cuándo.
+
+44
+00:02:58,259 --> 00:03:02,790
+Se puede filtrar por tipo de
+entidad, por ejemplo Alumnos.
+
+45
+00:03:03,354 --> 00:03:08,389
+La auditoría es de solo lectura y sirve
+para controlar la operación diaria.
+
+46
+00:03:10,468 --> 00:03:15,526
+Con los reportes podés seguir la caja,
+lo facturado, la deuda, la asistencia
+
+47
+00:03:15,546 --> 00:03:18,047
+y la ocupación de cada clase.
+
+48
+00:03:18,548 --> 00:03:23,487
+En el próximo capítulo vamos a juntar
+todo en un día típico de trabajo.

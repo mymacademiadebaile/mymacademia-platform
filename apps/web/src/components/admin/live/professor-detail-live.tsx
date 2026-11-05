@@ -28,6 +28,7 @@ import {
   WebSwitch
 } from "./live-common";
 import styles from "./professor-detail.module.css";
+import { dayLabels } from "./class-detail-helpers";
 
 type ProfessorDetail = {
   professor: Professor;
@@ -58,6 +59,9 @@ export function ProfessorDetailLive({ id }: { id: string }) {
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
   const [editing, setEditing] = useState(false);
   const [passwordModal, setPasswordModal] = useState(false);
+  // Errors of the edit and reset-password forms are shown inside their modal.
+  const [modalError, setModalError] = useState("");
+  useEffect(() => setModalError(""), [editing, passwordModal]);
   const [mediaBusy, setMediaBusy] = useState<"avatar" | "video" | "">("");
   const [busy, setBusy] = useState(false);
   const [publishBusy, setPublishBusy] = useState(false);
@@ -96,7 +100,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setBusy(true);
-    setError("");
+    setModalError("");
 
     try {
       await apiFetch(`/admin/professors/${id}`, {
@@ -118,7 +122,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
       toast("Perfil del profesor actualizado");
       await load();
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      setModalError(apiMessage(requestError));
     } finally {
       setBusy(false);
     }
@@ -281,12 +285,12 @@ export function ProfessorDetailLive({ id }: { id: string }) {
     const confirmPassword = String(form.get("confirmPassword") ?? "");
 
     if (newPassword !== confirmPassword) {
-      setError("La confirmación de la contraseña no coincide.");
+      setModalError("La confirmación de la contraseña no coincide.");
       return;
     }
 
     setBusy(true);
-    setError("");
+    setModalError("");
 
     try {
       await apiFetch<void>(`/admin/professors/${id}/reset-password`, {
@@ -296,7 +300,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
       setPasswordModal(false);
       toast("Contraseña del profesor actualizada");
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      setModalError(apiMessage(requestError));
     } finally {
       setBusy(false);
     }
@@ -513,7 +517,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
                 <span>
                   <strong>{danceClass.name}</strong>
                   <small>
-                    {danceClass.schedules?.map((schedule) => `${schedule.day} ${schedule.startTime}`).join(" · ") || "Sin horario"}
+                    {danceClass.schedules?.map((schedule) => `${dayLabels[schedule.day] ?? schedule.day} ${schedule.startTime}`).join(" · ") || "Sin horario"}
                   </small>
                 </span>
                 <b>Cupo {danceClass.capacity}</b>
@@ -530,6 +534,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
         submitting={busy}
         onClose={() => setEditing(false)}
         onSubmit={save}
+        error={modalError}
       >
         <Field label="Nombre"><input name="firstName" defaultValue={user?.firstName ?? ""} required /></Field>
         <Field label="Apellido"><input name="lastName" defaultValue={user?.lastName ?? ""} required /></Field>
@@ -575,6 +580,7 @@ export function ProfessorDetailLive({ id }: { id: string }) {
         submitting={busy}
         onClose={() => setPasswordModal(false)}
         onSubmit={resetPassword}
+        error={modalError}
       >
         <Field label="Nueva contraseña" wide>
           <input name="newPassword" type="password" minLength={10} required autoComplete="new-password" />

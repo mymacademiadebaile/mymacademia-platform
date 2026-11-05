@@ -50,6 +50,17 @@ export function ClassDetailLive({ id }: { id: string }) {
   const [monthlyPlan, setMonthlyPlan] = useState<4 | 8>(4);
   const [startDate, setStartDate] = useState(todayInArgentina());
   const [joinPolicy, setJoinPolicy] = useState<"" | MidMonthPolicy>("");
+  // Academy rule "Alta a mitad de mes": a fixed policy (full/prorated) preselects the first-month choice.
+  const [academyJoinPolicy, setAcademyJoinPolicy] = useState<"" | MidMonthPolicy>("");
+  useEffect(() => {
+    apiFetch<{ midMonthPolicy?: string }>("/admin/billing/settings")
+      .then((settings) => {
+        const policy = settings.midMonthPolicy === "FULL" || settings.midMonthPolicy === "PRORATED" ? settings.midMonthPolicy : "";
+        setAcademyJoinPolicy(policy);
+        setJoinPolicy((current) => current || policy);
+      })
+      .catch(() => undefined);
+  }, []);
   const [joinCustomAmount, setJoinCustomAmount] = useState("");
   const [selectedSeries, setSelectedSeries] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -156,7 +167,7 @@ export function ClassDetailLive({ id }: { id: string }) {
       <div className={styles.grid}>
         <ClassScheduleCard danceClass={danceClass} />
 
-        <div className={styles.promotions}><PromotionsTab danceClass={danceClass} /></div>
+        <div className={styles.promotions}><PromotionsTab danceClass={danceClass} onEnrollmentsChanged={load} /></div>
 
         <ClassEnrollCard
           danceClass={danceClass}
@@ -182,7 +193,7 @@ export function ClassDetailLive({ id }: { id: string }) {
               () => {
                 setStudentId("");
                 setMonthlyPlan(defaultMonthlyPlan(danceClass));
-                setJoinPolicy("");
+                setJoinPolicy(academyJoinPolicy);
                 setJoinCustomAmount("");
               }
             )
@@ -224,7 +235,7 @@ export function ClassDetailLive({ id }: { id: string }) {
             setBillingPreference(enrollment.billingPreference ?? preferenceForClass(danceClass) ?? "PER_CLASS");
             setMonthlyPlan(enrollment.monthlyPlan ?? defaultMonthlyPlan(danceClass));
             setStartDate(todayInArgentina());
-            setJoinPolicy("");
+            setJoinPolicy(academyJoinPolicy);
             setSelectedSeries((enrollment.seriesIds ?? []).filter((seriesId) => currentSeries.has(seriesId)));
             document.getElementById("class-enroll-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}

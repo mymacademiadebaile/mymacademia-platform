@@ -6,7 +6,7 @@ import { AppError } from "../../common/http/app-error";
 import { toCents, toPesos } from "../../common/money";
 import { withTransaction } from "../../common/transaction";
 import { AuditLogModel } from "../audit/audit-log.model";
-import { planMonthlyCharge, priceCents } from "../billing/charge-service";
+import { billingSettings, planMonthlyCharge, priceCents } from "../billing/charge-service";
 import { ChargeModel } from "../billing/charge.model";
 import { applyPromotionToExistingCharge, quotePromotion, recordPromotionAdjustment } from "../promotions/promotion-service";
 import { DanceClassModel, ENROLLABLE_CLASS_STATUSES } from "../classes/class.model";
@@ -352,6 +352,11 @@ adminPromotionsRouter.post("/:id/enroll-pair", async (request, response, next) =
       throw new AppError(422, "Elegí la modalidad que cubre el 2x1", "PROMOTION_PAIR_BILLING_MODE");
     }
     const monthlyPlan = billingPreference === "MONTHLY" ? resolveMonthlyPlan(danceClass, input.monthlyPlan) : undefined;
+    if (billingPreference === "MONTHLY" && startDate.slice(8) !== "01" && !input.joinPolicy) {
+      // The academy's "Alta a mitad de mes" rule decides when it is a fixed policy.
+      const { midMonthPolicy } = await billingSettings(organizationId);
+      if (midMonthPolicy === "FULL" || midMonthPolicy === "PRORATED") input.joinPolicy = midMonthPolicy;
+    }
     if (billingPreference === "MONTHLY" && startDate.slice(8) !== "01" && !input.joinPolicy) {
       throw new AppError(422, "Definí cómo cobrar el primer mes", "FIRST_MONTH_POLICY_REQUIRED");
     }

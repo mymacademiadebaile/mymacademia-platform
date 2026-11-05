@@ -1,0 +1,515 @@
+1
+00:00:01,002 --> 00:00:06,108
+En este capítulo vamos a revisar la
+configuración general de la academia.
+
+2
+00:00:06,610 --> 00:00:10,546
+Son los datos y reglas que conviene
+completar antes de empezar a operar:
+
+3
+00:00:10,566 --> 00:00:18,532
+identidad, reglas de cancelación, catálogos de
+ritmos, pistas, feriados, cobros y usuarios.
+
+4
+00:00:19,948 --> 00:00:23,614
+Ingresamos a Configuración desde el menú lateral.
+
+5
+00:00:24,214 --> 00:00:26,836
+La pantalla está organizada en pestañas:
+
+6
+00:00:26,856 --> 00:00:34,439
+Academia, Consultas, Operación, Canales,
+Landing, Sedes, Catálogos y Pistas, feriados
+
+7
+00:00:34,459 --> 00:00:36,113
+y cobros.
+
+8
+00:00:36,712 --> 00:00:41,795
+Las primeras cuatro pestañas comparten un
+mismo botón Guardar cambios, ubicado al pie,
+
+9
+00:00:41,815 --> 00:00:45,923
+así que podemos editar varias
+y confirmar todo junto.
+
+10
+00:00:46,529 --> 00:00:51,768
+En la pestaña Academia están el nombre,
+el email institucional y el teléfono.
+
+11
+00:00:51,788 --> 00:00:56,339
+Estos datos se usan dentro del
+sistema y en las comunicaciones.
+
+12
+00:00:56,906 --> 00:01:00,188
+Actualizamos el teléfono de la academia.
+
+13
+00:01:00,799 --> 00:01:05,585
+En Consultas definimos un único responsable
+para atender a las personas interesadas,
+
+14
+00:01:05,605 --> 00:01:07,345
+y su WhatsApp.
+
+15
+00:01:07,912 --> 00:01:11,386
+Escribimos Administración como responsable.
+
+16
+00:01:11,987 --> 00:01:15,845
+Y el número de WhatsApp de
+consultas e inscripción.
+
+17
+00:01:16,457 --> 00:01:21,682
+Como indica la nota, los profesores no
+reciben contactos públicos de forma directa:
+
+18
+00:01:21,702 --> 00:01:25,331
+todas las consultas se
+centralizan en la administración.
+
+19
+00:01:25,897 --> 00:01:28,777
+En Operación se define la
+zona horaria de la academia
+
+20
+00:01:28,797 --> 00:01:32,371
+y la anticipación mínima para cancelar un turno.
+
+21
+00:01:32,984 --> 00:01:38,376
+Por ejemplo, con seis horas, un alumno no
+puede cancelar su lugar en una clase si faltan
+
+22
+00:01:38,396 --> 00:01:41,402
+menos de seis horas para que empiece.
+
+23
+00:01:41,961 --> 00:01:47,116
+En Canales se cargan las redes sociales
+que se muestran en el pie de la página web.
+
+24
+00:01:47,674 --> 00:01:52,060
+Completamos, por ejemplo, el enlace de Instagram.
+
+25
+00:01:52,660 --> 00:01:56,004
+El envío de correos por Gmail
+figura como Administrado:
+
+26
+00:01:56,024 --> 00:02:00,719
+sus credenciales están protegidas
+y no se editan desde esta pantalla.
+
+27
+00:02:01,331 --> 00:02:04,037
+Presionamos Guardar cambios.
+
+28
+00:02:04,642 --> 00:02:10,013
+El aviso verde confirma que la configuración
+general se guardó correctamente.
+
+29
+00:02:10,619 --> 00:02:15,651
+La pestaña Landing permite reemplazar las tres
+fotos del collage de la página web pública:
+
+30
+00:02:15,671 --> 00:02:19,590
+una vertical, una horizontal y una de detalle.
+
+31
+00:02:20,152 --> 00:02:23,909
+Se usa el botón Cargar imagen de cada tarjeta.
+
+32
+00:02:23,929 --> 00:02:28,729
+En este entorno de capacitación el
+almacenamiento de imágenes no está conectado,
+
+33
+00:02:28,749 --> 00:02:31,667
+por eso no vamos a subir archivos.
+
+34
+00:02:32,265 --> 00:02:36,177
+En Sedes se administran las
+ubicaciones de la academia.
+
+35
+00:02:36,197 --> 00:02:39,627
+Hoy tenemos la sede La Plata, activa.
+
+36
+00:02:40,238 --> 00:02:42,950
+Con Editar se cambian el nombre y la dirección;
+
+37
+00:02:42,970 --> 00:02:48,196
+con Desactivar, la sede deja de estar
+disponible para nuevas operaciones.
+
+38
+00:02:48,216 --> 00:02:51,728
+El botón Nueva sede agrega otra ubicación.
+
+39
+00:02:52,327 --> 00:02:54,871
+La pestaña Catálogos es muy importante:
+
+40
+00:02:54,891 --> 00:02:58,260
+contiene los ritmos o disciplinas,
+el público y los niveles
+
+41
+00:02:58,280 --> 00:03:01,969
+que después se eligen al
+crear clases y profesores.
+
+42
+00:03:02,565 --> 00:03:07,882
+Así, nadie escribe categorías a mano
+y la información queda ordenada.
+
+43
+00:03:07,902 --> 00:03:13,336
+Cada opción muestra en cuántas clases
+y profesores se usa, y si está activa.
+
+44
+00:03:13,896 --> 00:03:15,899
+Vamos a agregar un ritmo nuevo:
+
+45
+00:03:15,919 --> 00:03:17,473
+Dancehall.
+
+46
+00:03:17,493 --> 00:03:21,499
+Lo escribimos en el campo
+Agregar de la columna Ritmos.
+
+47
+00:03:22,108 --> 00:03:25,462
+Y presionamos el botón con el signo más.
+
+48
+00:03:26,030 --> 00:03:30,251
+Dancehall ya aparece en la
+lista, al final y activo.
+
+49
+00:03:30,271 --> 00:03:34,137
+Con las flechas podemos cambiar
+el orden en que se muestra.
+
+50
+00:03:34,702 --> 00:03:37,581
+El lápiz cambia el nombre en todas las pantallas,
+
+51
+00:03:37,601 --> 00:03:43,576
+y el botón de pausa desactiva la opción para
+nuevas selecciones, sin perder el historial.
+
+52
+00:03:44,182 --> 00:03:47,564
+Los ritmos también tienen una
+ficha web, con la descripción
+
+53
+00:03:47,584 --> 00:03:50,368
+que se muestra en la página pública.
+
+54
+00:03:50,965 --> 00:03:53,839
+Completamos la descripción corta.
+
+55
+00:03:54,746 --> 00:03:58,604
+Para publicarlo en la web también
+hace falta una imagen de portada;
+
+56
+00:03:58,624 --> 00:04:03,244
+mientras tanto, el ritmo queda
+disponible dentro del sistema.
+
+57
+00:04:03,264 --> 00:04:05,060
+Guardamos.
+
+58
+00:04:05,614 --> 00:04:07,817
+Presionamos Guardar.
+
+59
+00:04:08,417 --> 00:04:12,060
+Pasamos a Pistas, feriados y cobros.
+
+60
+00:04:12,661 --> 00:04:16,509
+Las pistas son los salones
+donde se dictan las clases.
+
+61
+00:04:16,529 --> 00:04:21,148
+El sistema impide superponer dos clases en
+la misma pista, y al crear una clase hay
+
+62
+00:04:21,168 --> 00:04:22,856
+que elegir una.
+
+63
+00:04:23,460 --> 00:04:26,863
+Creamos una nueva con el botón Nueva pista.
+
+64
+00:04:27,429 --> 00:04:29,608
+La llamamos Salón B.
+
+65
+00:04:30,207 --> 00:04:33,442
+Indicamos su capacidad en personas.
+
+66
+00:04:33,997 --> 00:04:38,983
+El estado queda en Disponible,
+y anotamos su disponibilidad horaria.
+
+67
+00:04:39,550 --> 00:04:41,752
+Presionamos Guardar.
+
+68
+00:04:42,314 --> 00:04:47,682
+Salón B ya figura en la lista, con
+su capacidad y el estado Disponible.
+
+69
+00:04:47,702 --> 00:04:52,580
+Haciendo clic sobre una pista se
+puede editar o pasar a mantenimiento.
+
+70
+00:04:53,147 --> 00:04:56,556
+En Feriados se cargan los días sin actividad.
+
+71
+00:04:56,576 --> 00:04:59,141
+Presionamos Cargar feriado.
+
+72
+00:04:59,698 --> 00:05:01,829
+Elegimos la fecha.
+
+73
+00:05:02,982 --> 00:05:05,142
+Le ponemos un nombre.
+
+74
+00:05:05,162 --> 00:05:08,041
+La sede queda en Todas las sedes.
+
+75
+00:05:08,655 --> 00:05:10,906
+Y presionamos Cargar.
+
+76
+00:05:11,510 --> 00:05:12,521
+Importante:
+
+77
+00:05:12,541 --> 00:05:17,279
+las clases regulares de ese día
+quedan suspendidas automáticamente.
+
+78
+00:05:17,299 --> 00:05:20,114
+Después se pueden reprogramar desde el calendario,
+
+79
+00:05:20,134 --> 00:05:23,554
+o quitar el feriado con el ícono de la papelera.
+
+80
+00:05:24,118 --> 00:05:29,584
+Por último, en Cobros se define el día
+del mes en que vence la mensualidad.
+
+81
+00:05:30,196 --> 00:05:32,806
+Lo fijamos en el día 10.
+
+82
+00:05:33,413 --> 00:05:37,801
+La opción Alta a mitad de mes indica cómo
+se calcula la primera cuota de un alumno
+
+83
+00:05:37,821 --> 00:05:40,534
+que empieza con el mes ya iniciado.
+
+84
+00:05:40,554 --> 00:05:45,672
+Dejamos Preguntar en cada alta,
+para decidirlo en cada inscripción.
+
+85
+00:05:46,273 --> 00:05:48,955
+Presionamos Guardar reglas.
+
+86
+00:05:49,511 --> 00:05:52,611
+Ahora veamos los usuarios del sistema.
+
+87
+00:05:52,631 --> 00:05:54,954
+Entramos a Usuarios.
+
+88
+00:05:55,513 --> 00:05:58,884
+Acá se crean y administran los accesos.
+
+89
+00:05:58,904 --> 00:06:00,095
+Hay dos roles:
+
+90
+00:06:00,115 --> 00:06:04,953
+Administrador, con acceso completo
+a esta administración, y Profesor,
+
+91
+00:06:04,973 --> 00:06:10,099
+que solo ingresa a su portal para ver
+sus clases y alumnos y tomar asistencia.
+
+92
+00:06:10,710 --> 00:06:15,913
+Arriba podemos buscar por nombre o
+email y filtrar por rol y por estado.
+
+93
+00:06:16,511 --> 00:06:20,281
+Creamos un acceso para una persona de recepción.
+
+94
+00:06:20,301 --> 00:06:22,794
+Presionamos Nuevo usuario.
+
+95
+00:06:23,405 --> 00:06:26,183
+El rol queda en Administrador.
+
+96
+00:06:26,787 --> 00:06:29,470
+Completamos nombre y apellido.
+
+97
+00:06:30,317 --> 00:06:33,048
+El email con el que va a ingresar.
+
+98
+00:06:33,651 --> 00:06:37,918
+Opcionalmente, un nombre de usuario y un teléfono.
+
+99
+00:06:38,525 --> 00:06:43,299
+Una contraseña inicial de al menos
+diez caracteres, con letras y números,
+
+100
+00:06:43,319 --> 00:06:46,656
+que después le compartimos por un canal seguro.
+
+101
+00:06:47,260 --> 00:06:49,726
+Y la sede en la que trabaja.
+
+102
+00:06:50,330 --> 00:06:52,868
+Presionamos Crear usuario.
+
+103
+00:06:53,436 --> 00:06:58,423
+La nueva usuaria aparece en la lista,
+con su rol y el estado Activo.
+
+104
+00:06:58,991 --> 00:07:03,481
+Si una persona deja de trabajar
+en la academia, usamos Desactivar:
+
+105
+00:07:03,501 --> 00:07:06,834
+pierde el acceso pero se conserva el historial.
+
+106
+00:07:07,434 --> 00:07:12,570
+Como el filtro muestra solo usuarios
+activos, ya no aparece en la lista.
+
+107
+00:07:12,590 --> 00:07:16,140
+Cambiamos el filtro a Todos para volver a verla.
+
+108
+00:07:17,879 --> 00:07:20,490
+Y la reactivamos con Activar.
+
+109
+00:07:21,089 --> 00:07:25,270
+Con Editar se actualizan sus datos
+o se define una nueva contraseña,
+
+110
+00:07:25,290 --> 00:07:29,937
+y con el ícono de papelera se elimina
+el acceso de forma definitiva.
+
+111
+00:07:29,957 --> 00:07:34,836
+Para conservar el historial, conviene
+desactivar en lugar de eliminar.
+
+112
+00:07:36,935 --> 00:07:41,777
+Con la configuración completa,
+la academia está lista para operar.
+
+113
+00:07:42,279 --> 00:07:47,040
+Antes de empezar, conviene revisar los
+datos de la academia, cargar los ritmos
+
+114
+00:07:47,060 --> 00:07:51,225
+y las pistas, y definir el
+vencimiento de la mensualidad.
+
+115
+00:07:51,727 --> 00:07:56,065
+En el próximo capítulo vamos
+a dar de alta a una profesora.

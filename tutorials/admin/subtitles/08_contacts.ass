@@ -1,0 +1,90 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:04:32.57,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 9 · CONTACTOS
+Dialogue: 0,0:00:19.95,0:00:49.64,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Contactos existentes
+Dialogue: 0,0:00:49.64,0:01:12.54,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Crear un contacto
+Dialogue: 0,0:01:12.54,0:01:28.69,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Ficha del contacto
+Dialogue: 0,0:01:28.69,0:01:57.55,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Interés y observaciones
+Dialogue: 0,0:01:57.55,0:02:44.28,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Reservar una clase de prueba gratuita
+Dialogue: 0,0:02:44.28,0:03:01.20,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Seguimiento: asistencia a la prueba
+Dialogue: 0,0:03:01.20,0:03:43.19,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Convertir en alumno
+Dialogue: 0,0:03:43.19,0:04:19.90,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Comprobar el resultado
+Dialogue: 1,0:00:01.00,0:00:05.36,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo vamos a gestionar a\Nlas personas interesadas en la academia,
+Dialogue: 1,0:00:05.38,0:00:08.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}que todavía no son alumnas.
+Dialogue: 1,0:00:08.51,0:00:12.71,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a registrar a Julieta Paz,\Ninteresada en Dancehall Inicial,
+Dialogue: 1,0:00:12.73,0:00:18.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}reservarle una clase de prueba gratuita,\Nhacer el seguimiento y convertirla en alumna.
+Dialogue: 1,0:00:20.10,0:00:23.50,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ingresamos a Contactos desde el menú lateral.
+Dialogue: 1,0:00:24.11,0:00:30.16,Sub,,0,0,0,,{\an5\pos(1110,1020)}La sección Posibles alumnos lista a las\Npersonas interesadas, con su teléfono y DNI.
+Dialogue: 1,0:00:30.18,0:00:32.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada una abre su historial.
+Dialogue: 1,0:00:33.21,0:00:37.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}El buscador encuentra por nombre, DNI o teléfono.
+Dialogue: 1,0:00:37.47,0:00:41.87,Sub,,0,0,0,,{\an5\pos(1110,1020)}Antes de cargar a alguien,\Nlo buscamos para no duplicarlo.
+Dialogue: 1,0:00:41.89,0:00:44.29,Sub,,0,0,0,,{\an5\pos(1110,1020)}Escribimos su DNI.
+Dialogue: 1,0:00:44.89,0:00:49.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}No existe, así que lo\Ncreamos con Agregar contacto.
+Dialogue: 1,0:00:49.79,0:00:51.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se piden los datos básicos:
+Dialogue: 1,0:00:51.80,0:00:55.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}nombre, apellido, teléfono y DNI.
+Dialogue: 1,0:00:55.84,0:00:58.93,Sub,,0,0,0,,{\an5\pos(1110,1020)}El resto se completa más adelante.
+Dialogue: 1,0:00:59.53,0:01:05.30,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si el DNI ya pertenece a otra persona, o el\Nteléfono ya está cargado en otro contacto,
+Dialogue: 1,0:01:05.32,0:01:08.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}el sistema avisa para reutilizar esa ficha.
+Dialogue: 1,0:01:09.42,0:01:12.08,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Guardar contacto.
+Dialogue: 1,0:01:12.69,0:01:17.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se abre la ficha del contacto,\Nidentificada como Posible alumno.
+Dialogue: 1,0:01:17.65,0:01:22.60,Sub,,0,0,0,,{\an5\pos(1110,1020)}Tiene sus datos, las acciones\Ndisponibles y su historial de clases.
+Dialogue: 1,0:01:23.20,0:01:28.23,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con Editar datos se corrigen el\Nnombre, el teléfono o el DNI.
+Dialogue: 1,0:01:28.83,0:01:33.99,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para registrar su interés y\Nobservaciones, abrimos Más opciones.
+Dialogue: 1,0:01:34.59,0:01:36.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cargamos su email.
+Dialogue: 1,0:01:37.83,0:01:42.44,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y en Notas, la disciplina que\Nle interesa y cómo nos conoció.
+Dialogue: 1,0:01:42.46,0:01:45.98,Sub,,0,0,0,,{\an5\pos(1110,1020)}La plataforma no tiene estados\Nde seguimiento para contactos:
+Dialogue: 1,0:01:46.00,0:01:50.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}el seguimiento se lleva con estas\Nnotas, las reservas y el historial.
+Dialogue: 1,0:01:51.45,0:01:57.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}También indicamos si acepta recibir\Nnovedades y promociones, y guardamos.
+Dialogue: 1,0:01:58.41,0:02:01.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ahora le reservamos su clase de prueba.
+Dialogue: 1,0:02:01.58,0:02:04.71,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Reservar clase sin cargo.
+Dialogue: 1,0:02:05.32,0:02:08.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}El tipo es Primera prueba gratuita.
+Dialogue: 1,0:02:08.24,0:02:14.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}La otra opción, Cortesía administrativa,\Nse usa para invitar a alguien con un motivo.
+Dialogue: 1,0:02:15.23,0:02:16.56,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos la fecha:
+Dialogue: 1,0:02:16.58,0:02:17.81,Sub,,0,0,0,,{\an5\pos(1110,1020)}hoy.
+Dialogue: 1,0:02:18.42,0:02:22.37,Sub,,0,0,0,,{\an5\pos(1110,1020)}En Clase y horario aparecen las clases de ese día.
+Dialogue: 1,0:02:22.39,0:02:27.32,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos Dancehall Inicial, que\Ntiene la prueba gratuita habilitada.
+Dialogue: 1,0:02:27.93,0:02:32.15,Sub,,0,0,0,,{\an5\pos(1110,1020)}Agregamos una nota opcional y\Npresionamos Guardar reserva.
+Dialogue: 1,0:02:32.76,0:02:37.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}La prueba aparece en el Historial\Nde clases, en estado Reservada.
+Dialogue: 1,0:02:37.45,0:02:40.68,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cada persona tiene una sola\Nprueba gratuita por clase,
+Dialogue: 1,0:02:40.70,0:02:43.82,Sub,,0,0,0,,{\an5\pos(1110,1020)}y ocupa un lugar en el cupo de ese día.
+Dialogue: 1,0:02:44.43,0:02:49.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cuando Julieta viene a la clase, registramos\Nsu asistencia con Registrar presente.
+Dialogue: 1,0:02:49.99,0:02:53.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si avisa que no viene, se usa Cancelar.
+Dialogue: 1,0:02:54.26,0:02:57.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}La prueba queda registrada como Presente.
+Dialogue: 1,0:02:57.49,0:03:00.74,Sub,,0,0,0,,{\an5\pos(1110,1020)}Las clases de prueba no generan cobros.
+Dialogue: 1,0:03:02.07,0:03:05.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}Le gustó la clase y quiere sumarse.
+Dialogue: 1,0:03:05.11,0:03:07.84,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Convertir en alumno.
+Dialogue: 1,0:03:08.44,0:03:11.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se crea su ficha académica.
+Dialogue: 1,0:03:11.15,0:03:14.70,Sub,,0,0,0,,{\an5\pos(1110,1020)}Podemos completar email y fecha de nacimiento.
+Dialogue: 1,0:03:15.31,0:03:18.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Presionamos Confirmar conversión.
+Dialogue: 1,0:03:18.75,0:03:21.63,Sub,,0,0,0,,{\an5\pos(1110,1020)}El sistema abre la ficha de alumna de Julieta:
+Dialogue: 1,0:03:21.65,0:03:26.09,Sub,,0,0,0,,{\an5\pos(1110,1020)}se copiaron su nombre, teléfono, DNI y email.
+Dialogue: 1,0:03:26.69,0:03:32.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}En QR e historial se conserva su clase\Nde prueba, con el estado Presente.
+Dialogue: 1,0:03:33.57,0:03:37.08,Sub,,0,0,0,,{\an5\pos(1110,1020)}La conversión no la inscribe en ninguna clase.
+Dialogue: 1,0:03:37.10,0:03:38.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}Lo hacemos ahora:
+Dialogue: 1,0:03:38.41,0:03:42.73,Sub,,0,0,0,,{\an5\pos(1110,1020)}Inscribir, Dancehall Inicial, pagando por clase.
+Dialogue: 1,0:03:43.34,0:03:44.98,Sub,,0,0,0,,{\an5\pos(1110,1020)}Comprobemos en Alumnos:
+Dialogue: 1,0:03:45.00,0:03:47.22,Sub,,0,0,0,,{\an5\pos(1110,1020)}buscamos a Julieta.
+Dialogue: 1,0:03:48.43,0:03:51.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ya figura como alumna activa.
+Dialogue: 1,0:03:51.71,0:03:54.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}¿Y qué pasó con el contacto original?
+Dialogue: 1,0:03:54.68,0:03:56.85,Sub,,0,0,0,,{\an5\pos(1110,1020)}Vamos a Contactos.
+Dialogue: 1,0:03:57.45,0:04:02.55,Sub,,0,0,0,,{\an5\pos(1110,1020)}Julieta ya no aparece en Posibles\Nalumnos, porque ahora es alumna.
+Dialogue: 1,0:04:02.57,0:04:04.29,Sub,,0,0,0,,{\an5\pos(1110,1020)}Su contacto no se borra:
+Dialogue: 1,0:04:04.31,0:04:08.70,Sub,,0,0,0,,{\an5\pos(1110,1020)}conserva el historial y sigue\Nvinculado a la ficha académica.
+Dialogue: 1,0:04:09.31,0:04:12.42,Sub,,0,0,0,,{\an5\pos(1110,1020)}Si una persona interesada pide no ser contactada,
+Dialogue: 1,0:04:12.44,0:04:16.43,Sub,,0,0,0,,{\an5\pos(1110,1020)}desde su ficha se puede eliminar\Ncon Eliminar posible alumno, siempre
+Dialogue: 1,0:04:16.45,0:04:18.83,Sub,,0,0,0,,{\an5\pos(1110,1020)}que todavía no sea alumna.
+Dialogue: 1,0:04:20.90,0:04:26.10,Sub,,0,0,0,,{\an5\pos(1110,1020)}Julieta pasó de contacto a alumna,\Ny su historial de prueba se conservó.
+Dialogue: 1,0:04:26.61,0:04:31.66,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a trabajar\Ncon el presentismo y la asistencia.

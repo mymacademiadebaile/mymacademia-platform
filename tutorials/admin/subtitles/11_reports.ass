@@ -1,0 +1,70 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Segoe UI Semibold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,40,40,0,1
+Style: Chapter,Segoe UI,22,&H00FF92B3,&H00FF92B3,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,0,0,4,40,40,0,1
+Style: Step,Segoe UI,25,&H00E5DAF0,&H00E5DAF0,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,40,40,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:03:24.40,Chapter,,0,0,0,,{\an4\pos(46,1000)}CAPÍTULO 12 · REPORTES
+Dialogue: 0,0:00:15.21,0:00:43.57,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Reportes: filtros
+Dialogue: 0,0:00:43.57,0:01:20.63,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Indicadores principales
+Dialogue: 0,0:01:20.63,0:01:55.69,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Ingresos y operación
+Dialogue: 0,0:01:55.69,0:02:15.72,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Cambiar el período
+Dialogue: 0,0:02:15.72,0:02:31.41,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Exportar a Excel
+Dialogue: 0,0:02:31.41,0:03:09.47,Step,,0,0,0,,{\an4\pos(46,1036)\fad(250,250)}Otros indicadores: inicio, notificaciones y auditoría
+Dialogue: 1,0:00:01.00,0:00:06.04,Sub,,0,0,0,,{\an5\pos(1110,1020)}En este capítulo vamos a consultar e\Ninterpretar los reportes de la academia.
+Dialogue: 1,0:00:06.54,0:00:10.78,Sub,,0,0,0,,{\an5\pos(1110,1020)}Veremos qué representa cada indicador,\Ncómo filtrar por período y sede,
+Dialogue: 1,0:00:10.80,0:00:13.88,Sub,,0,0,0,,{\an5\pos(1110,1020)}y cómo exportar la información a Excel.
+Dialogue: 1,0:00:15.32,0:00:18.62,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ingresamos a Reportes desde el menú lateral.
+Dialogue: 1,0:00:19.23,0:00:22.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por defecto se analiza el mes actual.
+Dialogue: 1,0:00:22.16,0:00:27.35,Sub,,0,0,0,,{\an5\pos(1110,1020)}Arriba están los filtros Desde, Hasta\Ny Sede, y los botones Este mes, Aplicar
+Dialogue: 1,0:00:27.37,0:00:29.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}y Exportar Excel.
+Dialogue: 1,0:00:30.01,0:00:34.97,Sub,,0,0,0,,{\an5\pos(1110,1020)}La franja Período analizado resume el\Nrango, los días, las altas de alumnos
+Dialogue: 1,0:00:34.99,0:00:37.38,Sub,,0,0,0,,{\an5\pos(1110,1020)}y los alumnos activos hoy.
+Dialogue: 1,0:00:37.40,0:00:39.80,Sub,,0,0,0,,{\an5\pos(1110,1020)}La nota aclara un criterio importante:
+Dialogue: 1,0:00:39.82,0:00:43.11,Sub,,0,0,0,,{\an5\pos(1110,1020)}la facturación y la caja no se mezclan.
+Dialogue: 1,0:00:43.67,0:00:50.14,Sub,,0,0,0,,{\an5\pos(1110,1020)}Cobrado en caja es el dinero efectivamente\Nrecibido en estas fechas, según el día del cobro.
+Dialogue: 1,0:00:50.76,0:00:55.27,Sub,,0,0,0,,{\an5\pos(1110,1020)}Facturado vigente es lo emitido para\Nel período, según la fecha de la clase
+Dialogue: 1,0:00:55.29,0:00:59.10,Sub,,0,0,0,,{\an5\pos(1110,1020)}o el mes de la mensualidad, sin contar lo anulado.
+Dialogue: 1,0:00:59.67,0:01:03.18,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por cobrar suma lo pendiente\Ny lo vencido de esos cargos:
+Dialogue: 1,0:01:03.20,0:01:05.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}es la deuda del período.
+Dialogue: 1,0:01:06.03,0:01:12.07,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y Turnos del período cuenta las clases del\Nrango, con las completadas y las canceladas.
+Dialogue: 1,0:01:12.64,0:01:17.26,Sub,,0,0,0,,{\an5\pos(1110,1020)}Por ejemplo, una mensualidad de octubre pagada\Nen noviembre cuenta en la facturación de
+Dialogue: 1,0:01:17.28,0:01:20.17,Sub,,0,0,0,,{\an5\pos(1110,1020)}octubre y en la caja de noviembre.
+Dialogue: 1,0:01:20.73,0:01:25.29,Sub,,0,0,0,,{\an5\pos(1110,1020)}Ingresos separa la facturación,\Nla caja y lo vencido por modalidad:
+Dialogue: 1,0:01:25.31,0:01:27.47,Sub,,0,0,0,,{\an5\pos(1110,1020)}por clase y mensual.
+Dialogue: 1,0:01:27.49,0:01:30.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}Debajo, la caja por medio de pago:
+Dialogue: 1,0:01:30.15,0:01:33.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}efectivo, transferencia y tarjeta.
+Dialogue: 1,0:01:34.05,0:01:38.86,Sub,,0,0,0,,{\an5\pos(1110,1020)}Operación muestra las clases completadas\Ny programadas, y las asistencias presentes
+Dialogue: 1,0:01:38.88,0:01:41.25,Sub,,0,0,0,,{\an5\pos(1110,1020)}y ausentes registradas.
+Dialogue: 1,0:01:41.81,0:01:44.02,Sub,,0,0,0,,{\an5\pos(1110,1020)}El detalle por clase cruza todo:
+Dialogue: 1,0:01:44.04,0:01:50.72,Sub,,0,0,0,,{\an5\pos(1110,1020)}actividad, asistencia, lo facturado y cobrado,\Ny la ocupación actual de cada grupo.
+Dialogue: 1,0:01:50.74,0:01:54.52,Sub,,0,0,0,,{\an5\pos(1110,1020)}Sirve para comparar disciplinas y profesores.
+Dialogue: 1,0:01:55.79,0:01:59.40,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para analizar otro período cambiamos las fechas.
+Dialogue: 1,0:01:59.42,0:02:03.13,Sub,,0,0,0,,{\an5\pos(1110,1020)}Elegimos desde el primero\Ndel mes pasado hasta hoy.
+Dialogue: 1,0:02:03.68,0:02:05.29,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y presionamos Aplicar:
+Dialogue: 1,0:02:05.31,0:02:07.76,Sub,,0,0,0,,{\an5\pos(1110,1020)}los números se recalculan.
+Dialogue: 1,0:02:08.32,0:02:12.34,Sub,,0,0,0,,{\an5\pos(1110,1020)}El filtro Sede limita el análisis a una ubicación.
+Dialogue: 1,0:02:12.36,0:02:15.27,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y Este mes vuelve al mes en curso.
+Dialogue: 1,0:02:15.83,0:02:20.96,Sub,,0,0,0,,{\an5\pos(1110,1020)}Para trabajar los datos en una\Nplanilla, presionamos Exportar Excel.
+Dialogue: 1,0:02:21.52,0:02:24.45,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se descarga un archivo de Excel con tres hojas:
+Dialogue: 1,0:02:24.47,0:02:30.94,Sub,,0,0,0,,{\an5\pos(1110,1020)}Resumen, Facturación y caja, y Actividad\Npor clase, con los filtros aplicados.
+Dialogue: 1,0:02:31.51,0:02:37.02,Sub,,0,0,0,,{\an5\pos(1110,1020)}Recordemos que el Inicio también resume\Nalumnos activos y nuevas altas, clases del día,
+Dialogue: 1,0:02:37.04,0:02:41.10,Sub,,0,0,0,,{\an5\pos(1110,1020)}finanzas del período y las\Nclases con mayor ocupación.
+Dialogue: 1,0:02:41.67,0:02:47.02,Sub,,0,0,0,,{\an5\pos(1110,1020)}El centro de Notificaciones, que se abre\Ndesde la campana, muestra pagos vencidos,
+Dialogue: 1,0:02:47.04,0:02:51.00,Sub,,0,0,0,,{\an5\pos(1110,1020)}envíos con error y la\Nactividad reciente de mensajes.
+Dialogue: 1,0:02:51.56,0:02:54.98,Sub,,0,0,0,,{\an5\pos(1110,1020)}Y Auditoría registra las\Nacciones sensibles del equipo:
+Dialogue: 1,0:02:55.00,0:02:57.70,Sub,,0,0,0,,{\an5\pos(1110,1020)}quién hizo cada cambio y cuándo.
+Dialogue: 1,0:02:58.26,0:03:02.79,Sub,,0,0,0,,{\an5\pos(1110,1020)}Se puede filtrar por tipo de\Nentidad, por ejemplo Alumnos.
+Dialogue: 1,0:03:03.35,0:03:08.39,Sub,,0,0,0,,{\an5\pos(1110,1020)}La auditoría es de solo lectura y sirve\Npara controlar la operación diaria.
+Dialogue: 1,0:03:10.47,0:03:15.53,Sub,,0,0,0,,{\an5\pos(1110,1020)}Con los reportes podés seguir la caja,\Nlo facturado, la deuda, la asistencia
+Dialogue: 1,0:03:15.55,0:03:18.05,Sub,,0,0,0,,{\an5\pos(1110,1020)}y la ocupación de cada clase.
+Dialogue: 1,0:03:18.55,0:03:23.49,Sub,,0,0,0,,{\an5\pos(1110,1020)}En el próximo capítulo vamos a juntar\Ntodo en un día típico de trabajo.

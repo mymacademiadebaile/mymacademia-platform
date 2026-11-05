@@ -86,8 +86,13 @@ export function CalendarLive() {
   }, [load]);
 
   const visibleItems = useMemo(
-    () => (data?.items ?? []).filter((item) => item.status !== "RESCHEDULED" && !(item.status === "CANCELLED" && item.origin === "RESCHEDULED")),
-    [data]
+    () =>
+      // Rescheduled originals are hidden (their new date is shown instead), except when the
+      // user explicitly filters by "Reprogramada" to review them.
+      filters.status === "RESCHEDULED"
+        ? data?.items ?? []
+        : (data?.items ?? []).filter((item) => item.status !== "RESCHEDULED" && !(item.status === "CANCELLED" && item.origin === "RESCHEDULED")),
+    [data, filters.status]
   );
 
   const colorByClass = useMemo(() => {

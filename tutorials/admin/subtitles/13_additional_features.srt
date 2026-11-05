@@ -1,0 +1,397 @@
+1
+00:00:01,002 --> 00:00:04,616
+En este último capítulo vamos a
+recorrer funciones adicionales
+
+2
+00:00:04,636 --> 00:00:07,188
+que completan la administración.
+
+3
+00:00:07,690 --> 00:00:13,417
+Comunicaciones, recordatorios de
+deuda, credenciales QR, sedes, pausa
+
+4
+00:00:13,437 --> 00:00:19,564
+y eliminación de clases, el perfil, los
+usuarios y la recuperación de contraseña.
+
+5
+00:00:20,982 --> 00:00:25,080
+Empezamos por Comunicaciones,
+desde el menú lateral.
+
+6
+00:00:25,642 --> 00:00:26,859
+Hay dos canales:
+
+7
+00:00:26,879 --> 00:00:32,001
+Email, para envíos segmentados con
+seguimiento por destinatario, y WhatsApp,
+
+8
+00:00:32,021 --> 00:00:35,717
+que abre la conversación
+con un mensaje precargado.
+
+9
+00:00:36,317 --> 00:00:40,653
+En Destinatarios se elige a todos los
+alumnos con email, a los de una clase
+
+10
+00:00:40,673 --> 00:00:43,154
+o a un alumno en particular.
+
+11
+00:00:43,174 --> 00:00:46,223
+Elegimos un alumno en particular.
+
+12
+00:00:46,790 --> 00:00:49,785
+Seleccionamos a Valentina Ríos.
+
+13
+00:00:50,353 --> 00:00:53,375
+Escribimos el asunto y el mensaje.
+
+14
+00:00:53,395 --> 00:00:58,219
+La etiqueta nombre entre llaves se
+reemplaza por el nombre de cada alumno.
+
+15
+00:00:58,829 --> 00:01:02,087
+Presionamos Enviar email y confirmamos.
+
+16
+00:01:02,688 --> 00:01:07,103
+El historial de comunicaciones
+registra cada envío con su estado.
+
+17
+00:01:07,123 --> 00:01:11,227
+Si un email falla, se puede reintentar desde ahí.
+
+18
+00:01:11,836 --> 00:01:17,475
+En este entorno de capacitación los correos
+se capturan localmente y no llegan a nadie.
+
+19
+00:01:17,495 --> 00:01:22,733
+En la academia real, el envío a Todos los
+alumnos con email llega efectivamente a todos,
+
+20
+00:01:22,753 --> 00:01:26,879
+así que conviene revisar bien
+el mensaje antes de confirmar.
+
+21
+00:01:28,198 --> 00:01:31,619
+En WhatsApp se elige el alumno,
+se escribe el mensaje
+
+22
+00:01:31,639 --> 00:01:35,175
+y Abrir WhatsApp abre la
+conversación en una pestaña nueva,
+
+23
+00:01:35,195 --> 00:01:38,080
+registrando la acción en el historial.
+
+24
+00:01:38,688 --> 00:01:42,954
+Ahora Recordatorios, para avisar deudas por email.
+
+25
+00:01:43,551 --> 00:01:46,844
+Primero se habilitan para toda la academia.
+
+26
+00:01:46,864 --> 00:01:50,385
+Marcamos Habilitar recordatorios por email.
+
+27
+00:01:50,944 --> 00:01:55,074
+Se definen los días mínimos entre
+recordatorios y, opcionalmente,
+
+28
+00:01:55,094 --> 00:01:57,807
+un envío programado automático.
+
+29
+00:01:57,827 --> 00:02:00,851
+Lo dejamos apagado y guardamos.
+
+30
+00:02:01,449 --> 00:02:04,419
+Para preparar un recordatorio buscamos al alumno:
+
+31
+00:02:04,439 --> 00:02:06,531
+Micaela Ferreyra.
+
+32
+00:02:07,139 --> 00:02:12,402
+La vista previa muestra su saldo pendiente
+y vencido, el destinatario, el asunto
+
+33
+00:02:12,422 --> 00:02:17,285
+y el texto del mensaje, que es
+cordial y detalla los conceptos.
+
+34
+00:02:17,890 --> 00:02:21,749
+Presionamos Enviar recordatorio y confirmamos.
+
+35
+00:02:22,349 --> 00:02:24,970
+El historial de la persona registra el envío,
+
+36
+00:02:24,990 --> 00:02:29,495
+y el sistema respeta la frecuencia
+mínima para no insistir de más.
+
+37
+00:02:30,096 --> 00:02:35,322
+Las credenciales QR permiten registrar
+la asistencia escaneando en la tablet.
+
+38
+00:02:35,342 --> 00:02:38,466
+Abrimos la ficha de Valentina Ríos.
+
+39
+00:02:39,073 --> 00:02:41,875
+Presionamos Generar credencial.
+
+40
+00:02:42,480 --> 00:02:47,307
+La credencial se muestra una
+única vez, con el QR personal.
+
+41
+00:02:47,327 --> 00:02:51,585
+Se descarga como imagen o se
+imprime en tamaño tarjeta.
+
+42
+00:02:51,605 --> 00:02:56,635
+Si se pierde, se renueva y el
+QR anterior deja de funcionar.
+
+43
+00:02:57,245 --> 00:03:03,464
+Si la academia abre otra ubicación,
+se carga en Configuración, pestaña Sedes.
+
+44
+00:03:03,484 --> 00:03:05,880
+Presionamos Nueva sede.
+
+45
+00:03:06,488 --> 00:03:09,723
+Nombre y dirección, y guardamos.
+
+46
+00:03:12,678 --> 00:03:15,415
+Como es una prueba, la desactivamos:
+
+47
+00:03:15,435 --> 00:03:19,104
+deja de estar disponible para nuevas operaciones.
+
+48
+00:03:19,715 --> 00:03:24,310
+Una clase puede pausarse,
+por ejemplo durante vacaciones.
+
+49
+00:03:24,330 --> 00:03:27,198
+Abrimos Hip Hop Adolescentes.
+
+50
+00:03:27,800 --> 00:03:31,179
+En Horarios y vigencia presionamos Pausar.
+
+51
+00:03:31,730 --> 00:03:36,861
+Indicamos desde cuándo,
+opcionalmente hasta cuándo, y el motivo.
+
+52
+00:03:37,467 --> 00:03:43,402
+Durante la pausa no se generan clases regulares
+y las ya programadas quedan suspendidas.
+
+53
+00:03:43,422 --> 00:03:46,965
+Las inscripciones y el historial se conservan.
+
+54
+00:03:47,573 --> 00:03:50,639
+Para retomarla presionamos Reanudar.
+
+55
+00:03:51,240 --> 00:03:54,533
+Ahora veamos cómo se elimina una clase.
+
+56
+00:03:54,553 --> 00:03:59,274
+Creamos una clase de prueba desde
+el Calendario, con Nueva clase.
+
+57
+00:03:59,886 --> 00:04:01,399
+Completamos lo mínimo:
+
+58
+00:04:01,419 --> 00:04:03,600
+la pista y el nombre.
+
+59
+00:04:04,201 --> 00:04:06,165
+El profesor y las categorías:
+
+60
+00:04:06,185 --> 00:04:09,091
+disciplina, público y nivel.
+
+61
+00:04:16,606 --> 00:04:18,803
+El precio por clase y un horario:
+
+62
+00:04:18,823 --> 00:04:21,617
+domingo, de 10 a 11.
+
+63
+00:04:23,473 --> 00:04:26,060
+Y presionamos Crear clase.
+
+64
+00:04:26,661 --> 00:04:30,927
+La abrimos desde el calendario
+y entramos a Gestionar clase.
+
+65
+00:04:31,534 --> 00:04:35,523
+Como no tuvo ninguna actividad, se puede eliminar.
+
+66
+00:04:35,543 --> 00:04:37,816
+Presionamos Eliminar.
+
+67
+00:04:38,416 --> 00:04:45,254
+El aviso aclara que solo se borra si no tiene
+alumnos, cobros, pruebas ni clases realizadas.
+
+68
+00:04:45,274 --> 00:04:48,731
+Confirmamos con Eliminar definitivamente.
+
+69
+00:04:49,338 --> 00:04:53,932
+Si la clase tuviera historial, el sistema
+lo impediría y sugeriría Inactivar,
+
+70
+00:04:53,952 --> 00:04:56,509
+para conservar la información.
+
+71
+00:04:57,113 --> 00:05:00,909
+En Mi perfil actualizamos
+nuestros datos personales.
+
+72
+00:05:00,929 --> 00:05:04,836
+Cambiamos el teléfono y presionamos Guardar datos.
+
+73
+00:05:05,396 --> 00:05:11,344
+La tarjeta Acceso y alcance muestra el rol,
+la academia y las sedes habilitadas.
+
+74
+00:05:11,364 --> 00:05:13,844
+En Seguridad se cambia la contraseña:
+
+75
+00:05:13,864 --> 00:05:18,182
+al guardarla, la sesión se
+cierra para volver a ingresar.
+
+76
+00:05:18,792 --> 00:05:24,618
+En Usuarios, el acceso de prueba que creamos
+se puede eliminar con el ícono de papelera.
+
+77
+00:05:25,227 --> 00:05:29,783
+El navegador pide confirmar,
+porque es una acción definitiva.
+
+78
+00:05:29,803 --> 00:05:35,421
+No se puede eliminar la propia cuenta,
+ni a un profesor con clases vinculadas.
+
+79
+00:05:36,036 --> 00:05:39,045
+Por último, si alguien olvida su contraseña:
+
+80
+00:05:39,065 --> 00:05:41,047
+cerramos sesión.
+
+81
+00:05:41,658 --> 00:05:45,901
+En la pantalla de ingreso
+presionamos Olvidé mi contraseña.
+
+82
+00:05:46,509 --> 00:05:50,751
+Escribimos el email de la cuenta
+y presionamos Enviar enlace.
+
+83
+00:05:51,351 --> 00:05:56,009
+El sistema envía un enlace de un
+solo uso, válido por treinta minutos,
+
+84
+00:05:56,029 --> 00:05:58,930
+para definir una nueva contraseña.
+
+85
+00:06:01,002 --> 00:06:05,844
+Con esto completamos el recorrido por
+todas las funciones de la administración.
+
+86
+00:06:06,346 --> 00:06:12,060
+Ya podés configurar la academia, organizar
+profesores y clases, gestionar alumnos,
+
+87
+00:06:12,080 --> 00:06:17,485
+promociones, inscripciones y cobros,
+atender contactos, controlar la asistencia
+
+88
+00:06:17,505 --> 00:06:19,909
+y analizar los reportes.
+
+89
+00:06:19,929 --> 00:06:21,652
+¡Éxitos!

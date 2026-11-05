@@ -65,7 +65,7 @@ export function useStudentPaymentActions({
   function shareReceiptWhatsApp(charge: AccountCharge) {
     if (!student?.phone || !charge.lastCollection) return;
 
-    const phone = student.phone.replace(/D/g, "");
+    const phone = student.phone.replace(/\D/g, "");
     const text = `Hola ${student.firstName}, te compartimos el recibo ${charge.lastCollection.receiptNumber ?? "de pago"} por $ ${charge.paid.toLocaleString("es-AR")} correspondiente a ${charge.concept}.`;
     const chat = window.open(
       `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`,

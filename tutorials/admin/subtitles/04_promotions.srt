@@ -1,0 +1,380 @@
+1
+00:00:01,002 --> 00:00:04,474
+En este capítulo vamos a
+trabajar con el módulo comercial:
+
+2
+00:00:04,494 --> 00:00:06,516
+las promociones.
+
+3
+00:00:07,018 --> 00:00:12,900
+Vamos a crear un 2x1 para Dancehall Inicial,
+inscribir a una pareja con ese beneficio,
+
+4
+00:00:12,920 --> 00:00:16,638
+ver cómo se calcula el
+importe y registrar el cobro.
+
+5
+00:00:16,658 --> 00:00:21,772
+También vamos a crear un descuento
+por porcentaje y a cerrar una campaña.
+
+6
+00:00:23,220 --> 00:00:25,622
+Las promociones no tienen un menú propio:
+
+7
+00:00:25,642 --> 00:00:29,733
+se crean dentro de cada clase, porque
+cada promoción pertenece a un grupo
+
+8
+00:00:29,753 --> 00:00:32,238
+y cubre todos sus horarios.
+
+9
+00:00:32,799 --> 00:00:36,413
+Llegamos a Dancehall Inicial
+desde el perfil de su profesora:
+
+10
+00:00:36,433 --> 00:00:41,770
+Profesores, Carla Romero y,
+en Clases asignadas, la clase.
+
+11
+00:00:42,331 --> 00:00:45,960
+Bajamos hasta la sección Promociones de la clase.
+
+12
+00:00:45,980 --> 00:00:48,446
+Todavía no tiene ninguna.
+
+13
+00:00:49,019 --> 00:00:51,653
+Presionamos Crear promoción.
+
+14
+00:00:52,220 --> 00:00:54,663
+Le damos un nombre claro.
+
+15
+00:00:55,905 --> 00:00:58,024
+En Beneficio hay cuatro tipos:
+
+16
+00:00:58,044 --> 00:01:02,974
+Porcentaje, Descuento fijo, Precio final y 2x1.
+
+17
+00:01:02,994 --> 00:01:04,830
+Elegimos 2x1:
+
+18
+00:01:04,850 --> 00:01:08,956
+dos personas se inscriben
+juntas y una de ellas no paga.
+
+19
+00:01:09,515 --> 00:01:12,433
+El 2x1 tiene un período de inscripción:
+
+20
+00:01:12,453 --> 00:01:15,734
+las fechas en que se pueden anotar parejas.
+
+21
+00:01:15,754 --> 00:01:18,966
+Lo dejamos abierto durante esta semana.
+
+22
+00:01:19,531 --> 00:01:22,116
+Y una vigencia del beneficio.
+
+23
+00:01:22,136 --> 00:01:27,927
+Con los botones rápidos elegimos un encuentro
+puntual, una semana o un mes del grupo.
+
+24
+00:01:27,947 --> 00:01:30,325
+Dejamos Un mes del grupo.
+
+25
+00:01:30,882 --> 00:01:32,899
+El alcance se toma de la clase:
+
+26
+00:01:32,919 --> 00:01:38,701
+como admite pago mensual y por clase,
+la promoción alcanza ambas modalidades.
+
+27
+00:01:39,265 --> 00:01:41,899
+Presionamos Crear promoción.
+
+28
+00:01:42,463 --> 00:01:47,005
+La promoción aparece activa, con su
+vigencia, el período de inscripción
+
+29
+00:01:47,025 --> 00:01:49,442
+y la cantidad de parejas.
+
+30
+00:01:50,006 --> 00:01:53,385
+Para usarla presionamos Inscribir pareja.
+
+31
+00:01:53,954 --> 00:01:58,742
+Se eligen dos alumnos que todavía
+no estén inscriptos en esta clase.
+
+32
+00:01:58,762 --> 00:02:04,077
+Si alguno no existe en el sistema,
+primero hay que cargarlo en Alumnos.
+
+33
+00:02:04,637 --> 00:02:05,557
+Quién paga:
+
+34
+00:02:05,577 --> 00:02:07,559
+Sofía Medina.
+
+35
+00:02:08,123 --> 00:02:09,894
+Quién recibe el beneficio:
+
+36
+00:02:09,914 --> 00:02:11,742
+Tomás Aguirre.
+
+37
+00:02:12,308 --> 00:02:16,815
+Los dos van a pagar con mensualidad,
+plan de cuatro clases.
+
+38
+00:02:17,368 --> 00:02:22,000
+Como empiezan con el mes ya iniciado,
+elegimos cómo cobrar el primer mes:
+
+39
+00:02:22,020 --> 00:02:24,779
+Proporcional a las clases que quedan.
+
+40
+00:02:25,333 --> 00:02:27,904
+La vista previa calcula los importes:
+
+41
+00:02:27,924 --> 00:02:32,888
+cuánto paga Sofía, cuánto paga
+Tomás, y la bonificación total.
+
+42
+00:02:33,449 --> 00:02:38,429
+Tomás, el beneficiario, tiene el cien por
+ciento de descuento sobre la parte del mes
+
+43
+00:02:38,449 --> 00:02:40,811
+cubierta por la promoción.
+
+44
+00:02:41,375 --> 00:02:44,130
+Presionamos Inscribir a los dos.
+
+45
+00:02:44,685 --> 00:02:47,358
+La tarjeta de la promoción muestra la pareja:
+
+46
+00:02:47,378 --> 00:02:50,543
+Sofía paga y Tomás está bonificado.
+
+47
+00:02:50,563 --> 00:02:56,007
+Si hubo un error, Corregir pareja
+corta el beneficio indicando el motivo.
+
+48
+00:02:56,570 --> 00:03:01,176
+La lista de inscriptos no se actualiza
+sola después de inscribir la pareja, así
+
+49
+00:03:01,196 --> 00:03:03,446
+que recargamos la página.
+
+50
+00:03:03,466 --> 00:03:08,781
+Ahora los dos figuran en Inscriptos
+actuales, con la modalidad Mensual.
+
+51
+00:03:09,336 --> 00:03:11,689
+Comprobemos los cobros.
+
+52
+00:03:11,709 --> 00:03:14,298
+Abrimos la ficha de Tomás.
+
+53
+00:03:14,862 --> 00:03:19,520
+En la tarjeta Pagos, su mensualidad
+de Dancehall figura como Bonificado,
+
+54
+00:03:19,540 --> 00:03:21,375
+con el nombre de la promoción:
+
+55
+00:03:21,395 --> 00:03:23,784
+no tiene nada para pagar.
+
+56
+00:03:24,355 --> 00:03:28,333
+Ahora vamos a la ficha de Sofía, desde Alumnos.
+
+57
+00:03:30,060 --> 00:03:34,552
+Su mensualidad proporcional de
+noviembre figura como Pendiente.
+
+58
+00:03:34,572 --> 00:03:36,702
+Presionamos Cobrar.
+
+59
+00:03:37,268 --> 00:03:41,167
+Elegimos el medio de pago, por ejemplo Efectivo.
+
+60
+00:03:41,187 --> 00:03:43,551
+La fecha de pago es hoy.
+
+61
+00:03:44,118 --> 00:03:46,801
+Y presionamos Confirmar cobro.
+
+62
+00:03:47,359 --> 00:03:53,629
+El cobro quedó registrado, la mensualidad
+figura como Pagado y se generó el recibo.
+
+63
+00:03:53,649 --> 00:03:57,817
+Vamos a profundizar en los
+cobros en el capítulo de pagos.
+
+64
+00:03:58,378 --> 00:04:02,535
+Ahora creamos un descuento
+por porcentaje en otra clase.
+
+65
+00:04:02,555 --> 00:04:06,725
+Vamos a Salsa Inicial desde
+el perfil de Lucía Benítez.
+
+66
+00:04:07,278 --> 00:04:11,305
+En su sección de promociones
+presionamos Crear promoción.
+
+67
+00:04:11,876 --> 00:04:14,703
+La llamamos Semana de la salsa.
+
+68
+00:04:15,473 --> 00:04:20,723
+En Beneficio elegimos Porcentaje,
+y un descuento del quince por ciento.
+
+69
+00:04:21,282 --> 00:04:24,469
+La vigencia va desde hoy hasta el domingo.
+
+70
+00:04:25,030 --> 00:04:27,665
+Presionamos Crear promoción.
+
+71
+00:04:28,227 --> 00:04:33,645
+A diferencia del 2x1, este descuento se
+aplica automáticamente a todos los alumnos del
+
+72
+00:04:33,665 --> 00:04:38,085
+grupo en las clases de esas
+fechas, al generarse cada cobro.
+
+73
+00:04:38,639 --> 00:04:42,770
+Por último, veamos cómo se
+desactiva una promoción.
+
+74
+00:04:42,790 --> 00:04:46,722
+Vamos a Hip Hop Adolescentes, de Martín Ocampo.
+
+75
+00:04:48,937 --> 00:04:53,444
+Creamos una promoción de prueba
+con precio final para diciembre.
+
+76
+00:04:59,136 --> 00:05:05,275
+Precio final de veinte mil pesos para la
+mensualidad, del 1 al 31 de diciembre.
+
+77
+00:05:05,836 --> 00:05:08,087
+Creamos la promoción.
+
+78
+00:05:08,648 --> 00:05:11,166
+Las promociones no se editan ni se borran:
+
+79
+00:05:11,186 --> 00:05:14,402
+para terminarlas se usa Cerrar campaña.
+
+80
+00:05:14,967 --> 00:05:16,932
+La promoción pasa a Cerrada:
+
+81
+00:05:16,952 --> 00:05:22,498
+deja de aplicarse a los cobros nuevos,
+y los descuentos ya aplicados se conservan.
+
+82
+00:05:23,103 --> 00:05:27,336
+Tené en cuenta que no puede haber dos
+promociones activas del mismo tipo de cobro con
+
+83
+00:05:27,356 --> 00:05:29,707
+fechas superpuestas en la misma clase:
+
+84
+00:05:29,727 --> 00:05:32,530
+el sistema lo advierte al crearla.
+
+85
+00:05:34,602 --> 00:05:40,476
+Las promociones se aplican solas sobre los
+cobros del período, sin cálculos manuales.
+
+86
+00:05:40,978 --> 00:05:45,436
+En el próximo capítulo vamos a
+registrar y gestionar alumnos.

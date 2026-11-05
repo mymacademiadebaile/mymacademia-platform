@@ -1,6 +1,7 @@
 export const USER_ROLES = ["SUPER_ADMIN", "ADMIN", "PROFESSOR"] as const;
 export * from "./identity";
 export * from "./check-in";
+export * from "./audit";
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const CATALOG_TYPES = ["DISCIPLINE", "SEGMENT", "LEVEL"] as const;

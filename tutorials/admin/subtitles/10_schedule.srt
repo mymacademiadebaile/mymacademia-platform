@@ -1,0 +1,338 @@
+1
+00:00:01,002 --> 00:00:06,540
+En este capítulo vamos a usar el calendario
+para consultar y modificar clases.
+
+2
+00:00:07,042 --> 00:00:09,818
+La diferencia clave es
+entre cambiar una sola fecha
+
+3
+00:00:09,838 --> 00:00:12,835
+y cambiar el horario recurrente del grupo.
+
+4
+00:00:12,855 --> 00:00:15,460
+Vamos a ver los dos casos.
+
+5
+00:00:16,882 --> 00:00:19,222
+Abrimos el Calendario.
+
+6
+00:00:19,242 --> 00:00:24,005
+La vista predeterminada es Semana,
+con las clases de cada día.
+
+7
+00:00:24,561 --> 00:00:30,301
+Cada tarjeta muestra el horario, la clase,
+la disciplina, los profesores, la pista
+
+8
+00:00:30,321 --> 00:00:32,816
+y los inscriptos sobre el cupo.
+
+9
+00:00:32,836 --> 00:00:37,371
+Las canceladas o suspendidas se
+ven atenuadas y con su motivo.
+
+10
+00:00:37,937 --> 00:00:40,921
+La vista Mes da un panorama general.
+
+11
+00:00:40,941 --> 00:00:46,715
+Por ejemplo, el lunes con el feriado que
+cargamos muestra sus clases suspendidas.
+
+12
+00:00:47,276 --> 00:00:53,390
+La vista Día ordena las clases por pista,
+y Lista muestra las próximas dos semanas en orden.
+
+13
+00:00:54,004 --> 00:00:58,611
+Las flechas avanzan o retroceden,
+y Hoy vuelve a la fecha actual.
+
+14
+00:00:58,631 --> 00:01:01,342
+Regresamos a la vista Semana.
+
+15
+00:01:01,902 --> 00:01:08,391
+Los filtros permiten ver un profesor, una
+disciplina, una clase, una pista o un estado.
+
+16
+00:01:08,411 --> 00:01:10,560
+Elegimos la clase.
+
+17
+00:01:11,124 --> 00:01:15,835
+Supongamos que el sábado 7 Carla
+Romero no puede dar su clase.
+
+18
+00:01:15,855 --> 00:01:18,103
+Abrimos esa fecha.
+
+19
+00:01:18,663 --> 00:01:21,105
+El panel corresponde solo a esta fecha:
+
+20
+00:01:21,125 --> 00:01:26,285
+muestra su estado, horario, pista,
+profesores, precios y alumnos,
+
+21
+00:01:26,305 --> 00:01:28,858
+y las acciones disponibles.
+
+22
+00:01:29,414 --> 00:01:32,097
+Presionamos Solo esta clase.
+
+23
+00:01:32,657 --> 00:01:35,963
+El cambio aplica únicamente a esta fecha.
+
+24
+00:01:35,983 --> 00:01:38,025
+Movemos el horario media hora:
+
+25
+00:01:38,045 --> 00:01:41,196
+de 11:30 a 12:30.
+
+26
+00:01:41,754 --> 00:01:45,925
+Y asignamos a Lucía Benítez
+como profesora suplente.
+
+27
+00:01:46,491 --> 00:01:49,438
+Escribimos el motivo y guardamos.
+
+28
+00:01:51,474 --> 00:01:54,637
+El panel muestra la etiqueta
+Suplente, el nuevo horario
+
+29
+00:01:54,657 --> 00:01:57,809
+y a Lucía como profesora de esta fecha.
+
+30
+00:01:57,829 --> 00:02:01,069
+El resto de las clases del grupo no cambia.
+
+31
+00:02:01,636 --> 00:02:05,535
+Los alumnos afectados son los
+de la lista de esta clase.
+
+32
+00:02:05,555 --> 00:02:08,951
+Para avisarles, presionamos Avisar.
+
+33
+00:02:09,519 --> 00:02:13,186
+El mensaje viene precargado y se puede editar.
+
+34
+00:02:13,206 --> 00:02:15,922
+Presionamos Preparar avisos.
+
+35
+00:02:16,484 --> 00:02:18,706
+Los avisos no se envían todavía:
+
+36
+00:02:18,726 --> 00:02:23,175
+quedan preparados en Comunicaciones
+para revisarlos y enviarlos.
+
+37
+00:02:26,012 --> 00:02:29,606
+Ahora vamos a la semana siguiente con la flecha.
+
+38
+00:02:30,159 --> 00:02:33,274
+Abrimos la clase del miércoles 11.
+
+39
+00:02:33,879 --> 00:02:37,108
+Esa noche el salón no está disponible.
+
+40
+00:02:37,128 --> 00:02:39,513
+Presionamos Reprogramar.
+
+41
+00:02:40,069 --> 00:02:44,696
+Elegimos la nueva fecha,
+el jueves, en el mismo horario.
+
+42
+00:02:45,264 --> 00:02:48,883
+Indicamos el motivo y presionamos Reprogramar.
+
+43
+00:02:49,452 --> 00:02:55,309
+La clase aparece ahora el jueves con la
+etiqueta Reprogramada, con los mismos alumnos.
+
+44
+00:02:55,329 --> 00:02:58,853
+Lo que se haya pagado por la
+clase original cubre la nueva:
+
+45
+00:02:58,873 --> 00:03:01,326
+no se cobra dos veces.
+
+46
+00:03:05,114 --> 00:03:09,709
+Si una clase directamente no
+se dicta, se usa Cancelar.
+
+47
+00:03:09,729 --> 00:03:12,956
+Abrimos la clase del sábado siguiente.
+
+48
+00:03:13,510 --> 00:03:15,832
+Presionamos Cancelar.
+
+49
+00:03:16,399 --> 00:03:18,455
+Se pide un motivo.
+
+50
+00:03:18,475 --> 00:03:22,372
+La asistencia y los pagos
+ya registrados se conservan.
+
+51
+00:03:22,392 --> 00:03:24,265
+Confirmamos.
+
+52
+00:03:24,823 --> 00:03:27,393
+Suspender funciona de forma parecida,
+
+53
+00:03:27,413 --> 00:03:32,210
+pero deja la clase en espera para
+reprogramarla después o restaurarla.
+
+54
+00:03:35,338 --> 00:03:41,452
+Para sumar una fecha fuera del horario
+habitual, como un ensayo, usamos Clase extra.
+
+55
+00:03:42,010 --> 00:03:48,652
+Elegimos la clase, la fecha,
+el domingo 8, y el horario de 16 a 18.
+
+56
+00:03:49,205 --> 00:03:52,752
+Agregamos una nota y presionamos Crear clase.
+
+57
+00:03:53,313 --> 00:03:56,400
+Por último, un cambio permanente.
+
+58
+00:03:56,420 --> 00:03:59,957
+Los horarios recurrentes se
+cambian desde la ficha de la clase:
+
+59
+00:03:59,977 --> 00:04:02,379
+abrimos Dancehall Inicial.
+
+60
+00:04:02,987 --> 00:04:09,283
+En Horarios y vigencia, el horario del sábado
+de 11 a 12 tiene el botón Cambiar desde.
+
+61
+00:04:09,303 --> 00:04:11,262
+Lo presionamos.
+
+62
+00:04:11,866 --> 00:04:16,511
+Las clases desde la fecha elegida pasan
+al nuevo horario, con los mismos alumnos,
+
+63
+00:04:16,531 --> 00:04:18,793
+asistencias y pagos.
+
+64
+00:04:18,813 --> 00:04:21,242
+Las anteriores no cambian.
+
+65
+00:04:21,262 --> 00:04:23,932
+Elegimos la fecha de inicio.
+
+66
+00:04:24,540 --> 00:04:25,795
+Y el nuevo horario:
+
+67
+00:04:25,815 --> 00:04:27,846
+de 10 a 11.
+
+68
+00:04:28,410 --> 00:04:30,205
+Guardamos.
+
+69
+00:04:30,761 --> 00:04:34,388
+El horario anterior queda con
+fecha de fin y aparece el nuevo,
+
+70
+00:04:34,408 --> 00:04:37,188
+que rige desde la fecha indicada.
+
+71
+00:04:37,796 --> 00:04:43,229
+Las fechas que habíamos modificado a
+mano, como la suplencia, se mantienen.
+
+72
+00:04:43,249 --> 00:04:46,257
+Y Finalizar termina un horario desde una fecha:
+
+73
+00:04:46,277 --> 00:04:50,059
+las clases futuras sin movimientos se
+eliminan y las que tienen asistencia
+
+74
+00:04:50,079 --> 00:04:52,695
+o pagos quedan canceladas.
+
+75
+00:04:54,768 --> 00:05:00,921
+Ya sabés hacer cambios puntuales y recurrentes,
+reprogramar, cancelar, sumar clases extra
+
+76
+00:05:00,941 --> 00:05:03,307
+y avisar a los alumnos.
+
+77
+00:05:03,808 --> 00:05:08,675
+En el próximo capítulo vamos a
+consultar los reportes y estadísticas.

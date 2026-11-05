@@ -1,0 +1,290 @@
+1
+00:00:01,002 --> 00:00:03,675
+En este capítulo vamos a gestionar alumnos:
+
+2
+00:00:03,695 --> 00:00:09,108
+buscarlos, registrarlos sin duplicados
+y consultar toda su información.
+
+3
+00:00:09,610 --> 00:00:13,494
+Vamos a registrar a una alumna
+ficticia, Valentina Ríos,
+
+4
+00:00:13,514 --> 00:00:16,780
+que vamos a inscribir en el próximo capítulo.
+
+5
+00:00:18,220 --> 00:00:21,551
+Ingresamos a Alumnos desde el menú lateral.
+
+6
+00:00:22,133 --> 00:00:27,216
+El listado muestra a los alumnos activos
+ordenados por apellido, con su teléfono o email
+
+7
+00:00:27,236 --> 00:00:28,867
+y su estado.
+
+8
+00:00:28,887 --> 00:00:32,040
+Abajo se elige cuántos ver por página.
+
+9
+00:00:32,608 --> 00:00:38,685
+El buscador encuentra por nombre,
+apellido, email, teléfono o DNI.
+
+10
+00:00:38,705 --> 00:00:41,867
+Por ejemplo, escribimos Camila.
+
+11
+00:00:42,432 --> 00:00:47,851
+Los filtros permiten elegir la sede,
+el estado, Activos, Inactivos o Todos,
+
+12
+00:00:47,871 --> 00:00:51,115
+y ver solo a quienes tienen deuda vencida.
+
+13
+00:00:51,679 --> 00:00:57,859
+Con la casilla Con deuda vencida marcada,
+vemos rápidamente a quiénes hay que cobrarles.
+
+14
+00:00:57,879 --> 00:00:59,906
+La desmarcamos.
+
+15
+00:01:02,024 --> 00:01:07,237
+Antes de registrar a alguien, conviene
+buscarlo para no crear un duplicado.
+
+16
+00:01:07,257 --> 00:01:10,538
+Buscamos el DNI de la nueva alumna.
+
+17
+00:01:11,101 --> 00:01:15,774
+No hay resultados, así que
+podemos crearla con tranquilidad.
+
+18
+00:01:15,794 --> 00:01:21,944
+Además, el sistema rechaza un DNI o un
+email que ya pertenezcan a otra persona.
+
+19
+00:01:24,188 --> 00:01:26,630
+Presionamos Nuevo alumno.
+
+20
+00:01:27,196 --> 00:01:29,303
+Elegimos la sede.
+
+21
+00:01:29,871 --> 00:01:32,553
+Completamos nombre y apellido.
+
+22
+00:01:33,373 --> 00:01:37,039
+El DNI es opcional, pero recomendamos cargarlo:
+
+23
+00:01:37,059 --> 00:01:41,912
+identifica a la persona y le permite
+registrar su asistencia en la tablet.
+
+24
+00:01:42,471 --> 00:01:47,170
+Teléfono y email, para
+contactarla y enviarle recibos.
+
+25
+00:01:47,742 --> 00:01:50,088
+La fecha de nacimiento.
+
+26
+00:01:50,655 --> 00:01:54,954
+Los datos de un responsable se
+completan en el caso de menores.
+
+27
+00:01:54,974 --> 00:01:58,498
+Y en Notas, cualquier observación útil.
+
+28
+00:01:59,062 --> 00:02:01,265
+Presionamos Guardar.
+
+29
+00:02:01,990 --> 00:02:05,039
+El sistema abre la ficha de la alumna.
+
+30
+00:02:05,059 --> 00:02:11,005
+Arriba está su estado, Alumno activo, y los
+accesos para escribirle por Email o WhatsApp,
+
+31
+00:02:11,025 --> 00:02:13,193
+Editar e Inactivar.
+
+32
+00:02:13,758 --> 00:02:19,771
+Las tarjetas muestran lo cobrado,
+lo pendiente, lo vencido y sus clases activas.
+
+33
+00:02:19,791 --> 00:02:22,969
+Al ser nueva, todo está en cero.
+
+34
+00:02:23,528 --> 00:02:25,505
+La ficha tiene tres secciones:
+
+35
+00:02:25,525 --> 00:02:29,882
+Resumen, QR e historial, y Recordatorios.
+
+36
+00:02:30,447 --> 00:02:35,817
+En Resumen vemos la información personal,
+sus inscripciones y sus pagos.
+
+37
+00:02:37,091 --> 00:02:40,398
+Para corregir un dato presionamos Editar.
+
+38
+00:02:40,956 --> 00:02:44,527
+Por ejemplo, actualizamos su teléfono.
+
+39
+00:02:45,091 --> 00:02:46,886
+Guardamos.
+
+40
+00:02:47,518 --> 00:02:52,614
+En QR e historial está su credencial con
+código QR, el historial de clases a las
+
+41
+00:02:52,634 --> 00:02:55,841
+que asistió y sus preferencias de contacto.
+
+42
+00:02:56,405 --> 00:03:00,547
+En Contacto y preferencias definimos si
+acepta recordatorios de pago por email
+
+43
+00:03:00,567 --> 00:03:04,055
+y si quiere recibir novedades y promociones.
+
+44
+00:03:04,613 --> 00:03:07,247
+Guardamos las preferencias.
+
+45
+00:03:08,579 --> 00:03:12,646
+Cuando un alumno deja la academia, se lo inactiva.
+
+46
+00:03:12,666 --> 00:03:15,006
+Presionamos Inactivar.
+
+47
+00:03:15,560 --> 00:03:18,905
+El sistema avisa que su historial se conserva.
+
+48
+00:03:18,925 --> 00:03:24,395
+Al inactivarlo, además,
+se cierran sus inscripciones activas.
+
+49
+00:03:24,415 --> 00:03:26,282
+Confirmamos.
+
+50
+00:03:26,842 --> 00:03:29,814
+Ahora figura como Alumno inactivo.
+
+51
+00:03:29,834 --> 00:03:34,109
+Para que vuelva, presionamos
+Reactivar y confirmamos.
+
+52
+00:03:34,667 --> 00:03:38,874
+Tené en cuenta que reactivar no
+recupera las inscripciones anteriores:
+
+53
+00:03:38,894 --> 00:03:42,053
+hay que volver a inscribirlo en sus clases.
+
+54
+00:03:42,662 --> 00:03:45,930
+Veamos ahora una alumna con actividad.
+
+55
+00:03:45,950 --> 00:03:49,641
+Volvemos a Alumnos y buscamos a Camila Duarte.
+
+56
+00:03:50,206 --> 00:03:54,905
+Sus tarjetas muestran lo cobrado,
+lo pendiente y lo vencido.
+
+57
+00:03:55,467 --> 00:03:57,870
+En Inscripciones vemos sus dos clases:
+
+58
+00:03:57,890 --> 00:04:04,389
+Salsa Inicial por clase, y Bachata Intermedio
+con mensualidad, cada una con sus turnos.
+
+59
+00:04:04,951 --> 00:04:10,163
+Y en Pagos, cada mensualidad o clase
+con su vencimiento, importe y estado:
+
+60
+00:04:10,183 --> 00:04:13,141
+Pagado, Pendiente o Vencido.
+
+61
+00:04:13,161 --> 00:04:16,777
+Desde cada fila se puede cobrar y ver el recibo.
+
+62
+00:04:17,334 --> 00:04:23,267
+En QR e historial, el Historial de clases
+muestra cada asistencia registrada, con la clase,
+
+63
+00:04:23,287 --> 00:04:25,440
+el tipo y la fecha.
+
+64
+00:04:26,005 --> 00:04:33,776
+Así, desde una sola ficha consultamos sus datos,
+clases, mensualidades, pagos y asistencia.
+
+65
+00:04:35,902 --> 00:04:39,664
+Valentina ya tiene su ficha
+completa en el sistema.
+
+66
+00:04:40,166 --> 00:04:45,512
+En el próximo capítulo vamos a inscribirla
+en distintas clases y modalidades.

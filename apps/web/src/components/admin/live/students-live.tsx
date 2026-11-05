@@ -24,6 +24,9 @@ export function StudentsLive() {
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [modal, setModal] = useState(false);
+  // Errors of the "Agregar alumno" form (e.g. duplicated DNI) are shown inside the modal.
+  const [modalError, setModalError] = useState("");
+  useEffect(() => setModalError(""), [modal]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -83,7 +86,7 @@ export function StudentsLive() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setSubmitting(true);
-    setError("");
+    setModalError("");
 
     try {
       const student = await apiFetch<Student>("/admin/students", {
@@ -106,7 +109,7 @@ export function StudentsLive() {
       toast("Alumno creado correctamente");
       router.push("/admin/students/" + student._id);
     } catch (requestError) {
-      setError(apiMessage(requestError));
+      setModalError(apiMessage(requestError));
     } finally {
       setSubmitting(false);
     }
@@ -210,6 +213,7 @@ export function StudentsLive() {
         submitting={submitting}
         onClose={() => setModal(false)}
         onSubmit={create}
+        error={modalError}
       >
         <Field label="Sede">
           <select name="branchId" required defaultValue="">
