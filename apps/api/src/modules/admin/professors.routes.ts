@@ -173,6 +173,44 @@ adminProfessorsRouter.get("/", async (request, response, next) => {
   }
 });
 
+const webOrderSchema = z.object({
+  ids: z.array(objectIdSchema).min(1).max(200)
+});
+
+adminProfessorsRouter.put("/web-order", async (request, response, next) => {
+  try {
+    const input = webOrderSchema.parse(request.body);
+    const organizationId = request.auth!.organizationId;
+
+    if (new Set(input.ids).size !== input.ids.length) {
+      throw new AppError(422, "Hay profesores repetidos en el orden", "INVALID_WEB_ORDER");
+    }
+
+    const found = await ProfessorModel.countDocuments({ _id: { $in: input.ids }, organizationId });
+    if (found !== input.ids.length) {
+      throw new AppError(422, "Uno o más profesores no son válidos", "INVALID_WEB_ORDER");
+    }
+
+    await ProfessorModel.bulkWrite(
+      input.ids.map((id, index) => ({
+        updateOne: { filter: { _id: id, organizationId }, update: { $set: { webOrder: index } } }
+      }))
+    );
+
+    await AuditLogModel.create({
+      organizationId,
+      actorUserId: request.auth!.userId,
+      action: "PROFESSOR_WEB_ORDER_UPDATED",
+      entityType: "Professor",
+      metadata: { ids: input.ids }
+    });
+
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminProfessorsRouter.get("/:id", async (request, response, next) => {
   try {
     const id = objectIdSchema.parse(request.params.id);

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronRight, LayoutGrid, List, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, GripVertical, LayoutGrid, List, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "../admin-ui";
@@ -40,6 +40,125 @@ function ProfessorAvatar({ professor }: { professor: Professor }) {
   return <span className={styles.avatar} aria-label={`Iniciales de ${professor.displayName}`}>{initials}</span>;
 }
 
+function byWebOrder(a: Professor, b: Professor) {
+  return (
+    (a.webOrder ?? Number.MAX_SAFE_INTEGER) - (b.webOrder ?? Number.MAX_SAFE_INTEGER) ||
+    a.displayName.localeCompare(b.displayName, "es")
+  );
+}
+
+function WebOrderModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { toast } = useAdminFeedback();
+  const [list, setList] = useState<Professor[]>([]);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    apiFetch<Paginated<Professor>>("/admin/professors?limit=100&isActive=true")
+      .then((result) => {
+        if (!cancelled) setList(result.items.filter((item) => item.publishOnWeb).sort(byWebOrder));
+      })
+      .catch((requestError) => {
+        if (!cancelled) setError(apiMessage(requestError));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  function move(from: number, to: number) {
+    if (to < 0 || to >= list.length || from === to) return;
+    setList((current) => {
+      const next = [...current];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      await apiFetch("/admin/professors/web-order", {
+        method: "PUT",
+        body: JSON.stringify({ ids: list.map((item) => item._id) })
+      });
+      toast("Orden guardado. La web se actualiza en unos minutos.");
+      onClose();
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <LiveModal
+      open={open}
+      title="Orden en la web"
+      description="Arrastrá para reordenar. Solo aparecen los profesores publicados en la web."
+      submitting={submitting}
+      submitDisabled={loading || list.length === 0}
+      onClose={onClose}
+      onSubmit={save}
+      error={error}
+      submitLabel="Guardar orden"
+    >
+      <div style={{ gridColumn: "1 / -1", display: "grid", gap: 8 }}>
+        {loading && <LoadingBlock />}
+        {!loading && list.length === 0 && !error && (
+          <div className={styles.stateBlock}>No hay profesores publicados en la web.</div>
+        )}
+        {list.map((professor, index) => (
+          <div
+            key={professor._id}
+            draggable
+            onDragStart={() => setDragIndex(index)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={() => {
+              if (dragIndex !== null) move(dragIndex, index);
+              setDragIndex(null);
+            }}
+            onDragEnd={() => setDragIndex(null)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "8px 12px",
+              border: "1px solid var(--border, #ddd)",
+              borderRadius: 10,
+              cursor: "grab",
+              opacity: dragIndex === index ? 0.4 : 1
+            }}
+          >
+            <GripVertical size={18} aria-hidden="true" />
+            <strong style={{ width: 24 }}>{index + 1}</strong>
+            <ProfessorAvatar professor={professor} />
+            <span style={{ flex: 1 }}>{professor.displayName}</span>
+            <button type="button" aria-label={`Subir a ${professor.displayName}`} disabled={index === 0} onClick={() => move(index, index - 1)}>
+              <ArrowUp size={16} aria-hidden="true" />
+            </button>
+            <button type="button" aria-label={`Bajar a ${professor.displayName}`} disabled={index === list.length - 1} onClick={() => move(index, index + 1)}>
+              <ArrowDown size={16} aria-hidden="true" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </LiveModal>
+  );
+}
+
 export function ProfessorsLive() {
   const router = useRouter();
   const { toast } = useAdminFeedback();
@@ -55,6 +174,7 @@ export function ProfessorsLive() {
   const [total, setTotal] = useState(0);
   const [view, setView] = useState<ProfessorView>("cards");
   const [modal, setModal] = useState(false);
+  const [orderModal, setOrderModal] = useState(false);
   const [bioShortDraft, setBioShortDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -214,6 +334,9 @@ export function ProfessorsLive() {
           <option value="inactive">Inactivos</option>
           <option value="all">Todos</option>
         </select>
+        <button type="button" onClick={() => setOrderModal(true)}>
+          <GripVertical size={16} aria-hidden="true" /> Ordenar en la web
+        </button>
         <div className={styles.viewToggle} role="group" aria-label="Vista de profesores">
           <button
             type="button"
@@ -298,6 +421,8 @@ export function ProfessorsLive() {
           />
         </>
       )}
+
+      <WebOrderModal open={orderModal} onClose={() => setOrderModal(false)} />
 
       <LiveModal
         open={modal}

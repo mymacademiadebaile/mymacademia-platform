@@ -35,6 +35,7 @@ export type Professor = {
   bioShort?: string;
   slug?: string;
   publishOnWeb?: boolean;
+  webOrder?: number;
   instagram?: string;
   avatarUrl?: string;
   introVideoUrl?: string;

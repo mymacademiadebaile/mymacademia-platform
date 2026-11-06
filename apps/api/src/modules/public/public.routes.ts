@@ -78,7 +78,7 @@ export async function loadPublicCatalog(): Promise<PublicCatalogDto> {
       .select("name isActive sortOrder")
       .lean(),
     ProfessorModel.find({ organizationId, isActive: true, publishOnWeb: true })
-      .select("displayName isActive slug bioShort bio avatarUrl introVideoUrl instagram disciplineIds publishOnWeb")
+      .select("displayName isActive slug bioShort bio avatarUrl introVideoUrl instagram disciplineIds publishOnWeb webOrder")
       .lean(),
     DanceClassModel.find({ organizationId, status: "ACTIVE", publishOnWeb: { $ne: false } })
       .select("name status publishOnWeb professorIds disciplineIds levelIds schedules")

@@ -15,6 +15,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   OPPORTUNITY_UPDATED: "Seguimiento de contacto actualizado",
   PROFESSOR_CREATED: "Profesor creado",
   PROFESSOR_UPDATED: "Profesor actualizado",
+  PROFESSOR_WEB_ORDER_UPDATED: "Orden de profesores en la web actualizado",
   PROFESSOR_DELETED: "Profesor eliminado",
   PROFESSOR_PASSWORD_RESET: "Contraseña profesor restablecida",
   PROFESSOR_AVATAR_UPDATED: "Foto de profesor actualizada",

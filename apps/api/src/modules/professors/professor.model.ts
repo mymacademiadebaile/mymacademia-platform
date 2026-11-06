@@ -17,6 +17,8 @@ export interface Professor {
   slug?: string;
   /** A professor shows up on the website when `isActive && publishOnWeb`. */
   publishOnWeb: boolean;
+  /** Position on the public website (ascending). Unset professors go last, alphabetically. */
+  webOrder?: number;
   isActive: boolean;
 }
 
@@ -34,6 +36,7 @@ const professorSchema = new Schema<Professor>(
     instagram: { type: String, trim: true },
     slug: { type: String, trim: true, lowercase: true },
     publishOnWeb: { type: Boolean, default: false },
+    webOrder: { type: Number },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }

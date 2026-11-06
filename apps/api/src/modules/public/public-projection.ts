@@ -40,6 +40,7 @@ export interface ProfessorSource {
   instagram?: string | null;
   disciplineIds?: { toString(): string }[];
   publishOnWeb?: boolean | null;
+  webOrder?: number | null;
 }
 
 export interface ClassSource {
@@ -179,7 +180,11 @@ export function buildPublicCatalog(input: PublicCatalogInput): PublicCatalogDto 
 
   const professors = input.professors
     .filter(isProfessorPublic)
-    .sort((a, b) => a.displayName.localeCompare(b.displayName, "es"));
+    .sort(
+      (a, b) =>
+        (a.webOrder ?? Number.MAX_SAFE_INTEGER) - (b.webOrder ?? Number.MAX_SAFE_INTEGER) ||
+        a.displayName.localeCompare(b.displayName, "es")
+    );
   const professorById = new Map(professors.map((professor) => [professor._id.toString(), professor]));
 
   const levels = input.levels.filter((level) => level.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
