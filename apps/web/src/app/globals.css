@@ -146,3 +146,9 @@ html:has([data-public-site]) {
 html:has([data-public-site]) body {
   background: #09090b;
 }
+
+/* Hide Netlify "Powered by" badge */
+.nl-badge,
+#nl-badge {
+  display: none !important;
+}
