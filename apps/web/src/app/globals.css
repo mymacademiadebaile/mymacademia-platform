@@ -49,6 +49,10 @@ select[data-search-open="true"] {
   box-shadow: 0 0 0 3px rgb(91 33 182 / 12%);
 }
 
+.nl-badge {
+  display: none !important;
+}
+
 .searchableSelectPopover {
   position: fixed;
   z-index: 1000;
