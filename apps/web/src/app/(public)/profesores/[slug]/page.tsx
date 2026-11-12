@@ -87,7 +87,7 @@ export default async function ProfessorPage({ params }: ProfessorPageProps) {
                     value: disciplines.map((style, index) => (
                       <span key={style.slug}>
                         {index > 0 ? " · " : ""}
-                        <Link href={`/clases/${style.seoSlug}`}>{style.name}</Link>
+                        <Link href={`/clases/${style.seoSlug}`} prefetch={false}>{style.name}</Link>
                       </span>
                     ))
                   }

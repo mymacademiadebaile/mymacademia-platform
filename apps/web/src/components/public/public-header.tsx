@@ -71,7 +71,7 @@ export function PublicHeader() {
         </nav>
 
         <div className={s.actions}>
-          <Link href="/login" className={s.loginLink} aria-label="Ingresar al sistema" title="Ingresar al sistema">
+          <Link href="/login" prefetch={false} className={s.loginLink} aria-label="Ingresar al sistema" title="Ingresar al sistema">
             <LogIn size={19} strokeWidth={1.8} aria-hidden="true" />
           </Link>
           <a
@@ -107,7 +107,7 @@ export function PublicHeader() {
           <ol className={s.panelList}>
             {PUBLIC_NAV.map((item, index) => (
               <li key={item.href} style={{ "--i": index } as React.CSSProperties}>
-                <Link href={item.href} className={s.panelLink} onClick={() => setOpen(false)}>
+                <Link href={item.href} prefetch={false} className={s.panelLink} onClick={() => setOpen(false)}>
                   <span className={s.panelIndex} aria-hidden="true">
                     {String(index + 1).padStart(2, "0")}
                   </span>
@@ -133,7 +133,7 @@ export function PublicHeader() {
             <WhatsAppIcon size={18} />
             Quiero bailar
           </a>
-          <Link className={s.panelLogin} href="/login" onClick={() => setOpen(false)}>
+          <Link className={s.panelLogin} href="/login" prefetch={false} onClick={() => setOpen(false)}>
             Ingresar al sistema
           </Link>
         </div>

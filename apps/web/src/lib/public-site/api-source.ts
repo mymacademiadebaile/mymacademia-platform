@@ -5,11 +5,12 @@
  * describe the HTTP transport to the read-only API.
  */
 import type { DanceStyle, PublicProfessor, PublicSocialLinks, ScheduleEntry, WeekDay } from "./types";
+import { fetchPublicApi } from "./public-api-fetch";
 
-// Prerendering must use the production public API: the private Services binding
-// is only guaranteed at runtime. PUBLIC_BUILD_API_URL can override the build
-// source for local verification without changing runtime traffic.
-const BUILD_API_URL = process.env.PUBLIC_BUILD_API_URL ?? "https://www.mymacademiadebaile.com.ar/api";
+// Prerendering cannot use the runtime binding. In production Netlify sets
+// PUBLIC_BUILD_API_URL to Render's public /api URL, bypassing the website and
+// its redirects. The root-domain fallback avoids the legacy www → root hop.
+const BUILD_API_URL = process.env.PUBLIC_BUILD_API_URL ?? "https://mymacademiadebaile.com.ar/api";
 const API_URL = (
   process.env.NEXT_PHASE === "phase-production-build"
     ? BUILD_API_URL
@@ -131,7 +132,7 @@ export function mapCatalog(data: ApiCatalog): PublicCatalog {
 }
 
 async function fetchCatalogUncached(): Promise<PublicCatalog> {
-  const response = await fetch(`${API_URL}/public/catalog`, {
+  const response = await fetchPublicApi(`${API_URL}/public/catalog`, {
     next: { tags: ["public-site"] }
   });
   if (!response.ok) {
@@ -153,7 +154,7 @@ export async function fetchCatalogFromApi(): Promise<PublicCatalog> {
 
 /** Links shown in the public footer; the API only returns configured, safe social URLs. */
 async function fetchPublicSocialLinksUncached(): Promise<PublicSocialLinks> {
-  const response = await fetch(`${API_URL}/public/social-links`, {
+  const response = await fetchPublicApi(`${API_URL}/public/social-links`, {
     next: { tags: ["public-site"] }
   });
   if (!response.ok) {
@@ -171,7 +172,7 @@ interface ApiSiteImages {
 }
 
 async function fetchPublicSiteImagesUncached(): Promise<ApiSiteImages> {
-  const response = await fetch(`${API_URL}/public/site-images`, {
+  const response = await fetchPublicApi(`${API_URL}/public/site-images`, {
     next: { tags: ["public-site"] }
   });
   if (!response.ok) {

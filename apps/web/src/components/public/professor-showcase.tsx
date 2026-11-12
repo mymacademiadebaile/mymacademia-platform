@@ -46,6 +46,7 @@ function ProfessorCard({ professor, index, styles }: ProfessorCardProps) {
         <div className={s.links}>
           <Link
             href={`/profesores/${professor.slug}`}
+            prefetch={false}
             className={site.textLink}
             {...trackAttrs(PUBLIC_EVENTS.viewProfessor, professor.slug)}
           >

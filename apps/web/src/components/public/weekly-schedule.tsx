@@ -110,7 +110,7 @@ export function WeeklySchedule({ entries, showStyleFilter = true }: WeeklySchedu
                       </span>
                     </p>
                     <p className={s.slotStyle}>
-                      <Link href={`/clases/${entry.style.seoSlug}`}>{entry.style.name}</Link>
+                      <Link href={`/clases/${entry.style.seoSlug}`} prefetch={false}>{entry.style.name}</Link>
                     </p>
                     {entry.professors.length ? (
                       <p className={s.slotProf}>{entry.professors.map((professor) => professor.displayName).join(" · ")}</p>

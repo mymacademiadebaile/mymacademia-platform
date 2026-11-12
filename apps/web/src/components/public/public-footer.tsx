@@ -46,7 +46,7 @@ export function PublicFooter({ branch, socialLinks }: { branch: Branch; socialLi
           <ul>
             {SITE_LINKS.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className={s.link}>
+                <Link href={link.href} prefetch={false} className={s.link}>
                   {link.label}
                 </Link>
               </li>
@@ -99,7 +99,7 @@ export function PublicFooter({ branch, socialLinks }: { branch: Branch; socialLi
         <p>
           © {year} {SITE.name}. La Plata, Buenos Aires, Argentina.
         </p>
-        <Link href="/login" className={s.staff}>
+        <Link href="/login" prefetch={false} className={s.staff}>
           Acceso equipo
         </Link>
       </div>

@@ -32,6 +32,7 @@ export function DanceStyleCard({ style, index, professors, headingLevel: Heading
       {/* Makes the whole card a link for mouse and touch; keyboard users get the "Ver clase" link below. */}
       <Link
         href={`/clases/${style.seoSlug}`}
+        prefetch={false}
         className={s.overlay}
         tabIndex={-1}
         aria-hidden="true"
@@ -66,6 +67,7 @@ export function DanceStyleCard({ style, index, professors, headingLevel: Heading
         </dl>
         <Link
           href={`/clases/${style.seoSlug}`}
+          prefetch={false}
           className={`${site.textLink} ${s.cta}`}
           {...trackAttrs(PUBLIC_EVENTS.viewStyle, style.slug)}
         >

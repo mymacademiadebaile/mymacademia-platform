@@ -33,7 +33,7 @@ export function UpcomingClasses({ items }: UpcomingClassesProps) {
             </p>
             <div className={s.ticketWhat}>
               <p className={s.ticketStyle}>
-                <Link href={`/clases/${item.entry.style.seoSlug}`}>{item.entry.style.name}</Link>
+                <Link href={`/clases/${item.entry.style.seoSlug}`} prefetch={false}>{item.entry.style.name}</Link>
               </p>
               <p className={s.ticketMeta}>
                 {[item.entry.levels.join(" · "), item.entry.professors.map((p) => p.displayName).join(" · ")]

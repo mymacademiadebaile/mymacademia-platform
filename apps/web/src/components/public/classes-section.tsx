@@ -65,7 +65,7 @@ export function ClassesSection({
                     </h3>
                     {context === "professor" ? (
                       <p className={s.meta}>
-                        <Link href={`/clases/${group.style.seoSlug}`}>{group.style.name}</Link>
+                        <Link href={`/clases/${group.style.seoSlug}`} prefetch={false}>{group.style.name}</Link>
                       </p>
                     ) : group.professors.length ? (
                       <p className={s.meta}>
@@ -73,7 +73,7 @@ export function ClassesSection({
                         {group.professors.map((professor, index) => (
                           <span key={professor.slug}>
                             {index > 0 ? " · " : ""}
-                            <Link href={`/profesores/${professor.slug}`}>{professor.displayName}</Link>
+                            <Link href={`/profesores/${professor.slug}`} prefetch={false}>{professor.displayName}</Link>
                           </span>
                         ))}
                       </p>

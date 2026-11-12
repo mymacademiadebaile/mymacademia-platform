@@ -100,7 +100,7 @@ export default async function StylePage({ params }: StylePageProps) {
                     value: teachers.map((teacher, index) => (
                       <span key={teacher.slug}>
                         {index > 0 ? " · " : ""}
-                        <Link href={`/profesores/${teacher.slug}`}>{teacher.displayName}</Link>
+                        <Link href={`/profesores/${teacher.slug}`} prefetch={false}>{teacher.displayName}</Link>
                       </span>
                     ))
                   }
@@ -151,6 +151,7 @@ export default async function StylePage({ params }: StylePageProps) {
               <li key={item.slug}>
                 <Link
                   href={`/clases/${item.seoSlug}`}
+                  prefetch={false}
                   className={`${site.textLink} ${detail.othersLink}`}
                 >
                   {item.name} <ArrowIcon size={28} />
